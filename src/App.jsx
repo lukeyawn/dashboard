@@ -2,21 +2,17 @@ import './styles.css';
 import CountdownWidget from "./components/CountdownWidget";
 import TasksWidget from "./components/TasksWidget"
 import WidgetShell from './components/WidgetShell';
+import Dashboard from './components/Dashboard'
 
-// scratch
-import Counter from './scratch/Counter';
-import './scratch/scratch.css';
 export default function App() {
     return (
-        <div className="dashboard">
-            <WidgetShell>
+        <Dashboard>
+            <WidgetShell area="countdown">
                 <CountdownWidget time={42} unit="weeks" event="Thanksgiving Break"/>
             </WidgetShell>
-            <Counter></Counter>
-            <WidgetShell>
+            <WidgetShell area="tasks">
                 <TasksWidget tasks={[{id: 1, name: "do laundry"}, {id: 2, name: "Finish OS Shell project"}]}/>
-            </WidgetShell>
-            
-        </div>
+            </WidgetShell> 
+        </Dashboard>
     );
 }
