@@ -1,0 +1,21 @@
+.countdown-widget {
+    width: 100%;
+    height: 100%;
+    border: 1px solid #e5e5e5;  
+    background-color: #f5f5f5;
+    border-radius: 16px;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    grid-area: countdown;
+}
+
+.countdown-number {
+    margin: 0px;
+    font-size: 9rem;
+}
+
+.countdown-label {
+    margin: 0px;
+}
