@@ -1,5 +1,12 @@
+body {
+    background-image: url('../public/background.jpg');
+    background-size: cover;
+    background-position: center;
+}
+
 .dashboard {
     display: grid;
+    gap: 15px;
     width: 100%;
     min-height: 0;
     /* min-height: auto overrides aspect ratio! */
@@ -15,11 +22,14 @@
     flex-shrink: 0;
 }
 
-
-.countdown-widget {
+.widget-shell {
+    container-type: inline-size;
     border: 1px solid #e5e5e5;  
     background-color: #f5f5f5;
-    border-radius: 16px;
+    border-radius: 1rem;
+}
+
+.countdown-widget {
     display: flex;
     flex-direction: column;
     align-items: center;
@@ -29,9 +39,11 @@
 
 .countdown-number {
     margin: 0px;
-    font-size: 9rem;
+    font-size: clamp(1.5rem, 50cqw, 6rem);
 }
 
 .countdown-label {
     margin: 0px;
+    font-size: clamp(0.5rem, 10cqw, 2rem);
+    text-align: center;
 }
