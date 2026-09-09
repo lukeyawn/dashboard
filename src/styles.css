@@ -1,7 +1,15 @@
+
+
+html {
+    height: 100%;
+}
 body {
     background-image: url('../public/background.jpg');
     background-size: cover;
     background-position: center;
+    background-repeat: no-repeat;
+    height: 100%;
+    margin: 15px;
 }
 
 .dashboard {
@@ -24,9 +32,15 @@ body {
 
 .widget-shell {
     container-type: inline-size;
-    border: 1px solid #e5e5e5;  
-    background-color: #f5f5f5;
+    border: 2px solid hsla(0, 0%, 80%, 0.5);  
     border-radius: 1rem;
+    backdrop-filter: blur(5px);
+    background:
+    linear-gradient(135deg,
+        hsla(0, 0%, 80%, 0.6),
+        hsla(0, 0%, 65%, 0.4) 40%,
+        hsla(0, 0%, 80%, 0.6));
+    box-shadow: inset 1px 1px 10px hsla(0, 0%, 80%, 0.5);
 }
 
 .countdown-widget {
@@ -40,10 +54,14 @@ body {
 .countdown-number {
     margin: 0px;
     font-size: clamp(1.5rem, 50cqw, 6rem);
+    color: hsla(0, 0%, 12%, 0.9);
+    text-shadow: 0 1px 2px hsla(0, 0%, 100%, 0.5);
 }
 
 .countdown-label {
     margin: 0px;
     font-size: clamp(0.5rem, 10cqw, 2rem);
     text-align: center;
+    color: hsla(0, 0%, 12%, 0.9);
+    text-shadow: 0 1px 2px hsla(0, 0%, 100%, 0.5);
 }
