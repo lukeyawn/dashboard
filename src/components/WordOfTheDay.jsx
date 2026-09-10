@@ -1,9 +1,9 @@
-export default function WordOfTheDay({word, pinyin, definition}) {
+export default function WOTDWidget({word, pinyin, definition}) {
     return (
         <div class="wotd-widget">
             <div class="pinyin">{pinyin}</div>
-            <div class="pinyin">{word}</div>
-            <div class="pinyin">{definition}</div>
+            <div class="wotd">{word}</div>
+            <div class="definition">{definition}</div>
         </div>
     );
 }

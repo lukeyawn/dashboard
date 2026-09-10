@@ -14,7 +14,7 @@ body {
 
 .dashboard {
     display: grid;
-    gap: 15px;
+    gap: 1.25vw;
     width: 100%;
     min-height: 0;
     /* min-height: auto overrides aspect ratio! */
@@ -32,11 +32,12 @@ body {
 
 .widget-shell {
     container-type: inline-size;
-    border: 1px solid hsla(0, 0%, 70%, 0.3);  
-    border-radius: 1rem;
+    border: 1px solid hsla(0, 0%, 70%, 0.3); 
     backdrop-filter: blur(15px);
     background-color: hsla(0, 0%, 50%, 0.1);
     box-shadow: inset 0px 0px 20px hsla(0, 0%, 80%, 0.4);
+    padding: 5px;
+    border-radius: 1.5vw;
 }
 
 .countdown-widget {
@@ -44,16 +45,36 @@ body {
     flex-direction: column;
     align-items: center;
     justify-content: center;
-    grid-area: countdown;
 }
 
 .countdown-number {
     margin: 0px;
-    font-size: clamp(1.5rem, 50cqw, 6rem);
+    font-size: 50cqw;
 }
 
 .countdown-label {
     margin: 0px;
-    font-size: clamp(0.5rem, 9cqw, 2rem);
+    font-size: 12cqw;
     text-align: center;
 }
+
+.wotd-widget {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+}
+
+.wotd {
+    font-size: 50cqw;
+    line-height: 1;
+}
+
+.pinyin {
+    font-size: 20cqw;
+}
+
+.definition {
+    font-size: 25cqw;
+}
+
