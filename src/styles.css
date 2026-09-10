@@ -1,5 +1,3 @@
-
-
 html {
     height: 100%;
 }
@@ -10,6 +8,8 @@ body {
     background-repeat: no-repeat;
     height: 100%;
     margin: 15px;
+    color: white;
+    font-family: "Inter";
 }
 
 .dashboard {
@@ -22,25 +22,21 @@ body {
     grid-template-columns: repeat(11, minmax(0, 1fr));
     grid-template-rows: repeat(5, minmax(0, 1fr));
     grid-template-areas:
-        "wotd     calendar   calendar  calendar  job   job   job   job   goals       goals       goals"
-        "timeline calendar   calendar  calendar  job   job   job   job   goals       goals       goals"
-        "timeline birthdays  birthdays countdown tasks tasks tasks tasks heatmap     heatmap     heatmap"
-        "timeline UNASSIGNED deadlines deadlines tasks tasks tasks tasks heatmap     heatmap     heatmap"
-        "timeline UNASSIGNED deadlines deadlines tasks tasks tasks tasks habit-entry habit-entry habit-entry";
+        "calendar calendar calendar  calendar  job   job   job   job   goals goals goals"
+        "calendar calendar calendar  calendar  job   job   job   job   goals goals goals"
+        "timeline timeline deadlines deadlines tasks tasks tasks tasks habit habit habit"
+        "timeline timeline deadlines deadlines tasks tasks tasks tasks habit habit habit"
+        "timeline timeline wotd      countdown tasks tasks tasks tasks habit habit habit";
     flex-shrink: 0;
 }
 
 .widget-shell {
     container-type: inline-size;
-    border: 2px solid hsla(0, 0%, 80%, 0.5);  
+    border: 1px solid hsla(0, 0%, 70%, 0.3);  
     border-radius: 1rem;
-    backdrop-filter: blur(5px);
-    background:
-    linear-gradient(135deg,
-        hsla(0, 0%, 80%, 0.6),
-        hsla(0, 0%, 65%, 0.4) 40%,
-        hsla(0, 0%, 80%, 0.6));
-    box-shadow: inset 1px 1px 10px hsla(0, 0%, 80%, 0.5);
+    backdrop-filter: blur(15px);
+    background-color: hsla(0, 0%, 50%, 0.1);
+    box-shadow: inset 0px 0px 20px hsla(0, 0%, 80%, 0.4);
 }
 
 .countdown-widget {
@@ -54,14 +50,10 @@ body {
 .countdown-number {
     margin: 0px;
     font-size: clamp(1.5rem, 50cqw, 6rem);
-    color: hsla(0, 0%, 12%, 0.9);
-    text-shadow: 0 1px 2px hsla(0, 0%, 100%, 0.5);
 }
 
 .countdown-label {
     margin: 0px;
-    font-size: clamp(0.5rem, 10cqw, 2rem);
+    font-size: clamp(0.5rem, 9cqw, 2rem);
     text-align: center;
-    color: hsla(0, 0%, 12%, 0.9);
-    text-shadow: 0 1px 2px hsla(0, 0%, 100%, 0.5);
 }

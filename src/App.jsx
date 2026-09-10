@@ -17,11 +17,8 @@ export default function App() {
             <WidgetShell area="calendar"></WidgetShell>
             <WidgetShell area="job"></WidgetShell>
             <WidgetShell area="goals"></WidgetShell>
-            <WidgetShell area="heatmap"></WidgetShell>
-            <WidgetShell area="habit-entry"></WidgetShell>
+            <WidgetShell area="habit"></WidgetShell>
             <WidgetShell area="timeline"></WidgetShell>
-            <WidgetShell area="birthdays"></WidgetShell>
-            <WidgetShell area="UNASSIGNED"></WidgetShell>
             <WidgetShell area="deadlines"></WidgetShell>
         </Dashboard>
     );
