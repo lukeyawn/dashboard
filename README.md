@@ -28,6 +28,26 @@ Log in with the `API_TOKEN` from `.env`.
 
 The first `npm run e2e` needs `npx playwright install chromium`. Screenshots of every resolution land in `test-results/screens/`.
 
+## Repository layout
+
+Each directory has a README listing its files and what they're for.
+
+| Directory | What's in it |
+|---|---|
+| [`src/`](src/README.md) | The frontend: the dashboard, the login screen and `/manage` (React, plain CSS) |
+| [`server/`](server/README.md) | The Express API, the SQLite database and its migrations, Google Calendar and weather |
+| [`shared/`](shared/README.md) | Schemas and date helpers used by the server, the frontend and the MCP server |
+| [`mcp/`](mcp/README.md) | The MCP server that lets Claude read and change the dashboard |
+| [`vm/`](vm/README.md) | The Google Cloud VM: setup, deploy, services and backups |
+| [`kiosk/`](kiosk/README.md) | The Raspberry Pi kiosk's setup |
+| [`e2e/`](e2e/README.md) | Browser tests: layout at 8 screen sizes, and full-stack flows |
+| [`scripts/`](scripts/README.md) | The backup, the word-list builder and CI's secret check |
+| [`docs/`](docs/README.md) | The design, and the decisions made while building |
+| `public/` | Files served as-is: the background photo and the favicon |
+| `.github/` | The CI workflow (`workflows/ci.yml`) and Dependabot's weekly updates |
+
+At the root: `package.json` (scripts and dependencies), `vite.config.js`, `eslint.config.js`, `playwright.config.js`, `.env.example` (the settings, with how to make tokens), and `.nvmrc` (Node 24).
+
 ## Credits
 
 The background photo is by [Sarthaak Maji](https://unsplash.com/@srtkmaji) on [Unsplash](https://unsplash.com/photos/snow-covered-mountain-under-starry-night-dOA35bihSjk), used under the [Unsplash License](https://unsplash.com/license).
