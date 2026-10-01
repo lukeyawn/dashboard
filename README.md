@@ -6,7 +6,12 @@ The full design, and the reasons behind it, is in [docs/DESIGN.md](docs/DESIGN.m
 
 ## Status
 
-Being built in phases ([DESIGN §12](docs/DESIGN.md#12-build-plan)). Done: the layout (any landscape screen), the API with token login, SQLite, Google Calendar, weather, all nine widgets with their one-tap actions, backups and the server's setup scripts, an MCP server for Claude ([mcp/README.md](mcp/README.md)), and editors in a ✎ modal on the dashboard and at `/manage` (works on a phone). and the kiosk: night mode, the reload rules, and the Pi's setup ([kiosk/SETUP.md](kiosk/SETUP.md)). What's left needs real hardware and accounts: setting up the server ([vm/SETUP.md](vm/SETUP.md)) and the Pi.
+Being built in phases ([DESIGN §12](docs/DESIGN.md#12-build-plan)).
+
+- **Live:** the server runs on a Google Cloud VM, reachable only over Tailscale ([vm/SETUP.md](vm/SETUP.md)). The database is backed up continuously to Cloud Storage and nightly to Google Drive. All nine widgets work, along with the editors in a ✎ modal and at `/manage` (which works on a phone), and the MCP server for Claude Code ([mcp/README.md](mcp/README.md)).
+- **Built, waiting for hardware:** the kiosk, with night mode, the reload rules and the Pi's setup ([kiosk/SETUP.md](kiosk/SETUP.md)).
+- **In progress:** phase 7, data an agent can work with. The status line is merged. Richer tasks (deadlines merged in) and a change record with undo are in review.
+- **Next:** phases 8 and 9: claude.ai connectors and a scheduled Claude agent ([docs/CONNECTOR.md](docs/CONNECTOR.md), once merged).
 
 ## Development
 
