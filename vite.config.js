@@ -11,6 +11,7 @@ export default defineConfig({
     test: {
         // tests run in Node unless a file asks for jsdom with `// @vitest-environment jsdom`
         include: ['{src,server,shared,mcp}/**/*.test.{js,jsx}'],
+        setupFiles: ['src/testing/setup.js'],
         coverage: {
             provider: 'v8',
             include: ['server/**/*.js', 'shared/**/*.js', 'src/lib/**/*.js', 'src/hooks/**/*.js'],

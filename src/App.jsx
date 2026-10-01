@@ -12,7 +12,7 @@ import TasksWidget from './widgets/tasks/TasksWidget';
 import TimelineWidget from './widgets/timeline/TimelineWidget';
 import WordOfTheDayWidget from './widgets/wotd/WordOfTheDayWidget';
 
-// placeholder data until these come from real sources
+// placeholder data until these widgets read the API in phase 2
 const applications = [
     {id: 1, company: "Google", role: "SWE Intern", status: "interview"},
     {id: 2, company: "Stripe", role: "Backend Intern", status: "applied"},
@@ -52,11 +52,6 @@ const deadlines = [
     {id: 4, name: "Algorithms midterm", due: "2026-10-14"},
 ];
 
-const tasks = [
-    {id: 1, name: "Do laundry"},
-    {id: 2, name: "Finish OS Shell project"},
-];
-
 export default function App() {
     return (
         <Page>
@@ -83,7 +78,7 @@ export default function App() {
                     <CountdownWidget time={42} unit="days" event="Thanksgiving Break" />
                 </WidgetShell>
                 <WidgetShell area="tasks">
-                    <TasksWidget tasks={tasks} />
+                    <TasksWidget />
                 </WidgetShell>
                 <WidgetShell area="habits">
                     <HabitsWidget habits={habits} />

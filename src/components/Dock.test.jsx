@@ -1,5 +1,5 @@
 // @vitest-environment jsdom
-import { act, cleanup, render, screen } from '@testing-library/react';
+import { act, render, screen } from '@testing-library/react';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import Dock from './Dock';
 
@@ -8,10 +8,7 @@ describe('Dock', () => {
         vi.useFakeTimers();
         vi.setSystemTime(new Date(2026, 8, 30, 13, 35, 58));
     });
-    afterEach(() => {
-        cleanup();
-        vi.useRealTimers();
-    });
+    afterEach(() => vi.useRealTimers());
 
     it('shows a live clock and the date', () => {
         render(<Dock />);

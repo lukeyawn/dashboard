@@ -1,4 +1,5 @@
 import { expect, test } from '@playwright/test';
+import { mockApi } from './fixtures/api.js';
 
 // The dashboard has to work on any landscape screen (DESIGN §7, §13).
 const RESOLUTIONS = [
@@ -51,8 +52,9 @@ for (const [width, height] of RESOLUTIONS) {
         test.use({ viewport: { width, height } });
 
         test('fits the screen', async ({ page }) => {
+            await mockApi(page);
             await page.goto('/');
-            await page.locator('.dock').waitFor();
+            await page.locator('.task').first().waitFor();
             await page.evaluate(() => document.fonts.ready);
             await page.screenshot({ path: `test-results/screens/${width}x${height}.png` });
 
