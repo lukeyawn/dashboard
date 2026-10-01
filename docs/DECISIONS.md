@@ -180,3 +180,29 @@ Choices made while building, where [DESIGN.md](DESIGN.md) left room or turned ou
 | `/manage` filters tasks by priority, effort and area, and sorts them by priority-then-due, due date, or newest. The tiles keep one fixed order. | Filtering needs room; the wall needs to be glanceable. |
 | History lists the last 50 changes in plain words ("Completed task …", "Moved application … to interview"), filterable by who made them. Undo takes one tap, because an undo can itself be undone. | Reviewing what Claude did, and reversing it, has to be quick. |
 | The change record keeps a year of entries, pruned at most once a day. | Long enough to look back on, small enough to stay fast. |
+
+## Phase 8: the claude.ai chat connector
+
+| Choice | Why |
+|---|---|
+| The design's PR 1 (the door) and PR 2 (go-live) are one PR. | PR 2 could only open after PR 1 merged, adding a review round before the owner could test with claude.ai. Funnel stays off until the owner runs `vm/CONNECTOR.md`, so merging exposes nothing. |
+| Files beyond CONNECTOR.md §15's list: `server/testing.js` (the public listener and a `signIn` helper for tests), `server/backup.js` (the export leaves out `oauth_*`), `mcp/client.js` (its "can't reach" hint is now a parameter), `mcp/index.js` (sends the same instructions), `src/widgets/countdown/countdown.js` (passes the mark through), the Tasks, Due soon and Job tiles' CSS (room for the mark), `src/manage/History.jsx` (says Claude Code or claude.ai), `scripts/check-secrets.sh`, and the READMEs. | Each turned out to be needed; none changes the design. |
+| Unchecking a habit (`DELETE /api/habits/:id/checks/:date`) is on the chat connector's allow-list. | It's the quick action "not done today", not a deletion of anything, and `check_habit` needs it. Deleting a habit itself stays refused. |
+| The allow-list runs before routing, so a connector gets 403 even for a route that doesn't exist. | It never learns which routes exist beyond its own. |
+| A connector's access token is accepted only as a bearer header, never from the login cookie. | Only claude.ai's servers hold it, and they send it as a header. |
+| The approval page's address is `PUBLIC_URL` without its port; `TAILNET_URL` overrides it. | The dashboard and the public door are the same machine name, so nothing else needs setting. |
+| Approving or denying needs the owner's token; the kiosk's is refused. | A sign-in is started from claude.ai on the owner's own laptop or phone, never at the wall. |
+| The connect cookie is named per sign-in (`dashboard_connect_<id>`) and is `SameSite=Lax`. | Two sign-ins in progress (chat, then agent) don't overwrite each other's. Lax, because the browser arrives from claude.ai. |
+| Waiting sign-ins and codes live in memory. | They last 5 minutes and 60 seconds; a restart just means clicking Connect again. |
+| A refresh that finds a reason to end a connection (expired, or a retired token presented) records the end outside the failing transaction. | Inside it, the error that answers `invalid_grant` would roll the revocation back. A test caught this. |
+| Retired refresh tokens are kept as hashes until their connection is deleted. | Without them, an old token used after its replacement would just fail, instead of revealing that a copy exists. |
+| `/.well-known/oauth-protected-resource` at the root describes the chat connector. | Some clients look there before the path-specific document. |
+| The write cap counts changes, not requests, made through chat connections since midnight, from the change record. | One source of truth, no new state, and it can't drift from what Claude's changes shows. |
+| The ✦ mark matches a row by id and `created_at`. | SQLite reuses the highest id after a delete, so after undoing Claude's newest item, your next one would otherwise inherit its mark. A test covers it. |
+| The agent's token signs in but gets no tools, and `oauth-client.sh` doesn't make the agent's client yet. | Its tools and the review modal come with suggestions (PR 3). Until then `/manage` doesn't show a connector that can't do anything. |
+| The public log line includes the visitor's address (`from=`). | It answers CONNECTOR.md's open question about `X-Forwarded-For` on the first real request, and makes abuse visible. |
+| The instructions about untrusted email text are sent by the stdio server too. | Claude Code reads email through its own connectors as well. |
+| Write tools' descriptions end "The owner sees every change and can undo it." | Claude knows its changes are visible, and can say so. |
+| Switching a connector off on `/manage` takes a second tap; switching it on doesn't. Revoke and Undo everything since take a second tap too. | One stray tap shouldn't cut claude.ai off or undo a day's work. Turning something on is harmless. |
+| Undo everything since offers the last hour, today, or a picked time, and covers claude.ai only unless widened. | The common cases are "that run just now" and "today". |
+| `oauth-client.sh` makes each secret from 32 bytes of `/dev/urandom`, base64url. The client ID starts `chat-`. | As strong as the tokens, with no Node needed; the prefix makes the two clients easy to tell apart later. |

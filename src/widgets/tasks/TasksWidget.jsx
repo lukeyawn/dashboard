@@ -1,6 +1,7 @@
 import { useCallback, useState } from 'react';
 import { today } from '../../../shared/dates';
 import { compareTasks, isDueSoon } from '../../../shared/tasks';
+import ClaudeMark from '../../components/ClaudeMark';
 import EditButton from '../../components/EditButton';
 import { TasksEditor } from '../../editors/editors';
 import { useNow } from '../../hooks/useNow';
@@ -53,6 +54,7 @@ function TaskList({ tasks, pending, todayDate }) {
                             <span className="task-name">{t.name}</span>
                             {t.effort === 'quick' && <span className="task-tag">quick</span>}
                         </label>
+                        {t.claude_change && <ClaudeMark change={t.claude_change} name={t.name} onUndone={tasks.refresh} />}
                     </li>
                 );
             })}

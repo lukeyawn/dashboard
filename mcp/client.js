@@ -8,7 +8,8 @@ export class DashboardError extends Error {
     }
 }
 
-export function createClient({ baseUrl, token, fetch = globalThis.fetch }) {
+// unreachable: what to say when the dashboard can't be reached
+export function createClient({ baseUrl, token, fetch = globalThis.fetch, unreachable = 'Is this computer on the Tailscale network?' }) {
     return async function call(method, path, body) {
         let res;
         try {
@@ -24,7 +25,7 @@ export function createClient({ baseUrl, token, fetch = globalThis.fetch }) {
                 signal: AbortSignal.timeout(15_000),
             });
         } catch (err) {
-            throw new DashboardError(`Can't reach the dashboard at ${baseUrl}: ${err.message}. Is this computer on the Tailscale network?`);
+            throw new DashboardError(`Can't reach the dashboard at ${baseUrl}: ${err.message}. ${unreachable}`);
         }
         if (res.status === 204) return null;
         const json = await res.json().catch(() => null);

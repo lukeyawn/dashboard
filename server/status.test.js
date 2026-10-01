@@ -59,3 +59,15 @@ describe('readBackupStatus', () => {
         expect(status.calendar.configured).toBe(true);
     });
 });
+
+describe('connector problems', () => {
+    it('reports a lost connection and a used-up day, per connector', () => {
+        const connectors = [{ name: 'chat', lost: true, capped: true }, { name: 'agent', lost: true, capped: false }];
+        expect(problems({ connectors }, 0)).toEqual([
+            { kind: 'connector-chat', message: 'claude.ai disconnected: reconnect' },
+            { kind: 'connector-chat-limit', message: "claude.ai used up today's changes" },
+            { kind: 'connector-agent', message: "claude.ai's agent connector disconnected: reconnect" },
+        ]);
+        expect(problems({ connectors: [{ name: 'chat', lost: false, capped: false }] }, 0)).toEqual([]);
+    });
+});

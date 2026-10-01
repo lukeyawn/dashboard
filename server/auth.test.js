@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { LOGIN_LIMIT, checkTokens, createAuth, createLoginLimiter, parseCookies } from './auth.js';
+import { checkTokens, createAuth, parseCookies } from './auth.js';
 import { API_TOKEN, KIOSK_TOKEN } from './testing.js';
 
 describe('checkTokens', () => {
@@ -33,29 +33,5 @@ describe('identify', () => {
         for (const token of [API_TOKEN + 'x', API_TOKEN.slice(1), '', null, undefined, 42]) {
             expect(auth.identify(token)).toBeNull();
         }
-    });
-});
-
-describe('login limiter', () => {
-    it(`locks after ${LOGIN_LIMIT.failures} failures within the window, then unlocks`, () => {
-        let time = 0;
-        const limiter = createLoginLimiter({ now: () => time });
-        for (let i = 0; i < LOGIN_LIMIT.failures - 1; i++) limiter.recordFailure();
-        expect(limiter.isLocked()).toBe(false);
-        limiter.recordFailure();
-        expect(limiter.isLocked()).toBe(true);
-        time += LOGIN_LIMIT.windowMs - 1;
-        expect(limiter.isLocked()).toBe(true);
-        time += 1;
-        expect(limiter.isLocked()).toBe(false);
-    });
-
-    it('forgets failures older than the window', () => {
-        let time = 0;
-        const limiter = createLoginLimiter({ now: () => time });
-        for (let i = 0; i < LOGIN_LIMIT.failures - 1; i++) limiter.recordFailure();
-        time += LOGIN_LIMIT.windowMs;
-        limiter.recordFailure();
-        expect(limiter.isLocked()).toBe(false);
     });
 });

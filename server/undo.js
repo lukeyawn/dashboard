@@ -78,7 +78,7 @@ export function createUndo(db, log) {
         return change.before;
     }
 
-    return db.transaction(changeId => {
+    const undo = db.transaction(changeId => {
         const change = log.get(changeId);
         if (!change) throw new HttpError(404, `There's no change ${changeId}`);
         if (ROW_TABLES.has(change.resource)) return undoRow(change);
@@ -86,6 +86,27 @@ export function createUndo(db, log) {
         if (change.resource === 'settings') return undoSetting(change);
         throw new HttpError(409, "That change can't be undone.");
     });
+
+    // Undoes every change matching the filters (actors, via, since), newest
+    // first, in one transaction (docs/CONNECTOR.md §6). A change to an item
+    // edited since is skipped and reported, never forced, so this can't
+    // overwrite the owner's own later edits.
+    undo.since = db.transaction(({ since, actors, via }) => {
+        const undone = [];
+        const skipped = [];
+        for (const change of log.matching({ actor: actors, via, since })) {
+            try {
+                undo(change.id);
+                undone.push(change);
+            } catch (err) {
+                if (!(err instanceof HttpError) || err.status !== 409) throw err;
+                skipped.push({ change, reason: err.message });
+            }
+        }
+        return { undone, skipped };
+    });
+
+    return undo;
 }
 
 function pick(object, keys) {

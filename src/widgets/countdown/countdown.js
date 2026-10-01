@@ -7,7 +7,8 @@ export function chooseCountdown({ todayDate, countdowns = [], birthdays = [] }) 
     if (soonBirthday) return { label: soonBirthday.title, date: soonBirthday.date };
     const upcoming = countdowns.filter(c => c.target_date >= todayDate);
     const chosen = upcoming.find(c => c.pinned) ?? upcoming[0];
-    return chosen ? { label: chosen.label, date: chosen.target_date } : null;
+    if (!chosen) return null;
+    return { label: chosen.label, date: chosen.target_date, ...(chosen.claude_change ? { claude_change: chosen.claude_change } : {}) };
 }
 
 // Days when 60 or fewer remain, otherwise weeks; "Today" on the day itself

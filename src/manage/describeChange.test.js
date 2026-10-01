@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { describeChange } from './describeChange';
+import { describeChange, whoMade } from './describeChange';
 
 const task = fields => ({ id: 1, name: 'Pset 4', done_at: null, priority: 'normal', due: null, updated_at: 'a', ...fields });
 const change = (resource, action, before, after, item_id = '1') => ({ resource, action, before, after, item_id });
@@ -29,5 +29,20 @@ describe('describeChange', () => {
         expect(describeChange(change('settings', 'create', null, { value: 'x' }, 'night_early_until'))).toBe('Started night mode early');
         expect(describeChange(change('settings', 'delete', { value: 'x' }, null, 'night_early_until'))).toBe('Cancelled early night mode');
         expect(describeChange(change('settings', 'delete', { value: '23:00' }, null, 'night_start'))).toBe('Reset night start');
+    });
+    it('reads the connector switches', () => {
+        expect(describeChange(change('settings', 'create', null, { value: false }, 'connector_chat_enabled'))).toBe('Switched the claude.ai connector off');
+        expect(describeChange(change('settings', 'update', { value: false }, { value: true }, 'connector_agent_enabled'))).toBe("Switched the agent's connector on");
+    });
+});
+
+describe('whoMade', () => {
+    it("says where Claude's changes came from", () => {
+        expect(whoMade({ actor: 'claude', via: 'claude.ai' })).toBe('Claude (claude.ai)');
+        expect(whoMade({ actor: 'claude', via: 'claude-code' })).toBe('Claude Code');
+        expect(whoMade({ actor: 'agent', via: null })).toBe('Claude (accepted suggestion)');
+        expect(whoMade({ actor: 'owner', via: null })).toBe('You');
+        expect(whoMade({ actor: 'kiosk' })).toBe('Kiosk');
+        expect(whoMade({ actor: 'robot' })).toBe('robot');
     });
 });

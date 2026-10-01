@@ -36,6 +36,18 @@ export function createStore(db, { table, columns, orderBy = 'id', filters = {}, 
     const bySourceStatement = sourced ? db.prepare(`SELECT ${select} FROM ${table} WHERE source = ?`) : null;
     const record = (action, id, before, after) => log?.record({ resource: table, itemId: id, action, before, after });
 
+    // rows Claude created carry claude_change: { id, at, actor, via } of that
+    // change, for the ✦ mark and its Undo (docs/CONNECTOR.md §6)
+    function marked(rows) {
+        const marks = log?.claudeCreations(table);
+        if (!marks?.size) return rows;
+        for (const row of rows) {
+            const mark = row && marks.get(`${row.id}|${row.created_at}`);
+            if (mark) row.claude_change = mark;
+        }
+        return rows;
+    }
+
     return {
         // filterValues: { done: false } etc.; undefined values are ignored
         list(filterValues = {}) {
@@ -44,11 +56,11 @@ export function createStore(db, { table, columns, orderBy = 'id', filters = {}, 
                 .map(([name, value]) => filters[name][String(value)]);
             const order = typeof orderBy === 'function' ? orderBy(filterValues) : orderBy;
             const sql = `SELECT ${select} FROM ${table}${where.length ? ` WHERE ${where.join(' AND ')}` : ''} ORDER BY ${order}`;
-            return db.prepare(sql).all().map(fromDb);
+            return marked(db.prepare(sql).all().map(fromDb));
         },
 
         get(id) {
-            return fromDb(getStatement.get(id));
+            return marked([fromDb(getStatement.get(id))])[0];
         },
 
         raw: id => rawStatement.get(id) ?? null,

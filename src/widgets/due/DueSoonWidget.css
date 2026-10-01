@@ -10,6 +10,7 @@
 
 .due {
     position: relative;
+    display: flex;
     border-bottom: 1px solid var(--hairline);
 }
 
@@ -17,19 +18,21 @@
     border-bottom: none;
 }
 
-.due button {
+.due button:not(.claude-mark) {
     all: unset;
     box-sizing: border-box;
     display: flex;
     justify-content: space-between;
     align-items: center;
     gap: var(--row-gap);
-    width: 100%;
+    /* fills the row, leaving room for the ✦ mark beside it */
+    flex: 1;
+    min-width: 0;
     min-height: var(--hit);
     padding: calc(var(--cell) * 0.04) 0;
 }
 
-.due button:active {
+.due button:not(.claude-mark):active {
     filter: brightness(1.3);
 }
 

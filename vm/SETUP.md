@@ -132,3 +132,7 @@ vm/deploy.sh
 Until the first deploy, the address answers `/api/health` but shows no page. To see a backup happen without waiting for 03:00: `ssh dashboard sudo systemctl start backup.service`, then look for a `dashboard-backups` folder in Google Drive.
 
 Then follow [RESTORE.md](RESTORE.md) once, on a copy, so you know the backups work before real data depends on them. Check the first nightly backup the next morning: `ls /var/lib/dashboard/backups` on the VM, and a `dashboard-backups` folder in Google Drive.
+
+## 9. claude.ai (optional)
+
+To use the dashboard from claude.ai chats, follow [CONNECTOR.md](CONNECTOR.md).

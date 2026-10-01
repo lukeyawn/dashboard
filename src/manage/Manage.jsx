@@ -1,5 +1,6 @@
 import { ApplicationsEditor, CountdownsEditor, GoalsEditor, HabitsEditor, TasksEditor } from '../editors/editors';
 import SettingsEditor from '../editors/SettingsEditor';
+import Claude from './Claude';
 import History from './History';
 import './Manage.css';
 
@@ -10,6 +11,7 @@ const SECTIONS = [
     ['habits', 'Habits', HabitsEditor],
     ['applications', 'Job applications', ApplicationsEditor],
     ['settings', 'Settings', SettingsEditor],
+    ['claude', 'Claude', Claude],
     ['history', 'History', History],
 ];
 

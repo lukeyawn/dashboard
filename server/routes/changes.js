@@ -10,6 +10,12 @@ export function changesRouter(log, undo) {
         res.json(log.list(validate(schemas.changesQuery, { ...req.query })));
     });
 
+    // undo Claude's changes since a time, newest first; the UI sends via:
+    // 'claude.ai' unless the owner widens it (docs/CONNECTOR.md §6)
+    router.post('/undo-since', (req, res) => {
+        res.json(undo.since(validate(schemas.undoSince, req.body ?? {})));
+    });
+
     router.post('/:id/undo', (req, res) => {
         const id = validate(schemas.id, req.params.id);
         res.json({ undone: id, item: undo(id) });

@@ -1,6 +1,7 @@
 import { useCallback } from 'react';
 import { daysBetween, parseDate, today } from '../../../shared/dates';
 import { compareDue, isDueSoon } from '../../../shared/tasks';
+import ClaudeMark from '../../components/ClaudeMark';
 import EditButton from '../../components/EditButton';
 import { TasksEditor } from '../../editors/editors';
 import { useNow } from '../../hooks/useNow';
@@ -40,6 +41,7 @@ export default function DueSoonWidget() {
                                 </span>
                                 <span className="due-days">{daysLabel(days)}</span>
                             </button>
+                            {t.claude_change && <ClaudeMark change={t.claude_change} name={t.name} onUndone={tasks.refresh} />}
                         </li>
                     );
                 })}

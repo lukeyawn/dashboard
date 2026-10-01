@@ -2,7 +2,7 @@ import fs from 'node:fs';
 import os from 'node:os';
 import path from 'node:path';
 import { afterEach, describe, expect, it, vi } from 'vitest';
-import { LOGIN_LIMIT } from './auth.js';
+import { LOGIN_LIMIT } from './limits.js';
 import { API_TOKEN, KIOSK_TOKEN, startServer } from './testing.js';
 
 let server;

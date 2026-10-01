@@ -1,0 +1,38 @@
+/* A normal page, also used on phones, so it's sized in rem like /manage */
+.connect {
+    --e-font: 1rem;
+    --e-hit: 2.75rem;
+    --e-gap: 0.75rem;
+    display: grid;
+    place-items: center;
+    min-height: 100%;
+    padding: 1rem;
+}
+
+.connect-panel {
+    width: min(100%, 30rem);
+    padding: 1.5rem;
+    border: 1px solid hsla(0, 0%, 70%, 0.3);
+    border-radius: 1rem;
+    background-color: hsla(235, 35%, 14%, 0.85);
+    backdrop-filter: blur(15px);
+}
+
+.connect-panel h1 {
+    margin: 0;
+    font-size: 1.5rem;
+    font-weight: 600;
+}
+
+.connect-panel p {
+    margin: 0;
+}
+
+.connect-access {
+    line-height: 1.4;
+}
+
+.connect-panel a {
+    color: var(--accent);
+    font-size: 0.875rem;
+}

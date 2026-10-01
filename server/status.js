@@ -1,5 +1,6 @@
 // The health of the parts that run on their own (DESIGN §5.5): the nightly
-// backup and the calendar feed. The dock shows a warning only for a problem.
+// backup, the calendar feed, and the claude.ai connectors. The dock shows a
+// warning only for a problem.
 import fs from 'node:fs';
 
 export const BACKUP_STALE_MS = 36 * 60 * 60 * 1000;
@@ -16,7 +17,7 @@ export function readBackupStatus(file) {
     }
 }
 
-export function problems({ backup, calendar }, now) {
+export function problems({ backup, calendar, connectors = [] }, now) {
     const found = [];
     if (backup && !backup.ok) {
         found.push({ kind: 'backup', message: `The last backup failed${backup.step ? ` (${backup.step})` : ''}` });
@@ -26,13 +27,22 @@ export function problems({ backup, calendar }, now) {
     if (calendar?.configured && calendar.failing_since && now - Date.parse(calendar.failing_since) > CALENDAR_FAILING_MS) {
         found.push({ kind: 'calendar', message: 'The calendar isn\'t updating' });
     }
+    // a connection that ended without the owner ending it: expired, or revoked
+    // because its token was copied (docs/CONNECTOR.md §4)
+    for (const c of connectors) {
+        const who = c.name === 'chat' ? 'claude.ai' : "claude.ai's agent connector";
+        if (c.lost) found.push({ kind: `connector-${c.name}`, message: `${who} disconnected: reconnect` });
+        if (c.capped) found.push({ kind: `connector-${c.name}-limit`, message: `${who} used up today's changes` });
+    }
     return found;
 }
 
-export function systemStatus({ backupStatusFile, calendar, now }) {
+// connectors: () => [{ name, lost, capped }] for the configured connectors
+export function systemStatus({ backupStatusFile, calendar, now, connectors = () => [] }) {
     const parts = {
         backup: readBackupStatus(backupStatusFile),
         calendar: calendar.status?.() ?? null,
+        connectors: connectors(),
     };
     return { ...parts, problems: problems(parts, now) };
 }

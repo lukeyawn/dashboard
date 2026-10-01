@@ -55,3 +55,11 @@ describe('JobWidget', () => {
         expect(await screen.findByText('No applications yet.')).toBeTruthy();
     });
 });
+
+describe('JobWidget and Claude', () => {
+    it('marks an application Claude added', async () => {
+        setup([{ ...app(1, 'Stripe', 'applied', '2026-09-28T00:00:00Z'), claude_change: { id: 3, at: '2026-09-28T00:00:00Z', actor: 'claude', via: 'claude.ai' } }, app(2, 'Google', 'applied', '2026-09-27T00:00:00Z')]);
+        await screen.findByText('Stripe');
+        expect(screen.getAllByLabelText('Added by Claude (claude.ai)')).toHaveLength(1);
+    });
+});

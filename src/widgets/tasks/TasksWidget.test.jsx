@@ -133,3 +133,18 @@ describe('adding a task', () => {
         await waitFor(() => expect(screen.getByRole('status').textContent).toContain("Can't reach the server"));
     });
 });
+
+describe('TasksWidget and Claude', () => {
+    it("marks a task Claude added, and tapping the mark doesn't tick it", async () => {
+        const api = setup([
+            { id: 1, name: 'From a chat', claude_change: { id: 9, at: '2026-10-01T14:00:00.000Z', actor: 'claude', via: 'claude.ai' } },
+            { id: 2, name: 'Mine' },
+        ]);
+        await screen.findByText('From a chat');
+        expect(screen.getAllByLabelText(/^Added by/)).toHaveLength(1);
+        fireEvent.click(screen.getByLabelText('Added by Claude (claude.ai)'));
+        expect(screen.getByRole('dialog', { name: 'Added by Claude' })).toBeTruthy();
+        expect(screen.getAllByRole('checkbox').every(box => !box.checked)).toBe(true);
+        expect(api.writes()).toEqual([]);
+    });
+});

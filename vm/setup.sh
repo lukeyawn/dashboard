@@ -56,6 +56,8 @@ ENV
     chown dashboard:dashboard "$APP/.env"
     chmod 600 "$APP/.env"
 fi
+# the claude.ai connector's client and key; it stays off until PUBLIC_URL is set (vm/CONNECTOR.md)
+ENV_FILE="$APP/.env" bash "$APP/vm/oauth-client.sh" >/dev/null
 
 if [ -n "${SUDO_USER:-}" ] && [ "$SUDO_USER" != root ]; then
     echo "== sudo without a password for $SUDO_USER, so vm/deploy.sh works over Tailscale SSH"
