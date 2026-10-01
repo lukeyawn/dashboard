@@ -4,7 +4,7 @@ Sep 30, 2026 (revised the same day: cloud hosting, any screen size, testing and 
 
 This replaces `DESIGN.md` and `DESIGN2.md` at the repo root. Everything here is decided unless it's listed under [Open questions](#16-open-questions). Where a decision has a reason, the reason is what counts: use it to judge cases the rule doesn't cover. Where this doc changes something in the earlier ones, [§17](#17-what-changed-from-the-earlier-docs) says what changed and why.
 
-Choices made while building, where this doc left room, are logged in [DECISIONS.md](DECISIONS.md).
+Choices made while building, where this doc left room, are logged in [DECISIONS.md](DECISIONS.md). Phase 8's detailed design, the claude.ai connector, is in [CONNECTOR.md](CONNECTOR.md).
 
 **How the work is split:** Luke decides the design and reviews the code, and Claude writes it. The original plan was for Luke to hand-write the code with AI help, but there's no longer time for that.
 
@@ -64,6 +64,8 @@ Phone / laptop browser ┘ Tailscale                                           �
                                └──────────────┬──────────────────────────────┘
                                               ├─ Litestream, continuous ────► Cloud Storage bucket
                                               └─ nightly snapshot + export ─► Google Drive folder
+
+claude.ai (agent and chats) ── HTTPS, Funnel port 8443 ──► /mcp only, on its own listener (phase 8, CONNECTOR.md)
 ```
 
 **Stack:**
@@ -260,7 +262,7 @@ The dashboard must be reachable from the kiosk, the phone and the laptop, from a
 **Network: Tailscale.** The VM, the Pi, the phone and the laptop join one private Tailscale network. `tailscale serve` on the VM gives the dashboard an HTTPS address (`https://dashboard.<tailnet>.ts.net`) that only your own devices can reach.
 - The VM's firewall allows no inbound connections at all. Tailscale connects outward, and SSH goes through Tailscale SSH.
 - **Why not a public URL** (a Cloudflare tunnel or an open port): with Tailscale the server is never visible on the internet, so a leaked or guessed token alone isn't enough to get in.
-- **Later:** if the claude.ai web app ever needs to reach it as a remote connector, Tailscale Funnel can expose just the MCP endpoint publicly. The token then becomes the only protection.
+- **The one exception (phase 8):** claude.ai has to reach a remote MCP endpoint, so Tailscale Funnel exposes a separate listener, on port 8443, that serves only that endpoint and its sign-in. Port 443, the dashboard and `/api` stay tailnet-only. Approving a sign-in still happens on the tailnet (§5.3).
 
 **Tokens:** two long random tokens in `.env`: `API_TOKEN` for you (browsers and Claude) and `KIOSK_TOKEN` for the Pi.
 - Both give full access. They're separate so the server can tell the kiosk apart, for its location reports, and so a lost or stolen Pi can be locked out by changing only its token.
@@ -339,7 +341,9 @@ The agent reads email and calendar invitations, and anyone in the world can writ
 5. **No way to leak data.**
    - The agent's credential has no export and no access to tokens or settings.
    - Its Gmail connector gets read-only tools: sending, drafting and deleting are blocked in claude.ai's connector settings. A fooled agent then has no channel to send dashboard data out.
-   - Its calendar access is read-only too. Adding events stays something the owner asks for in a chat.
+   - Its calendar access is read-only too. Adding events stays something the owner does in Google Calendar or asks Claude Code for.
+   - Any other connector that could carry data out, such as Google Drive's create and share tools, is blocked or off for the agent, and so is web search where the agent's task allows it ([CONNECTOR.md §11](CONNECTOR.md#11-open-questions)).
+   - claude.ai applies connector settings to the whole account, so these blocks apply to chats too.
 6. **Its instructions say it plainly.** The agent's standing instructions, and the descriptions of its tools, state that email and calendar text is untrusted data to summarize, never instructions to follow. This is the weakest layer, which is why points 1–5 don't depend on it.
 7. **A kill switch.** One toggle on `/manage` revokes the agent's credential at once, and pending suggestions are kept for review.
 
@@ -347,10 +351,18 @@ Auto-accept may come later for the lowest-risk kind (new tasks only), and only b
 
 ### 5.3 One public door
 
-- **A remote MCP endpoint** on the server (MCP's Streamable HTTP transport), made reachable from the internet with **Tailscale Funnel for its paths only**: the MCP endpoints and the sign-in endpoints. The dashboard pages and `/api` stay reachable only on the tailnet.
-- **Two endpoints, two connectors:** `/mcp` for claude.ai chats (the owner's full tools, like Claude Code has now), and `/mcp/agent` for the scheduled agent (read plus suggest, §5.2). The agent is configured with only the second.
-- **Sign-in is OAuth 2.1**, per the MCP authorization spec, which claude.ai's custom connectors use. The sign-in page asks for the owner's token once. Access tokens are short-lived, and every public request is rate-limited and logged.
-- This also gives claude.ai chats on the phone the same tools, which §5's stdio server can't.
+The full design is in [CONNECTOR.md](CONNECTOR.md). In short:
+
+- **One connector, read plus suggest, shared by the scheduled agent and claude.ai chats.** It's a remote MCP endpoint (Streamable HTTP) at `https://dashboard.<tailnet>.ts.net:8443/mcp`.
+  - The earlier plan had a second, full-access connector for chats.
+  - It's dropped because claude.ai connectors belong to the whole account, so the agent would have had that connector too.
+  - Claude Code keeps full access through the stdio server.
+- **Tailscale Funnel, on port 8443 only,** to a separate listener that mounts just `/mcp`, the sign-in endpoints and their metadata. Funnel works per port, not per path, so port 443 (the dashboard and `/api`) stays tailnet-only.
+- **Sign-in is OAuth 2.1** per the MCP authorization spec, with one pre-registered client whose ID and secret are entered in claude.ai.
+  - The public sign-in endpoint shows no page and asks for no secret. It redirects to an approval page on the tailnet, which needs your login and the browser that started the request.
+  - Access tokens last an hour; refresh tokens are replaced on every use.
+- **What the connector can reach is an allow-list in the API itself:** a few reads and creating suggestions. The MCP endpoint calls `/api` with the caller's own token, so there's one place that enforces it.
+- This also gives claude.ai chats on the phone the dashboard, which §5's stdio server can't. In a chat, changes become suggestions to accept.
 
 ### 5.4 Credentials
 
@@ -358,10 +370,9 @@ Auto-accept may come later for the lowest-risk kind (new tasks only), and only b
 |---|---|---|
 | `API_TOKEN` | Browsers, Claude Code and Claude Desktop | Everything |
 | `KIOSK_TOKEN` | The Pi | Everything a tap can do, plus reporting its location |
-| Chat (OAuth, `/mcp`) | claude.ai chats | Everything except `delete_item`, which stays with Claude Code and the dashboard |
-| Agent (OAuth, `/mcp/agent`) | The scheduled agent | Read; create suggestions; report its runs; nothing else |
+| Connector (OAuth, `/mcp`) | The scheduled agent and claude.ai chats | Read; create suggestions; report its runs (phase 9); nothing else. Recorded as actor `agent`. |
 
-Each can be revoked on its own.
+Each can be revoked on its own. Each connector sign-in is its own *connection*, revocable from `/manage`, and the kill switch revokes them all.
 
 ### 5.5 Records that make an agent trustworthy
 
@@ -815,7 +826,7 @@ The rule is **one complete vertical slice before any breadth**: a few real widge
 | **5. Touch and editing** | The touch rules (§6.1), pending actions for deadlines and jobs, the inline add row, shared editors, the `/manage` page, and the dashboard modal with ✎ buttons. |
 | **6. Kiosk** | Everything in §11.2: Chromium flags and startup, kiosk login, squeekboard, night mode with the moon button, and the reload rules (§6.4). |
 | **7. Agent-ready data** | Deadlines merged into tasks, with priority, effort, area, notes, link and source; the Due soon and Tasks tiles; the change record with History and Undo; sources and no duplicates; the status line. (§5.5) |
-| **8. The public door** | The remote MCP endpoints, OAuth sign-in, Tailscale Funnel for those paths only, the chat and agent credentials, suggestions with the review strip, the limits, the kill switch. (§5.2–5.4) |
+| **8. The public door** | Three PRs ([CONNECTOR.md §13](CONNECTOR.md#13-how-its-built-three-pull-requests-one-after-another)): suggestions with the review modal and limits; then the credential allow-list, OAuth with approval on the tailnet, the public listener and `/mcp`, the kill switch; then go-live on Funnel port 8443. (§5.2–5.4) |
 | **9. The agent** | Its standing instructions and schedule, with its Gmail and Calendar connectors read-only; run reports in the status line; the daily briefing. (§5.1) |
 | **Later** | Click-to-focus with container-query condensing; a daily background photo from Unsplash (below); an assistant widget on the dashboard; sunrise gradient; an idle photo-album mode; a wins log; recurring tasks. |
 
@@ -968,6 +979,9 @@ Each of these caused a real bug or near-miss, or is a known trap. Keep them in m
 | 2026-10-01 | Deadlines become tasks with a due date. Tasks gain optional priority, effort, area, notes, link and source, filled in by Claude. |
 | 2026-10-01 | Every write is recorded with its actor, and can be undone from `/manage` |
 | 2026-10-01 | No command palette: everything is already on the screen |
+| 2026-10-01 | One claude.ai connector, read plus suggest, shared by the agent and chats. No full-access chat connector, because connectors are account-wide. |
+| 2026-10-01 | The public door is Funnel on port 8443 to a separate listener with only the MCP and sign-in routes. Sign-ins are approved on the tailnet. |
+| 2026-10-01 | Connector suggestions can't carry links. The server builds the only link, to the source email in Gmail. |
 
 ---
 
@@ -981,7 +995,7 @@ None of these block phases 0–1. They get settled by trying things on the real 
 - [ ] **Free-tier data use.** Expected to be far under 1 GB a month. Check the billing report after the first month.
 - [ ] **Night hours:** 22:00–06:30 is a starting point, and it can be changed from `/manage` at any time.
 - [ ] **Where the daily briefing goes on the grid** (phase 9). Every tile is spoken for; the word of the day's tile or a line in the dock are candidates.
-- [ ] **Scheduled agents and connectors** (phase 9): confirm that a scheduled Claude agent can use claude.ai's Gmail, Calendar and custom connectors with their tools limited as §5.2 requires.
+- [ ] **Scheduled agents and connectors** (phase 9): confirm that a scheduled Claude agent can use claude.ai's Gmail, Calendar and custom connectors with their tools limited as §5.2 requires, and whether a task can leave out a connector or web search. More in [CONNECTOR.md §11](CONNECTOR.md#11-open-questions).
 
 ---
 
@@ -1015,4 +1029,5 @@ None of these block phases 0–1. They get settled by trying things on the real 
 | No testing plan | Tests with every change; CI with a protected `main` | Guardrails for code Claude writes |
 | Separate tasks and deadlines | One task list; a due date makes a task a deadline. The Deadlines tile becomes Due soon. | They did the same job, and one list with optional details suits Claude doing the data entry |
 | Claude only through Claude Code / Desktop, on the laptop | Planned: a public MCP door for claude.ai chats and a scheduled agent, which can only suggest | The owner wants an agent that runs on its own; prompt injection from email is the main risk |
+| Two public connectors: full for chats (`/mcp`), suggest-only for the agent (`/mcp/agent`) (this PR's first commit) | One suggest-only connector at `:8443/mcp` for both | claude.ai connectors are account-wide, so the agent would also have had the full one |
 | Deploy by building on the Pi | `vm/deploy.sh` from the laptop; CI must have passed | The 1 GB VM shouldn't build; a failing commit is never deployed |
