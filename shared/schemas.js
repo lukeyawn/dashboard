@@ -1,7 +1,7 @@
 // Request schemas shared by the API, the frontend and the MCP server, so every
 // way of putting data in goes through the same validation (DESIGN §4, §5).
 import { z } from 'zod';
-import { daysBetween, isDateString, today } from './dates.js';
+import { daysBetween, isDateString } from './dates.js';
 
 const text = (max, label = 'Name') => z.string().trim()
     .min(1, `${label} is required`)
@@ -104,8 +104,8 @@ const application = {
 export const applicationCreate = z.strictObject({
     ...application,
     status: application.status.default('applied'),
-    // today in the dashboard's time zone, worked out when the request arrives
-    applied_on: application.applied_on.default(() => today()),
+    // the server fills in today, by its own clock, when it's left out
+    applied_on: application.applied_on.optional(),
 });
 export const applicationUpdate = partial(application);
 export const applicationQuery = z.strictObject({ status: z.enum(STATUSES).optional() });

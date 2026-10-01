@@ -1,4 +1,5 @@
 // Routes for every stored resource: the generic four (DESIGN §4) plus each one's quick actions.
+import { today } from '../../shared/dates.js';
 import * as schemas from '../../shared/schemas.js';
 import { crudRouter } from '../crud.js';
 import { HttpError, validate } from '../errors.js';
@@ -57,9 +58,11 @@ export function habitsRouter(store) {
     return router;
 }
 
-export function applicationsRouter(store) {
+export function applicationsRouter(store, now = Date.now) {
     return crudRouter(store, {
         noun: 'application',
+        // applied today, in the dashboard's time zone
+        defaults: () => ({ applied_on: today(new Date(now())) }),
         create: schemas.applicationCreate,
         update: schemas.applicationUpdate,
         query: schemas.applicationQuery,
