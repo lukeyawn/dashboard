@@ -58,3 +58,9 @@
     font-size: var(--fs-small);
     color: var(--urgent);
 }
+
+/* the shrinking line under an item waiting to be completed (DESIGN §6.2) */
+@keyframes pending-timer {
+    from { transform: scaleX(1); }
+    to { transform: scaleX(0); }
+}

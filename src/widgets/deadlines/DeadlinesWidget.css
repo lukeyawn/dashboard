@@ -1,19 +1,36 @@
 .deadlines-list {
+    flex: 1;
+    min-height: 0;
     display: flex;
     flex-direction: column;
+    overflow-y: auto;
+    scrollbar-width: none;
+    mask-image: linear-gradient(to bottom, black calc(100% - var(--hit) / 2), transparent);
 }
 
 .deadline {
-    display: flex;
-    justify-content: space-between;
-    align-items: center;
-    gap: var(--row-gap);
-    padding: calc(var(--cell) * 0.058) 0;
+    position: relative;
     border-bottom: 1px solid var(--hairline);
 }
 
 .deadline:last-child {
     border-bottom: none;
+}
+
+.deadline button {
+    all: unset;
+    box-sizing: border-box;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    gap: var(--row-gap);
+    width: 100%;
+    min-height: var(--hit);
+    padding: calc(var(--cell) * 0.04) 0;
+}
+
+.deadline button:active {
+    filter: brightness(1.3);
 }
 
 .deadline-info {
@@ -31,6 +48,9 @@
 .deadline-date {
     font-size: var(--fs-small);
     color: var(--text-muted);
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
 }
 
 .deadline-days {
@@ -46,4 +66,22 @@
 .deadline.urgent .deadline-days {
     background-color: hsla(0, 85%, 65%, 0.2);
     color: var(--urgent);
+}
+
+/* pending: crossed out, with the shrinking timer line (DESIGN §6.2) */
+.deadline.pending .deadline-name {
+    text-decoration: line-through;
+    color: var(--text-muted);
+}
+
+.deadline.pending::after {
+    content: '';
+    position: absolute;
+    left: 0;
+    bottom: -1px;
+    width: 100%;
+    height: max(1px, calc(2 * var(--px)));
+    background-color: var(--accent);
+    transform-origin: left;
+    animation: pending-timer var(--pending-ms) linear forwards;
 }

@@ -64,3 +64,24 @@
     color: var(--on-accent);
     font-weight: 700;
 }
+
+.calendar-cell span {
+    position: relative;
+}
+
+/* a day with a deadline, a countdown or a birthday */
+.calendar-cell.marked span::after {
+    content: '';
+    position: absolute;
+    left: 50%;
+    bottom: calc(var(--cell) * -0.012);
+    width: calc(var(--cell) * 0.03);
+    height: calc(var(--cell) * 0.03);
+    border-radius: 50%;
+    background-color: var(--accent);
+    transform: translateX(-50%);
+}
+
+.calendar-cell.today.marked span::after {
+    background-color: var(--on-accent);
+}

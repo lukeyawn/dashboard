@@ -1,36 +1,85 @@
+import { useLayoutEffect, useRef, useState } from 'react';
+import { today } from '../../../shared/dates';
+import { useNow } from '../../hooks/useNow';
+import { useResource } from '../../hooks/useResource';
+import { formatTime } from '../../lib/format';
 import './TimelineWidget.css';
 
-function toMinutes(time) {
-    const [h, m] = time.split(':').map(Number);
-    return h * 60 + m;
+// Today's events from Google Calendar, read-only (DESIGN §10, Timeline).
+// All-day events and today's birthdays are chips at the top; past events are
+// dimmed and the current one highlighted. When they don't all fit, the
+// earliest past events fold into "N earlier".
+export default function TimelineWidget() {
+    const now = useNow();
+    const todayDate = today(now);
+    const range = { from: todayDate, to: todayDate };
+    const events = useResource('events', { params: range });
+    const birthdays = useResource('birthdays', { params: range });
+
+    const timed = (events.data ?? []).filter(e => !e.all_day).map(e => {
+        const start = new Date(e.start);
+        const end = new Date(e.end);
+        const status = end <= now ? 'past' : start <= now ? 'current' : 'upcoming';
+        return { ...e, startDate: start, status };
+    });
+    const pastCount = timed.filter(e => e.status === 'past').length;
+    const listRef = useRef(null);
+    const folded = useFoldedCount(listRef, `${todayDate}|${timed.map(e => `${e.id}:${e.status}`).join(',')}`, pastCount);
+
+    if (events.loading) return <Frame><p className="widget-message">Loading…</p></Frame>;
+    if (!events.data) return <Frame><p className="widget-message">Couldn't load today's events.</p></Frame>;
+
+    const chips = [
+        ...events.data.filter(e => e.all_day).map(e => ({ id: e.id, title: e.title })),
+        ...(birthdays.data ?? []).map(b => ({ id: b.id, title: b.title, birthday: true })),
+    ];
+    if (chips.length === 0 && timed.length === 0) {
+        return <Frame><p className="widget-message">Nothing scheduled today.</p></Frame>;
+    }
+
+    return (
+        <Frame>
+            {chips.length > 0 && (
+                <ul className="timeline-chips">
+                    {chips.map(c => <li key={c.id} className={c.birthday ? 'chip birthday' : 'chip'}>{c.title}</li>)}
+                </ul>
+            )}
+            <ol className="timeline" ref={listRef}>
+                {folded > 0 && <li className="timeline-earlier">{folded} earlier</li>}
+                {timed.slice(folded).map(e => (
+                    <li key={e.id} className={`timeline-event ${e.status}`}>
+                        <span className="timeline-time">{formatTime(e.startDate)}</span>
+                        <span className="timeline-title">{e.title}</span>
+                        {e.location && <span className="timeline-location">{e.location}</span>}
+                    </li>
+                ))}
+            </ol>
+        </Frame>
+    );
 }
 
-function formatTime(time) {
-    const [h, m] = time.split(':').map(Number);
-    return new Date(0, 0, 0, h, m).toLocaleTimeString('en-US', {hour: 'numeric', minute: '2-digit'});
-}
-
-// events: {id: number, time: string ("HH:MM", 24-hour), title: string}[], sorted by time
-export default function TimelineWidget({events = []}) {
-    const now = new Date();
-    const nowMinutes = now.getHours() * 60 + now.getMinutes();
-    // the current event is the last one that has already started
-    const currentIndex = events.findLastIndex(e => toMinutes(e.time) <= nowMinutes);
-
+function Frame({ children }) {
     return (
         <div className="widget timeline-widget">
             <p className="widget-title">Today</p>
-            <ol className="timeline">
-                {events.map((e, i) => {
-                    const status = i < currentIndex ? 'past' : i === currentIndex ? 'current' : 'upcoming';
-                    return (
-                        <li key={e.id} className={`timeline-event ${status}`}>
-                            <span className="timeline-time">{formatTime(e.time)}</span>
-                            <span className="timeline-title">{e.title}</span>
-                        </li>
-                    );
-                })}
-            </ol>
+            {children}
         </div>
     );
+}
+
+// How many of the earliest past events to fold away so the rest fit. Starts
+// from 0 whenever the events or their statuses change, then folds one more
+// after each render that still overflows, up to the number of past events.
+function useFoldedCount(listRef, key, max) {
+    const [fold, setFold] = useState({ key, count: 0 });
+    const count = fold.key === key ? fold.count : 0;
+
+    useLayoutEffect(() => {
+        const list = listRef.current;
+        if (list && count < max && list.scrollHeight > list.clientHeight + 1) {
+            setFold({ key, count: count + 1 });
+        }
+    }, [listRef, key, count, max]);
+
+    return count;
 }

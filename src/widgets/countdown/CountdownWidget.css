@@ -13,8 +13,19 @@
     line-height: 1;
 }
 
+.countdown-number.today {
+    font-size: 28cqmin;
+    font-weight: 400;
+}
+
 .countdown-label {
     margin: 0;
-    font-size: 12cqmin;
+    padding: 0 4cqmin;
+    font-size: 11cqmin;
+    line-height: 1.15;
     text-align: center;
+    display: -webkit-box;
+    -webkit-line-clamp: 3;
+    -webkit-box-orient: vertical;
+    overflow: hidden;
 }

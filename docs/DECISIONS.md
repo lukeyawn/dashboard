@@ -42,3 +42,36 @@ Choices made while building, where [DESIGN.md](DESIGN.md) left room or turned ou
 | The server serves `dist/` even if it doesn't exist yet at startup. | Lets a build land after the server has started, which the full-stack browser test relies on. |
 | Browser tests come in two kinds: layout checks against `vite preview` with a mocked API, and full-stack tests against the real server on an in-memory database (port 4174). | The layout checks need fixed data, such as very long names. The full-stack tests prove the slice works end to end: login, add, clear, and the clear surviving a reload. |
 | A shared Vitest setup file unmounts Testing Library renders after each test. | Without test globals, Testing Library doesn't do it on its own, and leftover hooks kept polling across tests. |
+
+## Phase 2: all widgets live
+
+| Choice | Why |
+|---|---|
+| Every widget's tap action is built now: deadline complete and application advance (both with the 5-second wait), habit day toggles, and goal +1 with undo. Phase 5 is left with the editors, the ✎ modal and `/manage`. | "Fully functional widgets" means the one-tap actions work. Editing details belongs with the shared editors. |
+| One generic store and router (`server/crud.js`) serve all six resources. Resources with extra behaviour wrap it: countdown pinning, goal increment, habit checks, application advance. | The rule of three was met several times over: six resources share the same four routes. |
+| At most one countdown is pinned. Pinning one unpins the rest, and a partial unique index enforces it. | "The pinned countdown" (DESIGN §10) implies there's only one. |
+| Goal amounts are SQLite `REAL`, so 64.5 miles works. They never go below 0. | Not every goal counts whole things. Undoing past 0 would make no sense. |
+| A habit can't be checked for a future day (400); unchecking one is allowed. | You can only have done something on a day that has happened. Unchecking is always harmless. |
+| The habit streak is computed over all of a habit's checks, not only the 7 days shown. Checking or unchecking returns the habit with its new streak. | A 30-day streak shouldn't show as 7. The widget gets the streak straight back, without waiting for a poll. |
+| Applications list most recently updated first, and advancing one bumps it to the top. | That's what "the 3 most recently updated" (DESIGN §10) needs. |
+| `applied_on` defaults to today, and `status` to `applied`. | Most applications are logged the day they're sent. |
+| Advancing an offer or a rejection answers `409 Conflict`. | It's a valid request for a state that can't move. |
+| Habit names may wrap onto two lines, with the streak written under the name ("4-day streak") instead of in its own column. Day cells are `0.92 × --hit` wide and marked `data-tap="narrow"`, which the layout check allows. | With seven touch-sized cells, a single-line name only had room for about seven characters. |
+| Goals: the +1 button sits beside the name and bar, spanning both rows. "undo" appears to its left for 5 seconds, and a second +1 restarts the 5 seconds. | Fits four touch-sized goals in the 3 × 2 tile. |
+| Deadline rows are whole-row buttons, like task rows. A long deadline list scrolls inside its tile with the same fade as tasks. | Consistent with tasks (DESIGN §6.1: the whole row is the target). |
+| The timeline folds the earliest past events into "N earlier" by measuring after each render: one more is folded while the list overflows. It recounts whenever the events or their past/current status change. | The design asks for exactly this, and a pure CSS clip can't tell past events from upcoming ones. |
+| The timeline's current event is one step larger (1.25×) and bold. Each event's location is shown under its title. | DESIGN §8 (glanceable) and §10. |
+| A birthday counts down as "N days until Mom's birthday", using the event's own title. On the day it reads "Today" plus the title. | Any title works for birthdays (DESIGN §4), so the title is shown as written. |
+| Weeks are rounded to the nearest whole week. | "10 weeks until Finals" reads better than "9.6". |
+| Calendar dots are small accent dots under the date; on today's filled circle the dot is dark. | Visible on both backgrounds. |
+| Temperatures are in Fahrenheit. | The owner lives in Austin. Changing it is one parameter (`temperature_unit`). |
+| The weather route always answers, with `report_location: true` when the kiosk should look itself up. That happens when the kiosk is the client and its last report is older than 20 hours. | No extra endpoint, and only the kiosk ever contacts the IP-location service. |
+| A device's location is rounded to 2 decimals (about 1 km) before it leaves the browser. Weather is cached per rounded location for 30 minutes, and a failed refresh falls back to the last answer. | Enough precision for weather, less for privacy, and devices nearby share one fetch. |
+| "Offline since" is tracked in `src/lib/api.js`: a request that can't reach the server starts it, and any answer, even an error, clears it. | It means the server is unreachable, not that something went wrong on it. |
+| An all-day event's `end` is the last day it covers (inclusive), not iCal's exclusive end. A timed event's `start` and `end` are UTC timestamps. A birthday is `{ id, title, date }`. | Simpler for both the widgets and the agent. Only timed events need time zones. |
+| The calendar feed is never logged by URL, and errors say only what failed. | The address is a password (DESIGN §2). |
+| The word list is HSK 1–3 (595 words), built by `scripts/build-words.js` with a fixed shuffle. A reading is chosen automatically, and 21 words whose automatic pick was a surname, archaic or vulgar reading were set by hand. | The source doesn't mark which reading HSK means. The script makes the list reproducible and the hand-checked words visible. |
+| The full-stack browser tests run `e2e/server.js`: the real app with the fixture calendar and fixed weather. The kiosk's location lookup is answered by the test. | Tests never touch the network. |
+| Browser tests fix the page's clock at 1:35 PM on 2026-09-30 in America/Chicago. | Screenshots and states (past, current, overdue) are the same on every run. |
+| `npm run seed` fills every table with sample data, but only tables that are empty. | Safe to run against a real database by mistake. |
+| npm only runs install scripts for approved packages. `better-sqlite3` is approved, pinned to its version. | It needs its script to fetch its compiled binary. Any new package with an install script fails `npm ci` until someone approves it, which is a useful guardrail. |

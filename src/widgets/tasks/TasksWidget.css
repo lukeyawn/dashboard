@@ -57,11 +57,6 @@
     animation: pending-timer var(--pending-ms) linear forwards;
 }
 
-@keyframes pending-timer {
-    from { transform: scaleX(1); }
-    to { transform: scaleX(0); }
-}
-
 .task-add input {
     width: 100%;
     min-height: var(--hit);
