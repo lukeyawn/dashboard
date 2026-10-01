@@ -987,6 +987,7 @@ Each of these caused a real bug or near-miss, or is a known trap. Keep them in m
 | 2026-10-01 | Two claude.ai connectors: chats add and change directly (no deleting), the agent suggests. Because connectors are account-wide, the agent can reach both; the owner accepts that, with Claude's changes and Undo everything since as the safety net. |
 | 2026-10-01 | The public door is Funnel on port 8443 to a separate listener with only the MCP and sign-in routes. Sign-ins are approved on the tailnet. |
 | 2026-10-01 | Links from connectors must be `https` and are shown with their domain. Text from connectors is cleaned of characters that disguise it. |
+| 2026-10-01 | Public rate limits are split by connection, visitor and kind, so strangers can't use up claude.ai's share or trigger the dashboard's login lockout. A replaced refresh token keeps working until its replacement is used, so a lost reply doesn't look like theft. A lost connection shows in the status line. |
 
 ---
 

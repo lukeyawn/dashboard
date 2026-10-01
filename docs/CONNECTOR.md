@@ -74,6 +74,8 @@ Your devices ── tailnet, port 443 (unchanged) ──────────
 
 **Transport:** MCP Streamable HTTP in stateless mode, with JSON responses and no streams. Each `POST` is handled on its own; `GET` and `DELETE` return 405. Requests that carry an `Origin` header are refused, since claude.ai's servers don't send one and a browser page would.
 
+**The token is checked before anything else.** A request without a valid token gets its 401 before its body is even read, so junk traffic costs almost nothing. It's also never parsed as MCP and never reaches a tool.
+
 ---
 
 ## 4. Sign-in (OAuth 2.1)
@@ -108,15 +110,33 @@ This follows the MCP authorization spec. The server is both the protected resour
 
 **Tokens:**
 - **Access tokens:** random, opaque, and valid for **1 hour**.
-- **Refresh tokens:** random, valid for **30 days without use**, and **replaced on every use**. If an old refresh token is ever presented again, someone copied it, so the whole connection is revoked.
+- **Refresh tokens:** random, valid for **30 days without use**, and **replaced on every use**.
+  - **Reuse means theft:** if a replaced refresh token is used again *after its replacement has been used*, someone copied it, so the whole connection is revoked.
+  - **A grace window for lost replies:** until its replacement has been used once, the previous refresh token still works, for at most 10 minutes. This covers a reply that never reached claude.ai and two refreshes sent at once. Using it doesn't extend anything: the old token gets a fresh pair, and the unused replacement is discarded.
+- **A failed refresh** answers `invalid_grant` and issues nothing. claude.ai's current access token keeps working until its hour is up. After that, the connector needs **Connect** again in claude.ai (and Approve on the tailnet). Your data isn't affected.
 - **Storage:** only SHA-256 hashes are kept, in SQLite. A daily agent refreshes every day, so it never has to sign in again.
 - **Each approval is one *connection*.** `/manage` lists them, with which connector, when it was made and when it was last used, and can revoke them one by one.
+- **You hear about a lost connection.** The status line (DESIGN §5.5) shows *"claude.ai disconnected: reconnect"* when a connection expires or is revoked by anything but your own Revoke or kill switch. That covers 30 days without use and suspected theft. It stays until a new connection for that connector is approved. /manage shows the reason.
 - The `oauth_*` tables are left out of `/api/export`.
 
-**Rate limits** are global, because every request reaches the server from the Tailscale proxy:
+**Rate limits are split, so a stranger can only use up their own share.** A single global limit would let anyone on the internet spend it and lock out the real claude.ai. Each kind of traffic gets its own bucket:
 
-| Endpoint | Limit |
-|---|---|
+| Traffic | Limited by | Limit |
+|---|---|---|
+| `/mcp`, `/mcp/agent` with a valid token | **That connection** | 120 per minute. A stranger can't spend this without the token. |
+| `/mcp`, `/mcp/agent` with no token or a bad one | The visitor's address* | 60 per minute per address, 600 per minute in all. Past that, 429. |
+| `/oauth/authorize` | The visitor's address* | 20 per 10 minutes per address. At most 10 sign-ins pending; a new one replaces the oldest, so your own **Connect** always gets through on a retry. |
+| `/oauth/token`, valid client secret | That connection, or the code's sign-in | 30 per minute |
+| `/oauth/token`, wrong client secret | Its own counter, public side only | 10 per 15 minutes per address*, then 429 for 15 minutes. It **never** touches the dashboard's login lockout (DESIGN §4), so a stranger can't lock you out of the dashboard. |
+| Request bodies | Everything public | Up to 64 KB |
+
+\* **The visitor's address** is the one Tailscale Funnel passes on in `X-Forwarded-For`, read only on the public listener. Whether Funnel sends it is checked on the VM in the door PR (§12). If it doesn't, these limits fall back to one bucket per kind, which still keeps strangers away from the valid-token limits.
+
+These limits keep strangers from using up claude.ai's share. They don't stop a determined flood, which could still overload a free e2-micro; the answer to that is the kill switch, or turning Funnel off (§9).
+
+**Expect visitors.** The HTTPS certificate for `dashboard.tail354c76.ts.net` is in the public certificate logs, so scanners will find port 8443 the day Funnel opens. They get 401s and 404s. Each is logged (§3), and nothing else happens.
+
+---|---|
 | `/oauth/authorize` | 20 per 10 minutes; at most 3 pending requests |
 | `/oauth/token` | 30 per minute. A wrong client secret counts toward the login lockout (DESIGN §4). |
 | `/mcp`, `/mcp/agent` | 120 per minute together; request bodies up to 64 KB |
@@ -346,6 +366,7 @@ Phase 9 adds `report_run` and the briefing to the agent connector.
   - If web search and fetch can be turned off for the agent's task, do it. That's the last channel a fooled agent could use to send data out. The risk is small, because Claude only fetches web addresses that already appear in the conversation, but it isn't zero.
   - Checked while setting up phase 9.
 - [ ] **Does claude.ai keep a custom client ID and secret?** One bug report says they were lost after adding ([claude-ai-mcp#344](https://github.com/anthropics/claude-ai-mcp/issues/344)). If it happens here, fall back to "Use Claude's published identity" (CIMD), allowing exactly Anthropic's client-ID URL and its known redirect URIs, still without fetching anything at sign-in.
+- [ ] **Does Funnel pass the visitor's address?** Check for `X-Forwarded-For` on a request from outside the tailnet, in the door PR. The rate limits use it if it's there (§4).
 - [ ] **Gmail links:** check that `https://mail.google.com/mail/u/0/#all/<id>` opens the message for the ids the Gmail connector gives the agent. If it doesn't, the card shows the email's details without a link.
 
 ---
@@ -354,8 +375,8 @@ Phase 9 adds `report_run` and the briefing to the agent connector.
 
 | Area | What |
 |---|---|
-| Sign-in | The metadata documents for both resources. `authorize` rejects an unknown client, a redirect URI off the allow-list (even one character off), a missing or `plain` PKCE challenge, and an unknown `resource`. The connect cookie must match. Codes work once, and not after 60 seconds. A token for one endpoint is refused by the other. Refresh tokens rotate, and reusing an old one revokes the connection. Tokens expire (fake clock). Each kill switch revokes its connector and refuses new sign-ins. |
-| The door | The public app returns 404 for every route of the private app. Both endpoints answer an unauthenticated request with 401 and the `WWW-Authenticate` header. A request with an `Origin` header is refused. The rate limits and body size hold. |
+| Sign-in | The metadata documents for both resources. `authorize` rejects an unknown client, a redirect URI off the allow-list (even one character off), a missing or `plain` PKCE challenge, and an unknown `resource`. The connect cookie must match. Codes work once, and not after 60 seconds. A token for one endpoint is refused by the other. Refresh tokens rotate. The previous one still works only until its replacement is used, and reusing it after that revokes the connection. A revoked or expired connection shows in the status line. Tokens expire (fake clock). Each kill switch revokes its connector and refuses new sign-ins. |
+| The door | The public app returns 404 for every route of the private app. Both endpoints answer an unauthenticated request with 401 and the `WWW-Authenticate` header. A request with an `Origin` header is refused. Each rate-limit bucket is separate: junk requests, unknown visitors and wrong secrets can't use up a valid connection's limit or trigger the dashboard's login lockout. A flood of sign-in requests can't block a new one. The token is checked before the body is read. The body size limit holds. |
 | Credentials | Every `/api` route with each connector token: allowed ones work, and every other one returns 403, every `DELETE` and undo included. The actor and connection come from the token, whatever header is sent. |
 | Claude's changes | The log filters by actor, connection and time. `undo-since` undoes newest first, skips items edited since and reports them, and is one transaction. The ✦ mark appears exactly on items Claude created. |
 | Suggestions | Each kind's schema and limits; text cleaning (bidi overrides, zero-width, control characters); links (`https` only); the daily and pending caps, and the chat connector's write cap, across the time-zone day boundary; repeats refused by source; accept with and without edits; stale detection; dismiss; expiry; undoing an accepted one. |
