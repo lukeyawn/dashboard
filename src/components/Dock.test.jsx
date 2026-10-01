@@ -20,3 +20,23 @@ describe('Dock', () => {
         expect(screen.getByText('1:36')).toBeTruthy();
     });
 });
+
+describe('Dock status line', () => {
+    afterEach(() => vi.unstubAllGlobals());
+
+    it('shows a problem from the server, and nothing when all is well', async () => {
+        const { fakeServer } = await import('../testing/fakeApi');
+        let problems = [{ kind: 'backup', message: 'The last backup failed (drive)' }];
+        fakeServer({
+            'GET /api/status': () => ({ problems }),
+            'GET /api/weather': () => ({ location: {}, temperature: 70, condition: 'Clear', high: 75, low: 60 }),
+        }).install();
+        const { unmount } = render(<Dock />);
+        expect(await screen.findByText('The last backup failed (drive)')).toBeTruthy();
+        unmount();
+        problems = [];
+        render(<Dock />);
+        await act(async () => {});
+        expect(document.querySelector('.dock-problem')).toBeNull();
+    });
+});

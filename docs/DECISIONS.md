@@ -153,3 +153,12 @@ Choices made while building, where [DESIGN.md](DESIGN.md) left room or turned ou
 |---|---|
 | `vm/setup.sh` pulls the latest code when the repo is already cloned, so running it again picks up fixes. | The first run on the real VM stopped at `npm ci`; re-running it would have kept the broken commit. |
 | `vm/setup.sh` gives the user who runs it passwordless `sudo` (`/etc/sudoers.d/dashboard-deploy`). | `vm/deploy.sh` runs its remote steps with `sudo` over Tailscale SSH, where Google's console-only `sudo` rights don't apply. The VM is reachable only through Tailscale, from the owner's own devices, so this adds no new way in. |
+
+## Phase 7: agent-ready data
+
+| Choice | Why |
+|---|---|
+| `vm/backup.sh` records each run in `backups/last-run.json`: `{ at, ok, step }`, where `step` names the part that failed (`snapshot` or `drive`). The server reads that file; nothing else is stored. | The backup runs as its own process, so a small file is the simplest hand-off. Naming the step says whether the snapshot or the Drive copy broke. |
+| Problems shown in the dock: the last backup failed, no backup in 36 hours, or the calendar feed failing for over an hour. A backup that has never run (development, tests) is not a problem. | One missed night shouldn't stay silent, and one failed calendar fetch shouldn't raise an alarm. |
+| `setup.sh` runs one backup at the end. | The status line gets a first result straight away. Until Google Drive is connected, it correctly reports the Drive step as failed. |
+| A problem appears in the dock's existing warning chip, unless the dock already says "offline". | Offline explains everything else at that moment. |

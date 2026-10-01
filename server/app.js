@@ -5,6 +5,7 @@ import express from 'express';
 import * as schemas from '../shared/schemas.js';
 import { createAuth } from './auth.js';
 import { exportAll } from './backup.js';
+import { systemStatus } from './status.js';
 import { HttpError, errorHandler, validate } from './errors.js';
 import { applicationsRouter, countdownsRouter, deadlinesRouter, goalsRouter, habitsRouter, tasksRouter } from './routes/resources.js';
 import { calendarRouters, locationRouter, nightRouter, settingsRouter, weatherRouter } from './routes/system.js';
@@ -20,7 +21,8 @@ import { todaySnapshot } from './today.js';
 const NO_CALENDAR = { between: () => ({ events: [], birthdays: [] }) };
 
 // calendar: from createCalendarFeed; weatherAt: from createWeather. Tests pass fakes.
-export function createApp({ db, apiToken, kioskToken, build = 'dev', distDir = null, now = Date.now, calendar = NO_CALENDAR, weatherAt }) {
+// backupStatusFile: where vm/backup.sh records its last run (DESIGN §5.5)
+export function createApp({ db, apiToken, kioskToken, build = 'dev', distDir = null, now = Date.now, calendar = NO_CALENDAR, weatherAt, backupStatusFile = null }) {
     const auth = createAuth({ apiToken, kioskToken, now });
     const app = express();
     app.disable('x-powered-by');
@@ -83,6 +85,9 @@ export function createApp({ db, apiToken, kioskToken, build = 'dev', distDir = n
     app.use('/api/night', nightRouter(settings, now));
     app.use('/api/location', locationRouter(settings, now));
     if (weatherAt) app.use('/api/weather', weatherRouter(settings, weatherAt, now));
+    app.get('/api/status', (req, res) => {
+        res.json(systemStatus({ backupStatusFile, calendar, now: now() }));
+    });
     app.get('/api/today', async (req, res) => {
         res.json(await todaySnapshot({ stores, settings, calendar, weatherAt, now: new Date(now()) }));
     });
