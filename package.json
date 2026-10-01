@@ -52,6 +52,6 @@
     "vitest": "^5.0.2"
   },
   "allowScripts": {
-    "better-sqlite3@13.0.3": true
+    "better-sqlite3@13.0.3": false
   }
 }

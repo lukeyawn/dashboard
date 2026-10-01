@@ -74,7 +74,7 @@ Choices made while building, where [DESIGN.md](DESIGN.md) left room or turned ou
 | The full-stack browser tests run `e2e/server.js`: the real app with the fixture calendar and fixed weather. The kiosk's location lookup is answered by the test. | Tests never touch the network. |
 | Browser tests fix the page's clock at 1:35 PM on 2026-09-30 in America/Chicago. | Screenshots and states (past, current, overdue) are the same on every run. |
 | `npm run seed` fills every table with sample data, but only tables that are empty. | Safe to run against a real database by mistake. |
-| npm only runs install scripts for approved packages. `better-sqlite3` is approved, pinned to its version. | It needs its script to fetch its compiled binary. Any new package with an install script fails `npm ci` until someone approves it, which is a useful guardrail. |
+| npm only runs install scripts for approved packages. `better-sqlite3`'s is explicitly **denied** (`false`), pinned to its version. | It ships ready-made binaries for every platform inside the package, so its implicit `node-gyp rebuild` step only compiles from source. An earlier version of this entry approved it, which broke the install on the VM: it has no compiler. CI didn't notice, because GitHub's runner does have one. A new CI step now installs the production packages in a minimal container with no build tools. Any new package with an install script still fails `npm ci` until someone decides about it. |
 
 ## Phase 3: cloud server and backups (the parts that don't need the Google Cloud account)
 
@@ -146,3 +146,10 @@ Choices made while building, where [DESIGN.md](DESIGN.md) left room or turned ou
 | The `main` ruleset no longer requires a branch to be up to date with `main` before merging. The three checks must still pass. | The owner wants to merge several green PRs back to back, without a two-minute CI rerun between each. A rare breakage from two PRs combined shows up in the CI run on `main` right after merging, and gets fixed forward. |
 | From here on, every PR is based on `main` and independent of the others. A change that depends on an unmerged PR waits until that one merges. | Stacked PRs plus rebase merges meant every merge forced a rebase and a fresh CI run on the next PR. The seven-PR stack was a one-off, from the time pushing was blocked. |
 | The rest of the original stack (phases 2–6) lands through #7: once reviewed, #7 is pointed at `main` and merged once, and #3–#6 are closed as included. | One CI run and one merge instead of four rounds of rebase-and-wait. Each phase's commits still land separately. |
+
+## Server setup fixes
+
+| Choice | Why |
+|---|---|
+| `vm/setup.sh` pulls the latest code when the repo is already cloned, so running it again picks up fixes. | The first run on the real VM stopped at `npm ci`; re-running it would have kept the broken commit. |
+| `vm/setup.sh` gives the user who runs it passwordless `sudo` (`/etc/sudoers.d/dashboard-deploy`). | `vm/deploy.sh` runs its remote steps with `sudo` over Tailscale SSH, where Google's console-only `sudo` rights don't apply. The VM is reachable only through Tailscale, from the owner's own devices, so this adds no new way in. |
