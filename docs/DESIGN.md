@@ -819,7 +819,7 @@ The owner's idea: a new background each day, through the Unsplash API. Until the
 **Ruleset on `main`:**
 - Changes arrive only through pull requests. No direct pushes, force pushes or deletion.
 - All three jobs must pass, on a branch that's up to date with `main`.
-- Linear history, through squash merges.
+- Linear history, through rebase merges. (Squash merges would turn each merged PR of a stack into a conflict for the next one.)
 - No bypass, including for the repo owner.
 - **No required approvals.** The only account is Luke's, and Claude acts through it with `gh`, so GitHub can't tell the two apart. The review rule is a working agreement instead: **Claude opens pull requests and gets them green; only Luke merges.**
 
@@ -900,6 +900,7 @@ Each of these caused a real bug or near-miss, or is a known trap. Keep them in m
 | 2026-09-30 | Public GitHub repo, MIT license. CI with read-only permissions and pinned actions; `main` changes only through green pull requests, merged by Luke. |
 | 2026-09-30 | Node 24 LTS, pinned in `.nvmrc` |
 | 2026-10-01 | A daily background photo from an owner-curated Unsplash collection goes on the Later list. The bundled photo stays for v1. |
+| 2026-10-01 | `main` takes rebase merges only (not squash), so stacked PRs update cleanly after each merge |
 
 ---
 
