@@ -3,6 +3,8 @@ import { NEXT_STATUS, STATUSES } from '../../../shared/schemas';
 import { usePendingAction } from '../../hooks/usePendingAction';
 import { useResource } from '../../hooks/useResource';
 import './JobWidget.css';
+import EditButton from '../../components/EditButton';
+import { ApplicationsEditor } from '../../editors/editors';
 
 const RECENT = 3;
 
@@ -58,7 +60,10 @@ export default function JobWidget() {
 
     return (
         <div className="widget job-widget">
-            <p className="widget-title">Job search</p>
+            <div className="widget-header">
+                <p className="widget-title">Job search</p>
+                <EditButton title="Job search" editor={ApplicationsEditor} onClosed={apps.refresh} />
+            </div>
             <div className="job-stages">
                 {STATUSES.map(stage => (
                     <div key={stage} className={`job-stage ${stage}`}>

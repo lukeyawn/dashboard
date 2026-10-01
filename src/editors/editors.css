@@ -1,0 +1,175 @@
+/* Editors appear in the dashboard's modal (sized in --px) and on /manage
+   (sized in rem, for phones). Each place sets --e-font, --e-hit and --e-gap. */
+.editor {
+    display: flex;
+    flex-direction: column;
+    gap: var(--e-gap);
+    font-size: var(--e-font);
+}
+
+.editor button, .editor input, .editor select, .editor textarea {
+    font: inherit;
+    color: var(--text);
+}
+
+.editor button {
+    min-height: var(--e-hit);
+    padding: 0 calc(var(--e-gap) * 1.2);
+    border: 1px solid hsla(0, 0%, 100%, 0.2);
+    border-radius: calc(var(--e-gap) * 0.7);
+    background-color: hsla(0, 0%, 100%, 0.08);
+    white-space: nowrap;
+}
+
+.editor button:active {
+    filter: brightness(1.4);
+}
+
+.editor button:disabled {
+    opacity: 0.5;
+}
+
+.editor .editor-primary {
+    border-color: transparent;
+    background-color: var(--accent);
+    color: var(--on-accent);
+    font-weight: 600;
+}
+
+.editor .editor-danger {
+    color: var(--urgent);
+}
+
+.editor .editor-danger.armed {
+    background-color: hsla(0, 85%, 65%, 0.25);
+}
+
+.editor-add summary {
+    display: flex;
+    align-items: center;
+    min-height: var(--e-hit);
+    color: var(--accent);
+    font-weight: 600;
+    list-style: none;
+}
+
+.editor-add summary::before {
+    content: '+ ';
+    white-space: pre;
+}
+
+.editor-form {
+    display: flex;
+    flex-direction: column;
+    gap: var(--e-gap);
+    padding: var(--e-gap) 0;
+}
+
+.editor-field {
+    display: flex;
+    flex-direction: column;
+    gap: calc(var(--e-gap) * 0.3);
+}
+
+.editor-field.checkbox {
+    flex-direction: row-reverse;
+    justify-content: flex-end;
+    align-items: center;
+    gap: var(--e-gap);
+    min-height: var(--e-hit);
+}
+
+.editor-label {
+    color: var(--text-muted);
+    font-size: 0.85em;
+}
+
+.editor-field.checkbox .editor-label {
+    font-size: 1em;
+    color: var(--text);
+}
+
+.editor-optional {
+    color: var(--text-muted);
+}
+
+.editor-field input:not([type='checkbox']), .editor-field select, .editor-field textarea {
+    min-height: var(--e-hit);
+    padding: 0 calc(var(--e-gap) * 0.8);
+    border: 1px solid hsla(0, 0%, 100%, 0.25);
+    border-radius: calc(var(--e-gap) * 0.6);
+    background-color: hsla(0, 0%, 0%, 0.25);
+    color-scheme: dark;
+}
+
+.editor-field textarea {
+    padding: calc(var(--e-gap) * 0.6) calc(var(--e-gap) * 0.8);
+    resize: vertical;
+}
+
+.editor-field input[type='checkbox'] {
+    width: calc(var(--e-hit) * 0.5);
+    height: calc(var(--e-hit) * 0.5);
+    accent-color: var(--accent);
+}
+
+.editor-error {
+    margin: 0;
+    color: var(--urgent);
+    font-size: 0.85em;
+}
+
+.editor-message {
+    margin: 0;
+    color: var(--text-muted);
+}
+
+.editor-section h3 {
+    margin: var(--e-gap) 0 0;
+    color: var(--text-muted);
+    font-size: 0.8em;
+    font-weight: 600;
+    letter-spacing: 0.08em;
+    text-transform: uppercase;
+}
+
+.editor-list {
+    margin: 0;
+    padding: 0;
+    list-style: none;
+}
+
+.editor-item {
+    border-bottom: 1px solid var(--hairline);
+}
+
+.editor-row {
+    display: flex;
+    flex-wrap: wrap;
+    justify-content: space-between;
+    align-items: center;
+    gap: calc(var(--e-gap) * 0.6) var(--e-gap);
+    padding: calc(var(--e-gap) * 0.6) 0;
+}
+
+.editor-text {
+    display: flex;
+    flex-direction: column;
+    flex: 1 1 12em;
+    min-width: 0;
+}
+
+.editor-title {
+    overflow-wrap: anywhere;
+}
+
+.editor-detail {
+    color: var(--text-muted);
+    font-size: 0.85em;
+}
+
+.editor-buttons {
+    display: flex;
+    flex-wrap: wrap;
+    gap: calc(var(--e-gap) * 0.6);
+}

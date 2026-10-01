@@ -3,6 +3,8 @@ import { useResource } from '../../hooks/useResource';
 import { useTimedFlags } from '../../hooks/useTimedFlags';
 import { formatNumber } from '../../lib/format';
 import './GoalsWidget.css';
+import EditButton from '../../components/EditButton';
+import { GoalsEditor } from '../../editors/editors';
 
 const MAX_SHOWN = 4;
 
@@ -58,7 +60,10 @@ export default function GoalsWidget() {
 
     return (
         <div className="widget goals-widget">
-            <p className="widget-title">Goals</p>
+            <div className="widget-header">
+                <p className="widget-title">Goals</p>
+                <EditButton title="Goals" editor={GoalsEditor} onClosed={goals.refresh} />
+            </div>
             {content}
             {goals.saveError && <p className="widget-notice" role="status">Couldn't save. {goals.saveError.message}</p>}
         </div>

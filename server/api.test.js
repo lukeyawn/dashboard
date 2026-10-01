@@ -136,7 +136,7 @@ describe('settings and night mode', () => {
 
     it('start early until the next night end, and cancel', async () => {
         const { request } = await start();
-        expect((await request('/api/night')).body).toEqual({ active: false, until: null, start: '22:00', end: '06:30' });
+        expect((await request('/api/night')).body).toEqual({ active: false, early: false, until: null, start: '22:00', end: '06:30' });
         const started = (await request('/api/night/start', { method: 'POST' })).body;
         expect(started).toMatchObject({ active: true, until: new Date(2026, 9, 1, 6, 30).toISOString() });
         expect((await request('/api/night')).body.active).toBe(true);

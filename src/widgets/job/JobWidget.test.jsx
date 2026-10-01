@@ -42,7 +42,7 @@ describe('JobWidget', () => {
     it('advances after 5 seconds, and never offers to advance a rejection', async () => {
         const api = setup([app(1, 'Stripe', 'applied', '2026-09-28T00:00:00Z'), app(2, 'Jane Street', 'rejected', '2026-09-27T00:00:00Z')]);
         await screen.findByText('Stripe');
-        expect(screen.getAllByRole('button')).toHaveLength(1);
+        expect(document.querySelectorAll('.status-button')).toHaveLength(1);
         vi.useFakeTimers();
         fireEvent.click(screen.getByLabelText('Stripe: applied. Move to interview'));
         await act(() => vi.advanceTimersByTimeAsync(PENDING_MS));

@@ -14,7 +14,8 @@ import WordOfTheDayWidget from './widgets/wotd/WordOfTheDayWidget';
 
 export default function App() {
     return (
-        <Page>
+        // long-press menus are suppressed on the kiosk (DESIGN §6.1)
+        <Page onContextMenu={event => event.preventDefault()}>
             <Dashboard>
                 <WidgetShell area="calendar">
                     <CalendarWidget />

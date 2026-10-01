@@ -1,8 +1,8 @@
 import './Page.css';
 
-export default function Page({children}) {
+export default function Page({children, onContextMenu}) {
     return (
-        <div className="page">
+        <div className="page" onContextMenu={onContextMenu}>
             {children}
         </div>
     );

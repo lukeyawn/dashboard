@@ -42,6 +42,7 @@ describe('nightState', () => {
     it('is active in night hours, until the next end', () => {
         expect(nightState(at(23, 0), DEFAULT)).toEqual({
             active: true,
+            early: false,
             until: new Date(2026, 9, 1, 6, 30).toISOString(),
             start: '22:00',
             end: '06:30',
@@ -54,7 +55,7 @@ describe('nightState', () => {
 
     it('follows an early start until it runs out', () => {
         const until = new Date(2026, 9, 1, 6, 30).toISOString();
-        expect(nightState(at(20, 0), { ...DEFAULT, night_early_until: until })).toMatchObject({ active: true, until });
+        expect(nightState(at(20, 0), { ...DEFAULT, night_early_until: until })).toMatchObject({ active: true, early: true, until });
         expect(nightState(new Date(2026, 9, 1, 7, 0), { ...DEFAULT, night_early_until: until }).active).toBe(false);
     });
 });
