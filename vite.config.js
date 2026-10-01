@@ -4,6 +4,8 @@ import { defineConfig } from 'vite';
 // https://vite.dev/config/
 export default defineConfig({
     plugins: [react()],
+    // the commit being built, which the page compares with the server's X-Build (DESIGN §6.4)
+    define: { __BUILD__: JSON.stringify(process.env.BUILD ?? 'dev') },
     server: {
         // Express runs on 3001 in development (DESIGN §2)
         proxy: { '/api': 'http://localhost:3001' },

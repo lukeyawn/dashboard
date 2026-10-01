@@ -205,3 +205,19 @@ describe('events and birthdays', () => {
     });
 });
 
+
+describe('export', () => {
+    it('downloads every table as one JSON document', async () => {
+        const { request } = await start();
+        await request('/api/tasks', { method: 'POST', body: { name: 'Do laundry' } });
+        const res = await request('/api/export');
+        expect(res.headers.get('content-disposition')).toContain('dashboard-export-');
+        expect(res.body.tables.tasks.map(t => t.name)).toEqual(['Do laundry']);
+        expect(res.body.exported_at).toBe(new Date(NOW).toISOString());
+    });
+
+    it('needs a token like everything else', async () => {
+        const { request } = await start();
+        expect((await request('/api/export', { token: null })).status).toBe(401);
+    });
+});

@@ -4,6 +4,7 @@ import path from 'node:path';
 import express from 'express';
 import * as schemas from '../shared/schemas.js';
 import { createAuth } from './auth.js';
+import { exportAll } from './backup.js';
 import { HttpError, errorHandler, validate } from './errors.js';
 import { applicationsRouter, countdownsRouter, deadlinesRouter, goalsRouter, habitsRouter, tasksRouter } from './routes/resources.js';
 import { calendarRouters, locationRouter, nightRouter, settingsRouter, weatherRouter } from './routes/system.js';
@@ -72,6 +73,11 @@ export function createApp({ db, apiToken, kioskToken, build = 'dev', distDir = n
     app.use('/api/location', locationRouter(settings, now));
     if (weatherAt) app.use('/api/weather', weatherRouter(settings, weatherAt, now));
     app.use('/api/events', events);
+    // every table as one JSON document (DESIGN §2)
+    app.get('/api/export', (req, res) => {
+        res.set('Content-Disposition', `attachment; filename="dashboard-export-${new Date(now()).toISOString().slice(0, 10)}.json"`);
+        res.json(exportAll(db, new Date(now())));
+    });
     app.use('/api/birthdays', birthdays);
     app.use('/api', (req) => {
         throw new HttpError(404, `There's no API route ${req.method} ${req.path}`);
