@@ -74,6 +74,9 @@ sleep 2
 systemctl enable --now litestream.service
 systemctl restart litestream.service
 systemctl enable --now backup.timer
+# one backup now, so the status line has a first result; until Google Drive is
+# connected (SETUP.md step 7) it reports the Drive step as failed, as it should
+systemctl start backup.service || true
 
 echo
 echo "Done. Next steps are in vm/SETUP.md (Tailscale, the calendar address, Google Drive)."

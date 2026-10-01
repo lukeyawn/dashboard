@@ -272,3 +272,11 @@ describe('today', () => {
         expect(body.weather).toBeNull();
     });
 });
+
+describe('status', () => {
+    it('reports the backup and calendar, and needs a token', async () => {
+        const { request } = await start();
+        expect((await request('/api/status', { token: null })).status).toBe(401);
+        expect((await request('/api/status')).body).toEqual({ backup: null, calendar: null, problems: [] });
+    });
+});
