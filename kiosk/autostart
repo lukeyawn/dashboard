@@ -1,0 +1,10 @@
+# labwc autostart for the kiosk (DESIGN §11.2), installed as ~/.config/labwc/autostart
+# by kiosk/setup.sh. It replaces the desktop's own, so there's no panel or desktop.
+
+# the on-screen keyboard, for typing in the editors
+squeekboard &
+
+# turn the display off after 6 idle minutes, but only at night; any touch turns it back on
+swayidle -w timeout 360 "$HOME/dashboard/kiosk/display-off-if-night.sh" resume 'wlopm --on "*"' &
+
+"$HOME/dashboard/kiosk/start.sh" &

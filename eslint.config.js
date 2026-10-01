@@ -15,12 +15,13 @@ export default defineConfig([
             reactRefresh.configs.vite,
         ],
         languageOptions: {
-            globals: globals.browser,
+            // __BUILD__ is the commit the page was built from (vite.config.js)
+            globals: { ...globals.browser, __BUILD__: 'readonly' },
             parserOptions: { ecmaFeatures: { jsx: true } },
         },
     },
     {
-        files: ['server/**/*.js', 'mcp/**/*.js', 'shared/**/*.js', '*.config.js'],
+        files: ['server/**/*.js', 'mcp/**/*.js', 'shared/**/*.js', 'kiosk/**/*.js', 'scripts/**/*.js', '*.config.js'],
         extends: [js.configs.recommended],
         languageOptions: { globals: globals.node },
     },

@@ -61,6 +61,8 @@ export function createApp({ db, apiToken, kioskToken, build = 'dev', distDir = n
     });
 
     app.use('/api', auth.requireToken);
+    // which token this browser logged in with; the kiosk behaves as a kiosk (DESIGN §6.4)
+    app.get('/api/session', (req, res) => res.json({ client: req.client }));
     const settings = createSettingsStore(db);
     const stores = {
         tasks: createTaskStore(db),

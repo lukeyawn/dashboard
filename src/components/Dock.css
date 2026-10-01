@@ -68,3 +68,25 @@
     flex-direction: column;
     line-height: 1.3;
 }
+
+.dock-moon {
+    display: grid;
+    place-items: center;
+    width: var(--hit);
+    height: var(--hit);
+    padding: 0;
+    border: 1px solid hsla(0, 0%, 100%, 0.2);
+    border-radius: 50%;
+    background: none;
+    color: var(--text-muted);
+    font-size: calc(26 * var(--px));
+}
+
+.dock-moon.on {
+    border-color: var(--accent);
+    color: var(--accent);
+}
+
+.dock-moon:active {
+    filter: brightness(1.5);
+}

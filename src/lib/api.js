@@ -22,6 +22,25 @@ function setOffline(offline) {
     connectionListeners.forEach(listener => listener());
 }
 
+// The server's build (its X-Build header), from the latest response
+let serverBuild = null;
+const buildListeners = new Set();
+
+export function getServerBuild() {
+    return serverBuild;
+}
+
+export function onServerBuild(listener) {
+    buildListeners.add(listener);
+    return () => buildListeners.delete(listener);
+}
+
+function noteBuild(build) {
+    if (!build || build === serverBuild) return;
+    serverBuild = build;
+    buildListeners.forEach(listener => listener());
+}
+
 export function getOfflineSince() {
     return offlineSince;
 }
@@ -55,6 +74,7 @@ export async function request(path, { method = 'GET', body, signal } = {}) {
         throw new ApiError(0, "Can't reach the server");
     }
     setOffline(false);
+    noteBuild(res.headers.get('X-Build'));
 
     if (res.status === 401) unauthorizedListeners.forEach(listener => listener());
     if (!res.ok) {
