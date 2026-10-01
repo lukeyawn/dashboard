@@ -30,6 +30,8 @@ The first `npm run e2e` needs `npx playwright install chromium`. Screenshots of 
 
 ## Credits
 
+The background photo is by [Sarthaak Maji](https://unsplash.com/@srtkmaji) on [Unsplash](https://unsplash.com/photos/snow-covered-mountain-under-starry-night-dOA35bihSjk), used under the [Unsplash License](https://unsplash.com/license).
+
 The word-of-the-day list is built from [complete-hsk-vocabulary](https://github.com/drkameleon/complete-hsk-vocabulary) (MIT), whose definitions come from [CC-CEDICT](https://cc-cedict.org/) (CC BY-SA 4.0). `src/data/words.json` is shared under CC BY-SA 4.0 accordingly.
 
 ## License
