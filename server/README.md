@@ -21,7 +21,9 @@ Every `x.test.js` tests the `x.js` beside it. The exceptions are noted below.
 | `auth.js` | The two tokens, the login cookie, `requireToken`, and the global login rate limit (DESIGN §4, Access). |
 | `errors.js` | `HttpError`, `validate` (zod), and the handler that turns errors into `{ error: { message, details } }`. |
 | `db.js` | Opens SQLite and runs the numbered migrations in `migrations/` in order, tracked by `user_version`. |
-| `crud.js` | The four generic routes every resource gets (list, create, update, delete) and the SQL behind them. Stores build on it. |
+| `crud.js` | The four generic routes every resource gets (list, create, update, delete) and the SQL behind them. Stores build on it. Every write goes through the change record in the same transaction. Creating an item whose `source` already exists returns the existing one. |
+| `changes.js` | The change record (DESIGN §5.5): `withActor` tags every write in a request with who made it (owner, kiosk, Claude), and the log stores each row before and after. Kept a year. |
+| `undo.js` | Undoes one change, but only if the item is still exactly as that change left it; otherwise it answers 409. `changes.test.js` covers it. |
 
 ## Features
 
@@ -39,7 +41,7 @@ Every `x.test.js` tests the `x.js` beside it. The exceptions are noted below.
 
 | Directory | Purpose |
 |---|---|
-| `routes/` | Express routers. `resources.js` has each stored resource's routes and quick actions (complete, check, increment, advance). `system.js` has settings, night mode, weather, the kiosk's location, events and birthdays. |
+| `routes/` | Express routers. `resources.js` has each stored resource's routes and quick actions (complete, check, increment, advance). `system.js` has settings, night mode, weather, the kiosk's location, events and birthdays. `changes.js` has the change record and undo. |
 | `stores/` | One file per table: its columns, ordering, filters and any special behavior. Examples: the pinned countdown is unique, goals increment, and habits compute streaks and checks. `stores.test.js` covers them all, and `tasks.test.js` covers tasks in more depth. |
-| `migrations/` | Numbered SQL files, `001-tasks.sql` onward, applied once each in order. Numbers must have no gaps. A new table or column is a new file; an existing file never changes once deployed. |
+| `migrations/` | Numbered SQL files, `001-tasks.sql` onward, applied once each in order. `008` moved deadlines into tasks, and `009` added the change record. Numbers must have no gaps. A new table or column is a new file; an existing file never changes once deployed. |
 | `fixtures/` | `calendar.ics`, a test calendar with repeats, skipped dates, changed occurrences, all-day events and birthdays. The calendar tests read it instead of touching the network. |
