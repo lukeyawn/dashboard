@@ -15,8 +15,8 @@ const optionalText = max => z.preprocess(
 
 const timestamp = z.iso.datetime({ message: 'Expected a UTC ISO-8601 timestamp' });
 
-export const date = z.string().refine(isDateString, 'Expected a real date as YYYY-MM-DD');
-export const time = z.string().regex(/^([01]\d|2[0-3]):[0-5]\d$/, 'Expected a time as HH:MM');
+export const date = z.string().refine(isDateString, 'Expected a real date as YYYY-MM-DD').describe('A local date, YYYY-MM-DD');
+export const time = z.string().regex(/^([01]\d|2[0-3]):[0-5]\d$/, 'Expected a time as HH:MM').describe('A time of day, HH:MM (24-hour)');
 
 export const id = z.coerce.number().int().positive();
 
@@ -131,3 +131,6 @@ export const dateRange = z.strictObject({ from: date, to: date })
     .refine(({ from, to }) => !isDateString(from) || !isDateString(to) || daysBetween(from, to) <= 366, 'The range can be at most a year');
 
 export const login = z.strictObject({ token: z.string().min(1).max(512) });
+
+// The fields of each resource, for building other schemas from (the MCP tools use them)
+export const shapes = { task, deadline, countdown, goal, habit, application };

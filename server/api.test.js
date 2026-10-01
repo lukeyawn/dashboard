@@ -221,3 +221,39 @@ describe('export', () => {
         expect((await request('/api/export', { token: null })).status).toBe(401);
     });
 });
+
+describe('today', () => {
+    const calendar = createCalendarFeed({ cacheFile: new URL('./fixtures/calendar.ics', import.meta.url).pathname });
+    const weatherAt = async () => ({ temperature: 82, condition: 'Clear', high: 92, low: 70, unit: 'F' });
+
+    it('gathers the day for the agent', async () => {
+        const { request } = await start({ calendar, weatherAt });
+        await request('/api/tasks', { method: 'POST', body: { name: 'Do laundry' } });
+        await request('/api/deadlines', { method: 'POST', body: { name: 'Overdue', due: '2026-09-29' } });
+        await request('/api/deadlines', { method: 'POST', body: { name: 'Soon', due: '2026-10-05' } });
+        await request('/api/deadlines', { method: 'POST', body: { name: 'Far off', due: '2026-12-01' } });
+        await request('/api/countdowns', { method: 'POST', body: { label: 'Break', target_date: '2026-11-25' } });
+        const habit = (await request('/api/habits', { method: 'POST', body: { name: 'Read' } })).body;
+        await request(`/api/habits/${habit.id}/checks/2026-09-30`, { method: 'PUT' });
+        await request('/api/applications', { method: 'POST', body: { company: 'Stripe', role: 'Intern' } });
+
+        const { body } = await request('/api/today');
+        expect(body.date).toBe('2026-09-30');
+        expect(body.events.map(e => e.title)).toEqual(['Algorithms lecture (moved)', 'Office hours']);
+        expect(body.birthdays_this_week.map(b => b.title)).toEqual(["Mom's birthday"]);
+        expect(body.tasks.map(t => t.name)).toEqual(['Do laundry']);
+        expect(body.deadlines.map(d => [d.name, d.days_left])).toEqual([['Overdue', -1], ['Soon', 5]]);
+        expect(body.habits).toEqual([expect.objectContaining({ name: 'Read', done_today: true, streak: 1 })]);
+        expect(body.countdowns[0]).toMatchObject({ label: 'Break', days_left: 56 });
+        expect(body.applications.counts).toEqual({ applied: 1, interview: 0, offer: 0, rejected: 0 });
+        expect(body.weather).toMatchObject({ temperature: 82, location: { source: 'default' } });
+        expect(body.night.active).toBe(false);
+    });
+
+    it('still answers when the weather fails', async () => {
+        const { request } = await start({ weatherAt: async () => { throw new Error('offline'); } });
+        const { status, body } = await request('/api/today');
+        expect(status).toBe(200);
+        expect(body.weather).toBeNull();
+    });
+});

@@ -89,3 +89,16 @@ Choices made while building, where [DESIGN.md](DESIGN.md) left room or turned ou
 | The build ID is the commit SHA: `BUILD` is passed to Vite as `__BUILD__`, and written to `/opt/dashboard/build.env` for the server's `X-Build`. | The page and the server compare the same string (DESIGN §6.4). |
 | CI runs `shellcheck` on `vm/*.sh` and `scripts/*.sh`. | The deploy and backup scripts guard the data, so they get linted like everything else. |
 | An application's `applied_on` defaults to today on the server, by the server's clock, rather than in the shared schema. | Found on the first day after the build started: the schema's default used the machine's real date, ignoring the clock the server and tests run on. |
+
+## Phase 4: agent access
+
+| Choice | Why |
+|---|---|
+| 31 tools: the design's list, plus `complete_deadline` and `list_`/`add_`/`update_` for every resource. Archiving a goal or habit is `update_*` with `archived_at`. | Every quick action on the dashboard has a tool, and "done" never needs `delete_item`. |
+| Every tool is one HTTP request to the API; the MCP server keeps no logic or data of its own. Its input schemas are built from the shared zod schemas, using `shapes` exported from `shared/schemas.js` for the update tools. | DESIGN §5: no second copy of the business logic, and the agent's input passes the same validation as the dashboard's. |
+| Tools are annotated: reads `readOnlyHint`, `delete_item` `destructiveHint`. `delete_item`'s description tells the agent to confirm first and to prefer completing or archiving. | Clients can use the annotations to ask before risky calls; the description covers clients that don't. |
+| Errors come back as tool errors with the API's message and each validation detail, never as thrown exceptions. A connection failure suggests checking Tailscale. | The agent can read what went wrong and fix its input. Being off the tailnet is the likely cause of an unreachable server. |
+| `complete_task` and `complete_deadline` stamp `done_at` with the laptop's current time. | Same as a tap on the kiosk. |
+| `/api/today` includes deadlines due within 14 days (overdue ones too, with `days_left`), birthdays in the next 7 days, the 3 nearest countdowns, habits with `done_today`, application counts with the 5 most recent, the kiosk-location weather (`null` if it can't be fetched), and night mode. | One call answers "what's on today?" without the agent chaining ten list calls. |
+| Date fields carry a description ("A local date, YYYY-MM-DD") in the tool schemas. | A refinement doesn't show up in JSON Schema, so without it the agent would see only "string". |
+| One test starts `mcp/index.js` over stdio, exactly as Claude does. | It covers the wiring that the in-memory tests skip. |
