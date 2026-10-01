@@ -77,3 +77,13 @@ describe('DueSoonWidget', () => {
         expect(screen.getByText("Couldn't load tasks.")).toBeTruthy();
     });
 });
+
+describe('DueSoonWidget and Claude', () => {
+    it('marks a deadline Claude added, beside its row', async () => {
+        tasks[1].claude_change = { id: 9, at: '2026-09-30T14:00:00.000Z', actor: 'claude', via: 'claude-code' };
+        setup();
+        await act(async () => {});
+        expect(screen.getAllByLabelText('Added by Claude Code')).toHaveLength(1);
+        expect(screen.getByLabelText('Added by Claude Code').closest('li').textContent).toContain('Pset 4');
+    });
+});

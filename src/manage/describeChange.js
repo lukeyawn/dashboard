@@ -8,6 +8,16 @@ const NOUNS = {
 
 export const ACTOR_LABELS = { owner: 'You', kiosk: 'Kiosk', claude: 'Claude', agent: 'Agent', system: 'System' };
 
+// Who made a change, saying where Claude's came from (docs/CONNECTOR.md §6)
+export function whoMade(change) {
+    if (change.actor === 'claude' && change.via === 'claude.ai') return 'Claude (claude.ai)';
+    if (change.actor === 'claude' && change.via === 'claude-code') return 'Claude Code';
+    if (change.actor === 'agent') return 'Claude (accepted suggestion)';
+    return ACTOR_LABELS[change.actor] ?? change.actor;
+}
+
+const CONNECTOR_SWITCHES = { connector_chat_enabled: 'the claude.ai connector', connector_agent_enabled: "the agent's connector" };
+
 // fields that change as a side effect, not worth listing
 const QUIET = new Set(['id', 'created_at', 'updated_at']);
 
@@ -39,6 +49,7 @@ function describeUpdate(noun, before, after) {
 function describeSetting(change) {
     const key = change.item_id;
     if (key === 'night_early_until') return change.after ? 'Started night mode early' : 'Cancelled early night mode';
+    if (CONNECTOR_SWITCHES[key]) return `Switched ${CONNECTOR_SWITCHES[key]} ${change.after?.value === false ? 'off' : 'on'}`;
     const label = key.replace('_', ' ');
     return change.after ? `Set ${label} to ${change.after.value}` : `Reset ${label}`;
 }

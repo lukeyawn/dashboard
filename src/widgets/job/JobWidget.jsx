@@ -3,6 +3,7 @@ import { NEXT_STATUS, STATUSES } from '../../../shared/schemas';
 import { usePendingAction } from '../../hooks/usePendingAction';
 import { useResource } from '../../hooks/useResource';
 import './JobWidget.css';
+import ClaudeMark from '../../components/ClaudeMark';
 import EditButton from '../../components/EditButton';
 import { ApplicationsEditor } from '../../editors/editors';
 
@@ -35,7 +36,10 @@ export default function JobWidget() {
                     const isPending = pending.isPending(a.id);
                     return (
                         <li key={a.id} className={isPending ? 'job-row pending' : 'job-row'} style={{'--pending-ms': `${pending.delayMs}ms`}}>
-                            <span className="job-company">{a.company}</span>
+                            <span className="job-company">
+                                <span className="job-company-name">{a.company}</span>
+                                {a.claude_change && <ClaudeMark change={a.claude_change} name={`${a.company} · ${a.role}`} onUndone={apps.refresh} />}
+                            </span>
                             <span className="job-role">{a.role}</span>
                             {NEXT_STATUS[a.status] ? (
                                 <button

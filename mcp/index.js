@@ -6,7 +6,7 @@
 import { McpServer } from '@modelcontextprotocol/sdk/server/mcp.js';
 import { StdioServerTransport } from '@modelcontextprotocol/sdk/server/stdio.js';
 import { createClient } from './client.js';
-import { registerTools } from './tools.js';
+import { INSTRUCTIONS, registerTools } from './tools.js';
 
 const { DASHBOARD_URL, DASHBOARD_TOKEN } = process.env;
 if (!DASHBOARD_URL || !DASHBOARD_TOKEN) {
@@ -15,6 +15,6 @@ if (!DASHBOARD_URL || !DASHBOARD_TOKEN) {
     process.exit(1);
 }
 
-const server = new McpServer({ name: 'dashboard', version: '1.0.0' });
+const server = new McpServer({ name: 'dashboard', version: '1.0.0' }, { instructions: INSTRUCTIONS });
 registerTools(server, createClient({ baseUrl: DASHBOARD_URL, token: DASHBOARD_TOKEN }));
 await server.connect(new StdioServerTransport());

@@ -146,11 +146,28 @@ export const login = z.strictObject({ token: z.string().min(1).max(512) });
 
 // the change record (DESIGN §5.5)
 export const ACTORS = ['owner', 'kiosk', 'claude', 'agent', 'system'];
+// where a change by Claude came from: claude.ai, Claude Code, or one claude.ai connection's id
+const via = z.union([z.enum(['claude.ai', 'claude-code']), z.coerce.number().int().positive()]);
 export const changesQuery = z.strictObject({
     limit: z.coerce.number().int().min(1).max(200).default(50),
-    actor: z.enum(ACTORS).optional(),
+    // one actor, or several separated by commas: ?actor=claude,agent
+    actor: z.string().transform(value => value.split(',')).pipe(z.array(z.enum(ACTORS)).min(1)).optional(),
     resource: z.enum(['tasks', 'countdowns', 'goals', 'habits', 'habit_checks', 'applications', 'settings']).optional(),
+    via: via.optional(),
+    since: timestamp.optional(),
 });
+
+// Undo everything since a time (docs/CONNECTOR.md §6): Claude's changes by default
+export const undoSince = z.strictObject({
+    since: timestamp,
+    actors: z.array(z.enum(ACTORS)).min(1).default(['claude', 'agent']),
+    via: via.optional(),
+});
+
+// the claude.ai connectors and their kill switches (docs/CONNECTOR.md §9)
+export const CONNECTOR_NAMES = ['chat', 'agent'];
+export const connectorName = z.enum(CONNECTOR_NAMES);
+export const connectorSwitch = z.strictObject({ enabled: z.boolean() });
 
 // The fields of each resource, for building other schemas from (the MCP tools use them)
 export const shapes = { task, countdown, goal, habit, application };

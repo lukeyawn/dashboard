@@ -1,7 +1,7 @@
 import { useState } from 'react';
 import { useResource } from '../hooks/useResource';
 import { request } from '../lib/api';
-import { ACTOR_LABELS, describeChange } from './describeChange';
+import { ACTOR_LABELS, describeChange, whoMade } from './describeChange';
 import '../editors/editors.css';
 
 // Recent changes from anyone, each with Undo (DESIGN §5.5). An undo is itself
@@ -43,7 +43,7 @@ export default function History() {
                             <div className="editor-text">
                                 <span className="editor-title">{describeChange(change)}</span>
                                 <span className="editor-detail">
-                                    {ACTOR_LABELS[change.actor] ?? change.actor} · {new Date(change.at).toLocaleString('en-US', { month: 'short', day: 'numeric', hour: 'numeric', minute: '2-digit' })}
+                                    {whoMade(change)} · {new Date(change.at).toLocaleString('en-US', { month: 'short', day: 'numeric', hour: 'numeric', minute: '2-digit' })}
                                 </span>
                             </div>
                             <div className="editor-buttons">

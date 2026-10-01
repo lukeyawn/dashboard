@@ -408,6 +408,8 @@ Before go-live, a manual check with the real claude.ai:
 
 Each PR is cut from `main` once the previous one has merged (no stacking). The order puts direct adding from chats first, since that's what you'll use most.
 
+**As built:** PRs 1 and 2 became one PR, so the owner could test with claude.ai without waiting for a second review (DECISIONS.md, phase 8).
+
 1. **The door and the chat connector.**
    - Credentials and the allow-lists.
    - The OAuth server and tables, and the tailnet `/connect/:id` page.
@@ -431,6 +433,8 @@ Each PR is cut from `main` once the previous one has merged (no stacking). The o
 ## 15. Files
 
 These are exactly the files each PR adds or changes, based on `main` once #18 is merged. If a PR turns out to need a file that isn't listed, this list is updated in that PR and the reason goes in DECISIONS.md.
+
+**As built,** PRs 1 and 2 also changed `server/testing.js`, `server/backup.js`, `mcp/client.js`, `mcp/index.js`, `src/widgets/countdown/countdown.js`, three tiles' CSS, `src/manage/History.jsx`, `scripts/check-secrets.sh` and the READMEs. DECISIONS.md, phase 8, says why.
 
 **No new dependencies.**
 - MCP's Streamable HTTP transport is already in `@modelcontextprotocol/sdk`.

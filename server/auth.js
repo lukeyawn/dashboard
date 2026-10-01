@@ -1,12 +1,11 @@
 // Tokens, the login cookie and the login rate limit (DESIGN §4, Access).
 import crypto from 'node:crypto';
 import { HttpError } from './errors.js';
+import { createLoginLimiter } from './limits.js';
 
 export const COOKIE = 'dashboard_token';
 const COOKIE_MAX_AGE_MS = 365 * 24 * 60 * 60 * 1000;
 const MIN_TOKEN_LENGTH = 32;
-
-export const LOGIN_LIMIT = { failures: 10, windowMs: 15 * 60 * 1000 };
 
 // The server refuses to start with weak or missing tokens. Tokens are long and
 // random, so guessing one through the API isn't feasible even without a limit.
@@ -38,29 +37,9 @@ export function parseCookies(header = '') {
     return cookies;
 }
 
-// Behind `tailscale serve` every request comes from localhost, so the limit is
-// global rather than per address (DESIGN §14).
-export function createLoginLimiter({ failures = LOGIN_LIMIT.failures, windowMs = LOGIN_LIMIT.windowMs, now = Date.now } = {}) {
-    let recent = [];
-    let lockedUntil = 0;
-
-    return {
-        isLocked() {
-            return now() < lockedUntil;
-        },
-        recordFailure() {
-            const time = now();
-            recent = recent.filter(t => time - t < windowMs);
-            recent.push(time);
-            if (recent.length >= failures) {
-                lockedUntil = time + windowMs;
-                recent = [];
-            }
-        },
-    };
-}
-
-export function createAuth({ apiToken, kioskToken, now = Date.now }) {
+// connections: the claude.ai connection store (server/stores/connections.js),
+// whose access tokens are accepted as bearer tokens with a connector's rights
+export function createAuth({ apiToken, kioskToken, now = Date.now, connections = null }) {
     checkTokens({ apiToken, kioskToken });
     const known = [['api', digest(apiToken)], ['kiosk', digest(kioskToken)]];
     const limiter = createLoginLimiter({ now });
@@ -77,20 +56,31 @@ export function createAuth({ apiToken, kioskToken, now = Date.now }) {
         return who;
     }
 
-    function tokenFrom(req) {
+    const bearerOf = req => {
         const header = req.get('authorization');
-        if (header?.startsWith('Bearer ')) return header.slice('Bearer '.length).trim();
-        return parseCookies(req.get('cookie'))[COOKIE] ?? null;
+        return header?.startsWith('Bearer ') ? header.slice('Bearer '.length).trim() : null;
+    };
+
+    function tokenFrom(req) {
+        return bearerOf(req) ?? parseCookies(req.get('cookie'))[COOKIE] ?? null;
     }
 
     return {
         identify,
 
-        // Every /api request needs a token, from the cookie or a bearer header
+        // Every /api request needs a token, from the cookie or a bearer header.
+        // req.client is 'api', 'kiosk' or 'connector'; a connector's request
+        // also gets req.connection, { id, connector } (docs/CONNECTOR.md §5).
         requireToken(req, res, next) {
             const who = identify(tokenFrom(req));
-            if (!who) return next(new HttpError(401, 'Log in first: missing or wrong token'));
-            req.client = who;
+            if (who) {
+                req.client = who;
+                return next();
+            }
+            const connection = connections?.verifyAccess(bearerOf(req));
+            if (!connection) return next(new HttpError(401, 'Log in first: missing or wrong token'));
+            req.client = 'connector';
+            req.connection = connection;
             next();
         },
 

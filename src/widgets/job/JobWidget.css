@@ -85,8 +85,14 @@
 }
 
 .job-company {
-    font-weight: 600;
+    display: flex;
+    align-items: center;
     max-width: calc(var(--cell) * 1.5);
+    font-weight: 600;
+}
+
+.job-company-name {
+    min-width: 0;
     white-space: nowrap;
     overflow: hidden;
     text-overflow: ellipsis;

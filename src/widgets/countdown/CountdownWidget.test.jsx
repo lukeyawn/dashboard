@@ -81,3 +81,15 @@ describe('CountdownWidget', () => {
         expect(await screen.findByText("Couldn't load countdowns")).toBeTruthy();
     });
 });
+
+describe('CountdownWidget and Claude', () => {
+    afterEach(() => vi.unstubAllGlobals());
+
+    it('marks a countdown Claude added', async () => {
+        const claude_change = { id: 4, at: '2026-09-30T14:00:00.000Z', actor: 'claude', via: 'claude.ai' };
+        expect(chooseCountdown({ todayDate, countdowns: [{ ...finals, claude_change }] }).claude_change).toEqual(claude_change);
+        fakeServer({ 'GET /api/countdowns': () => [{ ...finals, claude_change }], 'GET /api/birthdays': () => [] }).install();
+        render(<CountdownWidget />);
+        expect(await screen.findByLabelText('Added by Claude (claude.ai)')).toBeTruthy();
+    });
+});

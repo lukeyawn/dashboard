@@ -6,6 +6,8 @@ export const NOW = new Date('2026-09-30T13:35:00-05:00');
 const at = time => new Date(`2026-09-30T${time}:00-05:00`).toISOString();
 const stamp = '2026-09-30T12:00:00.000Z';
 const rows = list => list.map((row, i) => ({ id: i + 1, created_at: stamp, updated_at: stamp, ...row }));
+// items Claude added carry the ✦ mark (docs/CONNECTOR.md §6); put on the longest names
+const claude_change = { id: 90, at: stamp, actor: 'claude', via: 'claude.ai' };
 
 export const TASKS = rows([
     'Do laundry',
@@ -24,10 +26,11 @@ export const TASKS = rows([
     name, done_at: null, due: null, effort: null, area: null, notes: null, link: null, source: null,
     priority: i === 1 ? 'high' : i === 9 ? 'low' : 'normal',
     ...(i === 3 && { effort: 'quick' }),
+    ...(i === 2 && { claude_change }),
 })).concat([
     // the Due soon tile's tasks: overdue, or due within 14 days of the fixed date
     { name: 'Reading response 3', due: '2026-09-28', area: 'RHE 306' },
-    { name: 'Linear Algebra problem set 4: eigenvalues and diagonalization', due: '2026-10-01', area: 'M 340L', priority: 'high', effort: 'big' },
+    { name: 'Linear Algebra problem set 4: eigenvalues and diagonalization', due: '2026-10-01', area: 'M 340L', priority: 'high', effort: 'big', claude_change },
     { name: 'OS Shell project', due: '2026-10-02', area: 'CS 439' },
     { name: 'Stripe online assessment', due: '2026-10-09', area: 'job search' },
     { name: 'Algorithms midterm', due: '2026-10-14', area: 'CS 331' },
@@ -69,7 +72,7 @@ export const HABITS = rows([
 ].map((h, i) => ({ ...h, position: i, archived_at: null })));
 
 export const APPLICATIONS = rows([
-    { company: 'Google', role: 'Software Engineering Intern, Summer 2027', status: 'interview', updated_at: '2026-09-29T15:00:00.000Z' },
+    { company: 'Google', role: 'Software Engineering Intern, Summer 2027', status: 'interview', updated_at: '2026-09-29T15:00:00.000Z', claude_change },
     { company: 'Stripe', role: 'Backend Intern', status: 'applied', updated_at: '2026-09-28T15:00:00.000Z' },
     { company: 'Datadog', role: 'SRE Intern', status: 'applied', updated_at: '2026-09-20T15:00:00.000Z' },
     { company: 'Figma', role: 'Frontend Intern', status: 'applied', updated_at: '2026-09-18T15:00:00.000Z' },

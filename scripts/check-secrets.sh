@@ -25,7 +25,7 @@ fi
 # Locally, also make sure the real token values never leave .env
 if [ -f .env ]; then
     while IFS='=' read -r key value; do
-        case "$key" in API_TOKEN|KIOSK_TOKEN|GCAL_ICS_URL) ;; *) continue ;; esac
+        case "$key" in API_TOKEN|KIOSK_TOKEN|GCAL_ICS_URL|OAUTH_*_SECRET|OAUTH_REFRESH_KEY) ;; *) continue ;; esac
         [ -n "$value" ] || continue
         if git ls-files -z | xargs -0 grep -nIF "$value" -- >/dev/null; then
             echo "::error::The value of $key appears in a tracked file"

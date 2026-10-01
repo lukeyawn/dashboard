@@ -176,3 +176,91 @@ describe('createChangeLog', () => {
         expect(log.get(999)).toBeNull();
     });
 });
+
+describe("Claude's changes (docs/CONNECTOR.md §6)", () => {
+    // a server with the connector, a claude.ai chat token, and the clock at NOW
+    async function startWithClaude() {
+        let time = NOW;
+        server = await startServer({ connector: true, now: () => time });
+        const { access_token: token } = await server.signIn('chat');
+        const asClaude = (path, options = {}) => server.request(path, { ...options, token });
+        const asClaudeCode = (path, options = {}) => server.request(path, { ...options, headers: { 'x-dashboard-client': 'claude' } });
+        return { asClaude, asClaudeCode, request: server.request, tick: ms => { time += ms; } };
+    }
+    const add = (as, name) => as('/api/tasks', { method: 'POST', body: { name } }).then(r => r.body);
+    const names = async request => (await request('/api/tasks')).body.map(t => t.name).sort();
+
+    it('filters by several actors, where it came from, and since when', async () => {
+        const { asClaude, asClaudeCode, request, tick } = await startWithClaude();
+        await add(request, 'mine');
+        await add(asClaudeCode, 'from Claude Code');
+        tick(60_000);
+        const since = new Date(NOW + 60_000).toISOString();
+        await add(asClaude, 'from claude.ai');
+        const named = async query => (await changes(request, query)).map(c => c.after?.name);
+        expect(await named('?actor=claude,agent')).toEqual(['from claude.ai', 'from Claude Code']);
+        expect(await named('?via=claude.ai')).toEqual(['from claude.ai']);
+        expect(await named('?via=claude-code')).toEqual(['from Claude Code']);
+        const [{ connection_id: connection }] = await changes(request, '?via=claude.ai');
+        expect(await named(`?via=${connection}`)).toEqual(['from claude.ai']);
+        expect(await named(`?since=${since}`)).toEqual(['from claude.ai']);
+        expect((await request('/api/changes?via=elsewhere')).status).toBe(400);
+        expect((await request('/api/changes?actor=claude,robot')).status).toBe(400);
+    });
+
+    it("undoes everything since a time from claude.ai only, leaving Claude Code's work and skipping what you edited since", async () => {
+        const { asClaude, asClaudeCode, request, tick } = await startWithClaude();
+        const before = await add(asClaude, 'before the run');
+        tick(60_000);
+        const since = new Date(NOW + 60_000).toISOString();
+        await add(asClaude, 'bad 1');
+        const edited = await add(asClaude, 'bad but edited');
+        await asClaude(`/api/tasks/${before.id}`, { method: 'PATCH', body: { priority: 'high' } });
+        await add(asClaudeCode, 'good laptop work');
+        await request(`/api/tasks/${edited.id}`, { method: 'PATCH', body: { name: 'kept by me' } });
+
+        const res = await request('/api/changes/undo-since', { method: 'POST', body: { since, via: 'claude.ai' } });
+        expect(res.status).toBe(200);
+        expect(res.body.undone).toHaveLength(2);
+        expect(res.body.skipped).toHaveLength(1);
+        expect(res.body.skipped[0].change.after.name).toBe('bad but edited');
+        expect(res.body.skipped[0].reason).toMatch(/changed since/);
+        expect(await names(request)).toEqual(['before the run', 'good laptop work', 'kept by me']);
+        expect((await request('/api/tasks')).body.find(t => t.id === before.id).priority).toBe('normal');
+        // the undo is the owner's, and can itself be undone
+        const [latest] = await changes(request);
+        expect(latest.actor).toBe('owner');
+    });
+
+    it('undoes Claude Code too when widened, and validates the request', async () => {
+        const { asClaude, asClaudeCode, request } = await startWithClaude();
+        await add(asClaude, 'a');
+        await add(asClaudeCode, 'b');
+        await add(request, 'mine');
+        const res = await request('/api/changes/undo-since', { method: 'POST', body: { since: new Date(NOW - 1000).toISOString() } });
+        expect(res.body.undone).toHaveLength(2);
+        expect(await names(request)).toEqual(['mine']);
+        expect((await request('/api/changes/undo-since', { method: 'POST', body: {} })).status).toBe(400);
+        expect((await request('/api/changes/undo-since', { method: 'POST', body: { since: 'yesterday' } })).status).toBe(400);
+    });
+
+    it("marks rows Claude created, and not a later row that reuses an undone row's id", async () => {
+        const { asClaude, asClaudeCode, request, tick } = await startWithClaude();
+        const mine = await add(request, 'mine');
+        const fromChat = await add(asClaude, 'from a chat');
+        const fromLaptop = await add(asClaudeCode, 'from Claude Code');
+        const byId = async () => Object.fromEntries((await request('/api/tasks')).body.map(t => [t.id, t.claude_change ?? null]));
+        let marks = await byId();
+        expect(marks[mine.id]).toBeNull();
+        expect(marks[fromChat.id]).toMatchObject({ actor: 'claude', via: 'claude.ai' });
+        expect(marks[fromLaptop.id]).toMatchObject({ actor: 'claude', via: 'claude-code' });
+
+        // undo the newest (its id is the highest), then the owner adds one that takes the id
+        await request(`/api/changes/${marks[fromLaptop.id].id}/undo`, { method: 'POST' });
+        tick(1000);
+        const reused = await add(request, 'mine, same id');
+        expect(reused.id).toBe(fromLaptop.id);
+        marks = await byId();
+        expect(marks[reused.id]).toBeNull();
+    });
+});

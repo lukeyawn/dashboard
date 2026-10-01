@@ -1,0 +1,22 @@
+/* The ✦ on items Claude created: small and quiet, but with a tap area as tall
+   as its row and wider than the glyph (docs/CONNECTOR.md §6) */
+.claude-mark {
+    flex-shrink: 0;
+    align-self: stretch;
+    min-width: calc(var(--hit) * 0.6);
+    padding: 0;
+    border: none;
+    background: none;
+    color: var(--accent);
+    font: inherit;
+    font-size: 0.8em;
+    opacity: 0.85;
+}
+
+.claude-mark:active {
+    filter: brightness(1.4);
+}
+
+.claude-card p {
+    margin: 0;
+}

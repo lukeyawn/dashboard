@@ -2,11 +2,13 @@
 import fs from 'node:fs';
 import path from 'node:path';
 
-// Every table as plain rows, so the data stays readable without SQLite
+// Every table as plain rows, so the data stays readable without SQLite. The
+// claude.ai sign-in tables (oauth_*) are left out: they're token hashes, not
+// data, and the export is what a person downloads (docs/CONNECTOR.md §4).
 export function exportAll(db, now = new Date()) {
     const tables = db.prepare(`
         SELECT name FROM sqlite_master
-        WHERE type = 'table' AND name NOT LIKE 'sqlite_%'
+        WHERE type = 'table' AND name NOT LIKE 'sqlite_%' AND name NOT LIKE 'oauth_%'
         ORDER BY name`).all().map(row => row.name);
     return {
         exported_at: now.toISOString(),
