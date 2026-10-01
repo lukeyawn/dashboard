@@ -1,3 +1,5 @@
+import './CalendarWidget.css';
+
 const WEEKDAYS = ['S', 'M', 'T', 'W', 'T', 'F', 'S'];
 
 export default function CalendarWidget({date = new Date()}) {

@@ -1,0 +1,5 @@
+.dashboard {
+    display: grid;
+    gap: var(--gap);
+    min-height: 0;
+}

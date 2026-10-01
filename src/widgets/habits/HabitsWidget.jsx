@@ -1,4 +1,5 @@
 import { Fragment } from 'react';
+import './HabitsWidget.css';
 
 // counts consecutive done days, walking back from today
 function streak(days) {
@@ -8,7 +9,7 @@ function streak(days) {
 }
 
 // habits: {id: number, name: string, days: boolean[]}[], where days is the last 7 days, oldest first, ending today
-export default function HabitWidget({habits = []}) {
+export default function HabitsWidget({habits = []}) {
     const today = new Date();
     const dayLabels = Array.from({length: 7}, (_, i) => {
         const d = new Date(today);

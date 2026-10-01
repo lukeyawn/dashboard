@@ -1,3 +1,5 @@
+import './CountdownWidget.css';
+
 export default function CountdownWidget({time, unit = 'days', event}) {
     return (
         <div className="countdown-widget">

@@ -1,0 +1,33 @@
+/* the dock only changes size with the screen, so it's sized in --px (DESIGN §9) */
+.dock {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding: 0 calc(32 * var(--px));
+    font-size: calc(22 * var(--px));
+}
+
+.dock-clock {
+    display: flex;
+    align-items: baseline;
+    gap: calc(24 * var(--px));
+}
+
+/* glanceable from across the room: about 40% of the dock's height (DESIGN §8) */
+.dock-time {
+    font-size: calc(65 * var(--px));
+    font-weight: 300;
+    line-height: 1;
+    font-variant-numeric: tabular-nums;
+}
+
+.dock-period {
+    margin-left: calc(8 * var(--px));
+    font-size: calc(24 * var(--px));
+    font-weight: 400;
+    color: var(--text-muted);
+}
+
+.dock-date, .dock-weather {
+    color: var(--text-muted);
+}

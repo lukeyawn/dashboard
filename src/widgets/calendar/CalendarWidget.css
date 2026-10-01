@@ -1,0 +1,66 @@
+.calendar-widget {
+    flex-direction: row;
+    gap: calc(var(--cell) * 0.13);
+}
+
+.calendar-today {
+    flex: 0 0 35%;
+    display: flex;
+    flex-direction: column;
+    justify-content: center;
+    min-width: 0;
+    padding-left: var(--pad);
+}
+
+.calendar-weekday {
+    font-size: calc(var(--cell) * 0.115);
+    font-weight: 600;
+    letter-spacing: 0.08em;
+    text-transform: uppercase;
+    color: var(--accent);
+}
+
+/* a hero glyph: sized against its own tile (DESIGN §9) */
+.calendar-day {
+    font-size: 33cqmin;
+    font-weight: 200;
+    line-height: 1;
+}
+
+.calendar-month {
+    color: var(--text-muted);
+}
+
+.calendar-grid {
+    flex: 1;
+    min-width: 0;
+    display: grid;
+    grid-template-columns: repeat(7, minmax(0, 1fr));
+    grid-template-rows: repeat(7, minmax(0, 1fr));
+    font-size: calc(var(--cell) * 0.1);
+    font-variant-numeric: tabular-nums;
+}
+
+.calendar-heading, .calendar-cell {
+    display: grid;
+    place-items: center;
+}
+
+.calendar-heading {
+    font-weight: 600;
+    color: var(--text-muted);
+}
+
+.calendar-cell span {
+    display: grid;
+    place-items: center;
+    width: calc(var(--cell) * 0.23);
+    height: calc(var(--cell) * 0.23);
+    border-radius: 50%;
+}
+
+.calendar-cell.today span {
+    background-color: var(--accent);
+    color: var(--on-accent);
+    font-weight: 700;
+}

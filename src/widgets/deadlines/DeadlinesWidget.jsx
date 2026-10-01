@@ -1,3 +1,5 @@
+import './DeadlinesWidget.css';
+
 const DAY_MS = 24 * 60 * 60 * 1000;
 
 // parse as local time; new Date("YYYY-MM-DD") would parse as UTC and can land on the wrong day

@@ -1,0 +1,35 @@
+*, *::before, *::after {
+    box-sizing: border-box;
+}
+
+/* the height chain: #root is the easy one to miss (DESIGN §14) */
+html, body, #root {
+    height: 100%;
+    margin: 0;
+}
+
+body {
+    padding: var(--page-inset);
+    background: hsl(240, 45%, 8%) url('/background.jpg') center / cover no-repeat;
+    color: var(--text);
+    font-family: var(--font-sans);
+    /* touch settings for the kiosk (DESIGN §6.1) */
+    touch-action: manipulation;
+    -webkit-tap-highlight-color: transparent;
+    user-select: none;
+}
+
+input, textarea {
+    user-select: text;
+}
+
+/* the frosted glass panel (DESIGN §8), in reference pixels so it looks the same at any resolution */
+.widget-shell, .dock {
+    border: 1px solid hsla(0, 0%, 70%, 0.3);
+    backdrop-filter: blur(calc(15 * var(--px)));
+    background-color: hsla(0, 0%, 50%, 0.1);
+    box-shadow: inset 0 0 calc(20 * var(--px)) hsla(0, 0%, 80%, 0.4);
+    padding: calc(5 * var(--px));
+    border-radius: var(--radius);
+    overflow: hidden;
+}

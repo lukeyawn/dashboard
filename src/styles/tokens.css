@@ -1,0 +1,28 @@
+:root {
+    /* colors (DESIGN §8) */
+    --text: white;
+    --text-muted: hsla(0, 0%, 100%, 0.6);
+    --hairline: hsla(0, 0%, 100%, 0.15);
+    --track: hsla(0, 0%, 100%, 0.12);
+    --accent: hsl(195, 90%, 70%);
+    --accent-glow: hsla(195, 90%, 70%, 0.3);
+    --on-accent: hsl(200, 50%, 12%);
+    --urgent: hsl(0, 85%, 72%);
+    --applied: hsl(210, 80%, 75%);
+    --interview: hsl(40, 90%, 65%);
+    --offer: hsl(140, 60%, 62%);
+    --rejected: hsl(0, 0%, 65%);
+
+    /* fonts (DESIGN §8) */
+    --font-sans: "Inter", system-ui, "Segoe UI", Roboto, "Noto Sans", "DejaVu Sans", Arial, sans-serif;
+    --font-cjk: "Noto Sans SC", "PingFang SC", "Microsoft YaHei", "Noto Sans CJK SC", sans-serif;
+
+    /* One pixel of the 1920×1080 reference screen, scaled to this one (DESIGN §9).
+       Page pieces are sized in it, so the dashboard looks the same at any resolution. */
+    --px: min(100vw / 1920, 100dvh / 1080);
+    --page-inset: calc(20 * var(--px));
+    --gap: calc(24 * var(--px));
+    --radius: calc(28 * var(--px));
+    --dock-h: calc(162 * var(--px));
+    --hit: calc(48 * var(--px));
+}

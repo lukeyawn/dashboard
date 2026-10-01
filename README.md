@@ -1,16 +1,28 @@
-# React + Vite
+# Dashboard
 
-This template provides a minimal setup to get React working in Vite with HMR and some ESLint rules.
+A personal life dashboard for a wall-mounted Raspberry Pi touchscreen: schedule, deadlines, tasks, habits, goals and the internship search on one glanceable screen. It's built to own its data (one SQLite file) and to stay readable for years (plain JavaScript, plain CSS, few dependencies).
 
-Currently, two official plugins are available:
+The full design, and the reasons behind it, is in [docs/DESIGN.md](docs/DESIGN.md). Choices made while building it are logged in [docs/DECISIONS.md](docs/DECISIONS.md).
 
-- [@vitejs/plugin-react](https://github.com/vitejs/vite-plugin-react/blob/main/packages/plugin-react) uses [Oxc](https://oxc.rs)
-- [@vitejs/plugin-react-swc](https://github.com/vitejs/vite-plugin-react/blob/main/packages/plugin-react-swc) uses [SWC](https://swc.rs/)
+## Status
 
-## React Compiler
+Being built in phases ([DESIGN §12](docs/DESIGN.md#12-build-plan)). The dashboard layout is done and works on any landscape screen; widgets are moving from placeholder data to the real API.
 
-The React Compiler is not enabled on this template because of its impact on dev & build performances. To add it, see [this documentation](https://react.dev/learn/react-compiler/installation).
+## Development
 
-## Expanding the ESLint configuration
+Requires Node 24 (see `.nvmrc`).
 
-If you are developing a production application, we recommend using TypeScript with type-aware lint rules enabled. Check out the [TS template](https://github.com/vitejs/vite/tree/main/packages/create-vite/template-react-ts) for information on how to integrate TypeScript and [`typescript-eslint`](https://typescript-eslint.io) in your project.
+```sh
+npm ci
+npm run dev          # the dashboard at http://localhost:5173
+npm test             # unit, database and API tests (Vitest)
+npm run coverage     # the same, with the coverage thresholds CI enforces
+npm run lint
+npm run e2e          # layout checks at 8 screen resolutions (Playwright)
+```
+
+The first `npm run e2e` needs `npx playwright install chromium`. Screenshots of every resolution land in `test-results/screens/`.
+
+## License
+
+MIT. See [LICENSE](LICENSE).

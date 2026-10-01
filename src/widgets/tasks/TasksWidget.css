@@ -1,0 +1,14 @@
+.tasks-list li {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    gap: var(--row-gap);
+    padding: var(--row-gap) 0;
+    border-bottom: 1px solid var(--hairline);
+}
+
+.tasks-list input {
+    width: calc(var(--cell) * 0.13);
+    height: calc(var(--cell) * 0.13);
+    accent-color: var(--accent);
+}
