@@ -3,6 +3,8 @@ import { addDays, parseDate, today } from '../../../shared/dates';
 import { useNow } from '../../hooks/useNow';
 import { useResource } from '../../hooks/useResource';
 import './HabitsWidget.css';
+import EditButton from '../../components/EditButton';
+import { HabitsEditor } from '../../editors/editors';
 
 const DAYS = 7;
 
@@ -64,7 +66,10 @@ export default function HabitsWidget() {
 
     return (
         <div className="widget habits-widget">
-            <p className="widget-title">Habits</p>
+            <div className="widget-header">
+                <p className="widget-title">Habits</p>
+                <EditButton title="Habits" editor={HabitsEditor} onClosed={habits.refresh} />
+            </div>
             {content}
             {habits.saveError && <p className="widget-notice" role="status">Couldn't save. {habits.saveError.message}</p>}
         </div>

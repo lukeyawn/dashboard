@@ -29,6 +29,8 @@ export function nightState(now, { night_start: start, night_end: end, night_earl
     const active = early || inNightHours(now, start, end);
     return {
         active,
+        // whether it was started early, so there's something to cancel
+        early,
         until: active ? (early ? earlyUntil : nextEnd(now, end).toISOString()) : null,
         start,
         end,

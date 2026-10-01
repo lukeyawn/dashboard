@@ -102,3 +102,20 @@ Choices made while building, where [DESIGN.md](DESIGN.md) left room or turned ou
 | `/api/today` includes deadlines due within 14 days (overdue ones too, with `days_left`), birthdays in the next 7 days, the 3 nearest countdowns, habits with `done_today`, application counts with the 5 most recent, the kiosk-location weather (`null` if it can't be fetched), and night mode. | One call answers "what's on today?" without the agent chaining ten list calls. |
 | Date fields carry a description ("A local date, YYYY-MM-DD") in the tool schemas. | A refinement doesn't show up in JSON Schema, so without it the agent would see only "string". |
 | One test starts `mcp/index.js` over stdio, exactly as Claude does. | It covers the wiring that the in-memory tests skip. |
+
+## Phase 5: touch and editing
+
+| Choice | Why |
+|---|---|
+| One generic `ResourceEditor` with a small config per resource (`src/editors/editors.jsx`): an add form, the items with Edit and Delete, and each resource's own buttons (Done, Restore, Pin, Archive). | Six editors share one shape: the rule of three again. Each config stays a page or less. |
+| Forms validate with the same zod schemas as the server before sending. An edit sends only the fields that changed. An empty optional field clears it (`null`); an empty `applied_on` on a new application is left out, so the server fills in today. | One set of rules in both places, and no accidental overwrites. |
+| Deleting takes two taps within 4 seconds ("Tap again to delete"), rather than a browser confirm dialog. | Native dialogs are awkward on a kiosk touchscreen, and deletes are permanent. Completing and archiving are the everyday alternatives, and they're one tap. |
+| Completed tasks and deadlines (the last 20) and archived goals and habits each have their own section, with Restore or Unarchive. Rejected applications get a section too. | DESIGN §6.2 promises that cleared items can be restored. |
+| The add form folds away behind "+ Add a …" and always starts closed. | In a modal that's half the screen tall, the list matters more. An earlier version opened it for empty lists, but then it snapped shut after the first add. |
+| ✎ sits at the right of each editable widget's title row (Tasks, Deadlines, Goals, Habits, Job search), and in the corner of the untitled Countdown. The calendar, timeline and word of the day have none. | Their data is edited elsewhere: deadlines and countdowns in their own editors, events in Google Calendar. |
+| The modal is rendered into `<body>`, sits at the top, and is at most half the screen tall. It closes with ✕, Escape, or a tap outside. A widget refetches when its modal closes. | A frosted-glass parent would trap a fixed-position modal, and the on-screen keyboard opens from the bottom (DESIGN §6.3). |
+| The editors size themselves from three variables, `--e-font`, `--e-hit` and `--e-gap`. In the modal those are reference pixels; on `/manage` they're rem. | The same components fit both the kiosk and a phone. |
+| `/manage` is one scrolling column (at most 42rem wide) with a link bar to each section; Settings is last. It has normal text selection and long-press menus. | DESIGN §6.3. It's a phone page, not a kiosk screen. |
+| Long-press menus are blocked on the dashboard only. | DESIGN §6.1 is about the kiosk; `/manage` is an ordinary page. |
+| `/api/night` also returns `early`, and the settings show "Cancel early start" only when there's one to cancel, and "Start night now" only while it's off. | Without it, "Cancel" appeared during normal night hours, when there was nothing to cancel. |
+| Browser tests cover the modal (add, rename, delete, staying in the top half) and `/manage` at phone width (no sideways scroll, adding a deadline that then shows on the dashboard, night settings). | Editing is the main way data gets in besides Claude. |

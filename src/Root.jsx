@@ -1,6 +1,7 @@
 import { useEffect, useState } from 'react';
 import App from './App.jsx';
 import Login from './login/Login.jsx';
+import Manage from './manage/Manage.jsx';
 import { onUnauthorized } from './lib/api';
 
 // Picks the page from the address, with no router library (DESIGN §2). Any
@@ -20,5 +21,5 @@ export default function Root() {
             />
         );
     }
-    return <App />;
+    return window.location.pathname === '/manage' ? <Manage /> : <App />;
 }

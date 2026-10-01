@@ -64,3 +64,18 @@
     from { transform: scaleX(1); }
     to { transform: scaleX(0); }
 }
+
+/* the title row, with ✎ at the right for editable widgets */
+.widget-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    min-width: 0;
+}
+
+/* an untitled widget's ✎ sits in its top-right corner */
+.widget-corner {
+    position: absolute;
+    top: var(--pad);
+    right: var(--pad);
+}

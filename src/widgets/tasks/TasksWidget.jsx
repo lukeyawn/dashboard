@@ -2,6 +2,8 @@ import { useCallback, useState } from 'react';
 import { usePendingAction } from '../../hooks/usePendingAction';
 import { useResource } from '../../hooks/useResource';
 import './TasksWidget.css';
+import EditButton from '../../components/EditButton';
+import { TasksEditor } from '../../editors/editors';
 
 // Open tasks, oldest first (DESIGN §10). Tapping a row clears it after 5
 // seconds; tapping again cancels. Cleared tasks get done_at and can be restored.
@@ -13,7 +15,10 @@ export default function TasksWidget() {
 
     return (
         <div className="widget tasks-widget">
-            <p className="widget-title">Tasks</p>
+            <div className="widget-header">
+                <p className="widget-title">Tasks</p>
+                <EditButton title="Tasks" editor={TasksEditor} onClosed={tasks.refresh} />
+            </div>
             <TaskList tasks={tasks} pending={pending} />
             {!tasks.loading && tasks.data && <AddTask onAdd={name => create({ name })} />}
             {tasks.saveError && <p className="widget-notice" role="status">Couldn't save. {tasks.saveError.message}</p>}

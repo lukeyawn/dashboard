@@ -5,6 +5,8 @@ import { usePendingAction } from '../../hooks/usePendingAction';
 import { useResource } from '../../hooks/useResource';
 import { daysLabel } from './daysLabel';
 import './DeadlinesWidget.css';
+import EditButton from '../../components/EditButton';
+import { DeadlinesEditor } from '../../editors/editors';
 
 // Open deadlines by due date (DESIGN §10). Tapping one completes it after 5 seconds.
 export default function DeadlinesWidget() {
@@ -45,7 +47,10 @@ export default function DeadlinesWidget() {
 
     return (
         <div className="widget deadlines-widget">
-            <p className="widget-title">Deadlines</p>
+            <div className="widget-header">
+                <p className="widget-title">Deadlines</p>
+                <EditButton title="Deadlines" editor={DeadlinesEditor} onClosed={deadlines.refresh} />
+            </div>
             {content}
             {deadlines.saveError && <p className="widget-notice" role="status">Couldn't save. {deadlines.saveError.message}</p>}
         </div>

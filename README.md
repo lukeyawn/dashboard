@@ -6,7 +6,7 @@ The full design, and the reasons behind it, is in [docs/DESIGN.md](docs/DESIGN.m
 
 ## Status
 
-Being built in phases ([DESIGN §12](docs/DESIGN.md#12-build-plan)). Done: the layout (any landscape screen), the API with token login, SQLite, Google Calendar, weather, all nine widgets with their one-tap actions, backups and the server's setup scripts, and an MCP server for Claude ([mcp/README.md](mcp/README.md)). Next: the editors and `/manage`, then the kiosk.
+Being built in phases ([DESIGN §12](docs/DESIGN.md#12-build-plan)). Done: the layout (any landscape screen), the API with token login, SQLite, Google Calendar, weather, all nine widgets with their one-tap actions, backups and the server's setup scripts, an MCP server for Claude ([mcp/README.md](mcp/README.md)), and editors in a ✎ modal on the dashboard and at `/manage` (works on a phone). Next: the kiosk itself (night mode, reload rules, the Pi's setup).
 
 ## Development
 
