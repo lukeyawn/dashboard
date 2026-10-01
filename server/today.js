@@ -2,12 +2,12 @@
 // (DESIGN §4). Built from the same stores the widgets read.
 import { addDays, daysBetween, today as todayOf } from '../shared/dates.js';
 import { STATUSES } from '../shared/schemas.js';
+import { compareDue, compareTasks, isDueSoon } from '../shared/tasks.js';
 import { nightState } from './night.js';
 import { chooseLocation } from './weather.js';
 
 export async function todaySnapshot({ stores, settings, calendar, weatherAt, now }) {
     const date = todayOf(now);
-    const soon = addDays(date, 14);
     const { events } = calendar.between(date, date);
     const { birthdays } = calendar.between(date, addDays(date, 7));
 
@@ -18,16 +18,16 @@ export async function todaySnapshot({ stores, settings, calendar, weatherAt, now
     }
 
     const applications = stores.applications.list();
+    const openTasks = stores.tasks.list({ done: false });
     return {
         date,
         now: now.toISOString(),
         events,
         birthdays_this_week: birthdays,
-        tasks: stores.tasks.list({ done: false }),
-        // overdue ones included: they stay until marked done
-        deadlines: stores.deadlines.list({ done: false })
-            .filter(d => d.due <= soon)
-            .map(d => ({ ...d, days_left: daysBetween(date, d.due) })),
+        // as the two tiles show them: overdue or due within 14 days, then the rest
+        due_soon: openTasks.filter(t => isDueSoon(t, date)).sort(compareDue)
+            .map(t => ({ ...t, days_left: daysBetween(date, t.due) })),
+        tasks: openTasks.filter(t => !isDueSoon(t, date)).sort(compareTasks),
         goals: stores.goals.list({ archived: false }),
         habits: stores.habits.list({ days: 7, archived: false }).map(h => ({
             id: h.id, name: h.name, done_today: h.checks.includes(date), streak: h.streak, checks: h.checks,

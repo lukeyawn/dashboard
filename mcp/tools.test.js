@@ -103,6 +103,15 @@ describe('the tools', () => {
         expect((await use('cancel_night')).value.active).toBe(false);
     });
 
+    it('add a task with details, and record it as Claude', async () => {
+        await connect();
+        const task = (await use('add_task', { name: 'Pset 4', due: '2026-10-01', priority: 'high', effort: 'big', area: 'M 340L', source: 'gmail:1' })).value;
+        expect(task).toMatchObject({ due: '2026-10-01', priority: 'high', effort: 'big', area: 'M 340L' });
+        expect((await use('add_task', { name: 'Pset 4 again', source: 'gmail:1' })).value.id).toBe(task.id);
+        const [change] = (await server.request('/api/changes')).body;
+        expect(change).toMatchObject({ actor: 'claude', action: 'create' });
+    });
+
     it('delete an item', async () => {
         await connect();
         const countdown = (await use('add_countdown', { label: 'Finals', target_date: '2026-12-10' })).value;
@@ -114,7 +123,7 @@ describe('the tools', () => {
 describe('errors', () => {
     it("pass on the API's validation messages", async () => {
         await connect();
-        const res = await use('add_deadline', { name: 'x', due: '2026-02-30' });
+        const res = await use('add_task', { name: 'x', due: '2026-02-30' });
         expect(res.error).toBe(true);
         expect(res.text).toMatch(/Expected a real date/);
     });

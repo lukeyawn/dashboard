@@ -15,7 +15,7 @@ test.describe('the ✎ modal', () => {
     test('adds, renames and deletes a task, in the top half of the screen', async ({ page }) => {
         const name = `Modal task ${Date.now()}`;
         await page.goto('/');
-        await page.getByLabel('Edit tasks').click();
+        await page.locator('.tasks-widget').getByLabel('Edit tasks').click();
         const dialog = page.getByRole('dialog', { name: 'Tasks' });
         await expect(dialog).toBeVisible();
         // the on-screen keyboard opens from the bottom, so the modal stays above it
@@ -40,7 +40,7 @@ test.describe('the ✎ modal', () => {
         await expect(dialog).toHaveCount(0);
         await expect(page.locator('.task', { hasText: `${name} renamed` })).toBeVisible();
 
-        await page.getByLabel('Edit tasks').click();
+        await page.locator('.tasks-widget').getByLabel('Edit tasks').click();
         const renamed = page.getByRole('dialog').locator('.editor-item', { hasText: `${name} renamed` });
         await renamed.getByRole('button', { name: 'Delete' }).click();
         await renamed.getByRole('button', { name: 'Tap again to delete' }).click();
@@ -55,23 +55,25 @@ test.describe('/manage on a phone', () => {
 
     test('fits the width, and a deadline added there shows on the dashboard', async ({ page }) => {
         const name = `Phone deadline ${Date.now()}`;
+        // due within the next two weeks, so it lands in the Due soon tile
+        const due = new Date(Date.now() + 3 * 86_400_000).toLocaleDateString('en-CA');
         await page.goto('/manage');
-        for (const heading of ['Tasks', 'Deadlines', 'Countdowns', 'Goals', 'Habits', 'Job applications', 'Settings']) {
+        for (const heading of ['Tasks and deadlines', 'Countdowns', 'Goals', 'Habits', 'Job applications', 'Settings', 'History']) {
             await expect(page.getByRole('heading', { name: heading, exact: true })).toBeVisible();
         }
         const overflow = await page.evaluate(() => document.documentElement.scrollWidth - document.documentElement.clientWidth);
         expect(overflow).toBe(0);
         await page.screenshot({ path: 'test-results/screens/manage-phone.png', fullPage: true });
 
-        const section = page.locator('#deadlines');
-        await section.locator('summary', { hasText: 'Add a deadline' }).click();
-        await section.locator('.editor-add').getByLabel('Deadline').fill(name);
-        await section.locator('.editor-add').getByLabel('Due').fill('2026-12-01');
-        await section.getByRole('button', { name: 'Add deadline' }).click();
+        const section = page.locator('#tasks');
+        await section.locator('summary', { hasText: 'Add a task' }).click();
+        await section.locator('.editor-add').getByLabel('Task').fill(name);
+        await section.locator('.editor-add').getByLabel('Due').fill(due);
+        await section.getByRole('button', { name: 'Add task' }).click();
         await expect(section.locator('.editor-item', { hasText: name })).toBeVisible();
 
         await page.setViewportSize({ width: 1920, height: 1080 });
         await page.goto('/');
-        await expect(page.locator('.deadline', { hasText: name })).toBeVisible();
+        await expect(page.locator('.due', { hasText: name })).toBeVisible();
     });
 });

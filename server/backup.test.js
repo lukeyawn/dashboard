@@ -33,7 +33,7 @@ describe('exportAll', () => {
         const data = exportAll(db, new Date('2026-10-01T08:00:00Z'));
         expect(data.exported_at).toBe('2026-10-01T08:00:00.000Z');
         expect(data.schema_version).toBe(db.pragma('user_version', { simple: true }));
-        expect(Object.keys(data.tables)).toEqual(['applications', 'countdowns', 'deadlines', 'goals', 'habit_checks', 'habits', 'settings', 'tasks']);
+        expect(Object.keys(data.tables)).toEqual(['applications', 'changes', 'countdowns', 'goals', 'habit_checks', 'habits', 'settings', 'tasks']);
         expect(data.tables.tasks[0].name).toBe('Do laundry');
         expect(data.tables.habit_checks).toEqual([{ habit_id: 1, date: '2026-09-30' }]);
     });

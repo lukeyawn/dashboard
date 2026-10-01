@@ -8,10 +8,6 @@ export function tasksRouter(store) {
     return crudRouter(store, { noun: 'task', create: schemas.taskCreate, update: schemas.taskUpdate, query: schemas.taskQuery });
 }
 
-export function deadlinesRouter(store) {
-    return crudRouter(store, { noun: 'deadline', create: schemas.deadlineCreate, update: schemas.deadlineUpdate, query: schemas.deadlineQuery });
-}
-
 export function countdownsRouter(store) {
     return crudRouter(store, { noun: 'countdown', create: schemas.countdownCreate, update: schemas.countdownUpdate, query: schemas.countdownQuery });
 }

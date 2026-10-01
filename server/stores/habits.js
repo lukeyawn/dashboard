@@ -15,12 +15,13 @@ export function streak(dates, today) {
     return count;
 }
 
-export function createHabitStore(db, { now = () => new Date() } = {}) {
+export function createHabitStore(db, { now = () => new Date(), log } = {}) {
     const store = createStore(db, {
         table: 'habits',
         columns: ['name', 'position', 'archived_at'],
         orderBy: 'position, id',
         filters: { archived: { true: 'archived_at IS NOT NULL', false: 'archived_at IS NULL' } },
+        log,
     });
     const checksOf = db.prepare('SELECT date FROM habit_checks WHERE habit_id = ? ORDER BY date DESC');
     const check = db.prepare('INSERT OR IGNORE INTO habit_checks (habit_id, date) VALUES (?, ?)');
@@ -46,11 +47,28 @@ export function createHabitStore(db, { now = () => new Date() } = {}) {
             return store.list(filters).map(habit => withChecks(habit, days));
         },
         withChecks: (id, days = 7) => withChecks(store.get(id), days),
-        // both idempotent; null if there's no such habit
-        setCheck(id, date, done, days = 7) {
-            if (!store.get(id)) return null;
-            (done ? check : uncheck).run(id, date);
+        // both idempotent; null if there's no such habit. Only a real change is recorded.
+        setCheck: db.transaction((id, date, done, days = 7) => {
+            const habit = store.get(id);
+            if (!habit) return null;
+            const changed = (done ? check : uncheck).run(id, date).changes === 1;
+            if (changed) {
+                // the name only helps the History read well; undo uses habit_id and date
+                const row = { habit_id: id, date, name: habit.name };
+                log?.record({ resource: 'habit_checks', itemId: `${id}:${date}`, action: done ? 'create' : 'delete', before: done ? null : row, after: done ? row : null });
+            }
             return withChecks(store.get(id), days);
-        },
+        }),
+
+        // Deleting a habit deletes its checks, so the record keeps them with
+        // the habit, and undoing the delete brings them back
+        remove: db.transaction(id => {
+            const before = store.raw(id);
+            if (!before) return false;
+            const dates = checksOf.all(id).map(row => row.date);
+            db.prepare('DELETE FROM habits WHERE id = ?').run(id);
+            log?.record({ resource: 'habits', itemId: id, action: 'delete', before: { ...before, _checks: dates }, after: null });
+            return true;
+        }),
     };
 }

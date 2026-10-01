@@ -55,7 +55,8 @@ function Input({ field, value, onChange }) {
         case 'textarea':
             return <textarea rows={3} {...common} />;
         case 'select':
-            return <select {...common}>{field.options.map(o => <option key={o} value={o}>{o}</option>)}</select>;
+            // an empty option reads as "not set"
+            return <select {...common}>{field.options.map(o => <option key={o} value={o}>{o || '—'}</option>)}</select>;
         case 'checkbox':
             return <input type="checkbox" checked={value} onChange={event => onChange(event.target.checked)} />;
         case 'number':

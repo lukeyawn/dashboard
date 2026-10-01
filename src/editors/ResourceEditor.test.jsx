@@ -2,7 +2,7 @@
 import { act, fireEvent, render, screen, waitFor, within } from '@testing-library/react';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import { fakeServer } from '../testing/fakeApi';
-import { ApplicationsEditor, DeadlinesEditor, GoalsEditor, TasksEditor } from './editors';
+import { ApplicationsEditor, GoalsEditor, TasksEditor } from './editors';
 
 let rows;
 let nextId;
@@ -37,6 +37,8 @@ function serve(resource, initial, defaults = {}) {
 }
 
 const field = (scope, label) => within(scope).getByLabelText(label, { exact: false });
+// a task as the server returns it
+const task = (id, fields) => ({ id, name: `task ${id}`, done_at: null, due: null, priority: 'normal', effort: null, area: null, notes: null, link: null, source: null, ...fields });
 const addForm = () => document.querySelector('.editor-add');
 
 describe('adding', () => {
@@ -47,16 +49,16 @@ describe('adding', () => {
         fireEvent.change(field(addForm(), 'Task'), { target: { value: 'Buy milk' } });
         fireEvent.click(screen.getByText('Add task'));
         await screen.findByText('Buy milk');
-        expect(api.writes()).toEqual([{ method: 'POST', url: '/api/tasks', body: { name: 'Buy milk' } }]);
+        expect(api.writes()).toEqual([{ method: 'POST', url: '/api/tasks', body: { name: 'Buy milk', priority: 'normal' } }]);
         expect(field(addForm(), 'Task').value).toBe('');
     });
 
     it('checks the values with the shared schema before sending', async () => {
-        const api = serve('deadlines', []);
-        render(<DeadlinesEditor />);
+        const api = serve('tasks', []);
+        render(<TasksEditor />);
         await screen.findByText('Nothing here yet.');
-        fireEvent.change(field(addForm(), 'Deadline'), { target: { value: '   ' } });
-        fireEvent.click(screen.getByText('Add deadline'));
+        fireEvent.change(field(addForm(), 'Task'), { target: { value: '   ' } });
+        fireEvent.click(screen.getByText('Add task'));
         expect(await screen.findByText('Name is required')).toBeTruthy();
         expect(api.writes()).toEqual([]);
     });
@@ -86,19 +88,32 @@ describe('adding', () => {
 
 describe('editing', () => {
     it('sends only the fields that changed', async () => {
-        const api = serve('deadlines', [{ id: 1, name: 'Pset 4', due: '2026-10-01', course: 'M 340L', done_at: null }]);
-        render(<DeadlinesEditor />);
+        const api = serve('tasks', [task(1, { name: 'Pset 4', due: '2026-10-01', area: 'M 340L' })]);
+        render(<TasksEditor />);
         await screen.findByText('Pset 4');
         fireEvent.click(screen.getByText('Edit'));
         const form = document.querySelector('.editor-item .editor-form');
         fireEvent.change(field(form, 'Due'), { target: { value: '2026-10-02' } });
+        fireEvent.change(field(form, 'Effort'), { target: { value: 'big' } });
         fireEvent.click(within(form).getByText('Save'));
         await waitFor(() => expect(document.querySelector('.editor-item .editor-form')).toBeNull());
-        expect(api.writes()).toEqual([{ method: 'PATCH', url: '/api/deadlines/1', body: { due: '2026-10-02' } }]);
+        expect(api.writes()).toEqual([{ method: 'PATCH', url: '/api/tasks/1', body: { due: '2026-10-02', effort: 'big' } }]);
+    });
+
+    it('clears an optional detail with an empty value', async () => {
+        const api = serve('tasks', [task(1, { effort: 'quick', area: 'home' })]);
+        render(<TasksEditor />);
+        await screen.findByText('task 1');
+        fireEvent.click(screen.getByText('Edit'));
+        const form = document.querySelector('.editor-item .editor-form');
+        fireEvent.change(field(form, 'Effort'), { target: { value: '' } });
+        fireEvent.change(field(form, 'Area'), { target: { value: '' } });
+        fireEvent.click(within(form).getByText('Save'));
+        await waitFor(() => expect(api.writes()).toEqual([{ method: 'PATCH', url: '/api/tasks/1', body: { effort: null, area: null } }]));
     });
 
     it('closes without a request when nothing changed', async () => {
-        const api = serve('tasks', [{ id: 1, name: 'Same', done_at: null }]);
+        const api = serve('tasks', [task(1, { name: 'Same' })]);
         render(<TasksEditor />);
         await screen.findByText('Same');
         fireEvent.click(screen.getByText('Edit'));
@@ -108,7 +123,7 @@ describe('editing', () => {
     });
 
     it('restores a completed task, and archives a goal', async () => {
-        const api = serve('tasks', [{ id: 1, name: 'Old', done_at: '2026-09-01T00:00:00.000Z' }]);
+        const api = serve('tasks', [task(1, { name: 'Old', done_at: '2026-09-01T00:00:00.000Z' })]);
         render(<TasksEditor />);
         await screen.findByText('Completed');
         fireEvent.click(screen.getByText('Restore'));
@@ -118,7 +133,7 @@ describe('editing', () => {
 
 describe('deleting', () => {
     it('takes two taps within 4 seconds', async () => {
-        const api = serve('tasks', [{ id: 1, name: 'Gone soon', done_at: null }]);
+        const api = serve('tasks', [task(1, { name: 'Gone soon' })]);
         render(<TasksEditor />);
         await screen.findByText('Gone soon');
         vi.useFakeTimers();
@@ -132,6 +147,27 @@ describe('deleting', () => {
         await act(() => vi.advanceTimersByTimeAsync(0));
         expect(api.writes()).toEqual([{ method: 'DELETE', url: '/api/tasks/1', body: undefined }]);
         expect(screen.queryByText('Gone soon')).toBeNull();
+    });
+});
+
+describe('filtering and sorting', () => {
+    it('narrows the list by a detail, and re-sorts it', async () => {
+        serve('tasks', [
+            task(1, { name: 'Laundry', area: 'home' }),
+            task(2, { name: 'Pset', area: 'M 340L', priority: 'high' }),
+            task(3, { name: 'Dishes', area: 'home', due: '2026-10-01' }),
+        ]);
+        render(<TasksEditor />);
+        await screen.findByText('Laundry');
+        const names = () => [...document.querySelectorAll('.editor-title')].map(e => e.textContent);
+        const toolbar = within(document.querySelector('.editor-toolbar'));
+        expect(names()).toEqual(['Pset', 'Dishes', 'Laundry']);
+        fireEvent.change(toolbar.getByLabelText('Area'), { target: { value: 'home' } });
+        expect(names()).toEqual(['Dishes', 'Laundry']);
+        fireEvent.change(toolbar.getByLabelText('Sort'), { target: { value: '2' } });
+        expect(names()).toEqual(['Dishes', 'Laundry']);
+        fireEvent.change(toolbar.getByLabelText('Area'), { target: { value: '' } });
+        expect(names()).toEqual(['Dishes', 'Pset', 'Laundry']);
     });
 });
 

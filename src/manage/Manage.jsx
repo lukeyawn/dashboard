@@ -1,15 +1,16 @@
-import { ApplicationsEditor, CountdownsEditor, DeadlinesEditor, GoalsEditor, HabitsEditor, TasksEditor } from '../editors/editors';
+import { ApplicationsEditor, CountdownsEditor, GoalsEditor, HabitsEditor, TasksEditor } from '../editors/editors';
 import SettingsEditor from '../editors/SettingsEditor';
+import History from './History';
 import './Manage.css';
 
 const SECTIONS = [
-    ['tasks', 'Tasks', TasksEditor],
-    ['deadlines', 'Deadlines', DeadlinesEditor],
+    ['tasks', 'Tasks and deadlines', TasksEditor],
     ['countdowns', 'Countdowns', CountdownsEditor],
     ['goals', 'Goals', GoalsEditor],
     ['habits', 'Habits', HabitsEditor],
     ['applications', 'Job applications', ApplicationsEditor],
     ['settings', 'Settings', SettingsEditor],
+    ['history', 'History', History],
 ];
 
 // Every editor on one page, in a single column that works on a phone (DESIGN §6.3)

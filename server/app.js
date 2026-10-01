@@ -7,16 +7,18 @@ import { createAuth } from './auth.js';
 import { exportAll } from './backup.js';
 import { systemStatus } from './status.js';
 import { HttpError, errorHandler, validate } from './errors.js';
-import { applicationsRouter, countdownsRouter, deadlinesRouter, goalsRouter, habitsRouter, tasksRouter } from './routes/resources.js';
+import { actorOf, createChangeLog, withActor } from './changes.js';
+import { changesRouter } from './routes/changes.js';
+import { applicationsRouter, countdownsRouter, goalsRouter, habitsRouter, tasksRouter } from './routes/resources.js';
 import { calendarRouters, locationRouter, nightRouter, settingsRouter, weatherRouter } from './routes/system.js';
 import { createApplicationStore } from './stores/applications.js';
 import { createCountdownStore } from './stores/countdowns.js';
-import { createDeadlineStore } from './stores/deadlines.js';
 import { createGoalStore } from './stores/goals.js';
 import { createHabitStore } from './stores/habits.js';
 import { createSettingsStore } from './stores/settings.js';
 import { createTaskStore } from './stores/tasks.js';
 import { todaySnapshot } from './today.js';
+import { createUndo } from './undo.js';
 
 const NO_CALENDAR = { between: () => ({ events: [], birthdays: [] }) };
 
@@ -63,25 +65,27 @@ export function createApp({ db, apiToken, kioskToken, build = 'dev', distDir = n
     });
 
     app.use('/api', auth.requireToken);
+    // every write made while handling this request is recorded as this actor (DESIGN §5.5)
+    app.use('/api', (req, res, next) => withActor(actorOf(req), next));
     // which token this browser logged in with; the kiosk behaves as a kiosk (DESIGN §6.4)
     app.get('/api/session', (req, res) => res.json({ client: req.client }));
-    const settings = createSettingsStore(db);
+    const log = createChangeLog(db, { now });
+    const settings = createSettingsStore(db, { log });
     const stores = {
-        tasks: createTaskStore(db),
-        deadlines: createDeadlineStore(db),
-        countdowns: createCountdownStore(db),
-        goals: createGoalStore(db),
-        habits: createHabitStore(db, { now: () => new Date(now()) }),
-        applications: createApplicationStore(db),
+        tasks: createTaskStore(db, { log }),
+        countdowns: createCountdownStore(db, { log }),
+        goals: createGoalStore(db, { log }),
+        habits: createHabitStore(db, { now: () => new Date(now()), log }),
+        applications: createApplicationStore(db, { log }),
     };
     const { events, birthdays } = calendarRouters(calendar);
     app.use('/api/tasks', tasksRouter(stores.tasks));
-    app.use('/api/deadlines', deadlinesRouter(stores.deadlines));
     app.use('/api/countdowns', countdownsRouter(stores.countdowns));
     app.use('/api/goals', goalsRouter(stores.goals));
     app.use('/api/habits', habitsRouter(stores.habits));
     app.use('/api/applications', applicationsRouter(stores.applications, now));
     app.use('/api/settings', settingsRouter(settings));
+    app.use('/api/changes', changesRouter(log, createUndo(db, log)));
     app.use('/api/night', nightRouter(settings, now));
     app.use('/api/location', locationRouter(settings, now));
     if (weatherAt) app.use('/api/weather', weatherRouter(settings, weatherAt, now));

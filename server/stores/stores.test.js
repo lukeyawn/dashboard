@@ -2,7 +2,6 @@ import { beforeEach, describe, expect, it } from 'vitest';
 import { openDatabase } from '../db.js';
 import { createApplicationStore } from './applications.js';
 import { createCountdownStore } from './countdowns.js';
-import { createDeadlineStore } from './deadlines.js';
 import { createGoalStore } from './goals.js';
 import { createHabitStore, streak } from './habits.js';
 import { DEFAULTS, createSettingsStore } from './settings.js';
@@ -10,23 +9,6 @@ import { DEFAULTS, createSettingsStore } from './settings.js';
 let db;
 beforeEach(() => {
     db = openDatabase();
-});
-
-describe('deadlines', () => {
-    it('list by due date, open or done', () => {
-        const deadlines = createDeadlineStore(db);
-        deadlines.create({ name: 'later', due: '2026-10-14' });
-        const soon = deadlines.create({ name: 'soon', due: '2026-10-01', course: 'M 340L' });
-        deadlines.create({ name: 'same day, made later', due: '2026-10-14' });
-        expect(deadlines.list().map(d => d.name)).toEqual(['soon', 'later', 'same day, made later']);
-        deadlines.update(soon.id, { done_at: '2026-09-30T12:00:00.000Z' });
-        expect(deadlines.list({ done: false }).map(d => d.name)).toEqual(['later', 'same day, made later']);
-        expect(deadlines.list({ done: true })[0]).toMatchObject({ name: 'soon', course: 'M 340L' });
-    });
-
-    it('are rejected by the database with a malformed date', () => {
-        expect(() => createDeadlineStore(db).create({ name: 'x', due: '10/14/2026' })).toThrow(/CHECK/);
-    });
 });
 
 describe('countdowns', () => {

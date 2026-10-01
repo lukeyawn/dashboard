@@ -162,3 +162,21 @@ Choices made while building, where [DESIGN.md](DESIGN.md) left room or turned ou
 | Problems shown in the dock: the last backup failed, no backup in 36 hours, or the calendar feed failing for over an hour. A backup that has never run (development, tests) is not a problem. | One missed night shouldn't stay silent, and one failed calendar fetch shouldn't raise an alarm. |
 | `setup.sh` runs one backup at the end. | The status line gets a first result straight away. Until Google Drive is connected, it correctly reports the Drive step as failed. |
 | A problem appears in the dock's existing warning chip, unless the dock already says "offline". | Offline explains everything else at that moment. |
+
+## Phase 7: richer tasks, the change record and undo
+
+| Choice | Why |
+|---|---|
+| Migration 008 moves every deadline into `tasks`, with `due` set and `course` becoming `area`, keeping its `done_at` and timestamps, then drops `deadlines`. | One list, with no data lost. A test runs the migration on a database with deadlines in it. |
+| Priority is `high` / `normal` / `low`, defaulting to normal. Effort is `quick` / `medium` / `big`, or not set. | Few enough levels for Claude to assign consistently. Effort answers "what fits in the time I have?". |
+| The Tasks tile shows a red `!` for high priority and a "quick" tag, and mutes low priority. Medium and big effort aren't shown. | The tile stays glanceable: only the details that change what to pick next. |
+| The checkbox is drawn by CSS: a round outline that fills with a tick, like the habit dots. | The browser's own box looked out of place. |
+| Each change records the whole row before and after, as stored, inside the same transaction as the write. | Undo needs the exact old row, and a recorded change can never disagree with what happened. |
+| Undo only proceeds when the item is exactly as that change left it. Otherwise it answers 409. Undoing a delete restores the row under its old id when that id is free. | Undoing an old change would otherwise silently throw away later edits. |
+| Deleting a habit records its check dates with it, and undoing the delete restores them. | Undo should bring back what was lost, history included. |
+| The MCP server sends `X-Dashboard-Client: claude`, so its writes are recorded as Claude's. | Telling them apart is what makes the History useful. The label only renames a credential that can already do everything, so it can't be used to gain anything. |
+| `kiosk_location` reports aren't recorded. | The kiosk sends one a day, which is noise in the History. |
+| An item created with a `source` that already exists is returned with `200` instead of being created. The existing item isn't changed. | Re-reading the same email must not pile up copies, and must not overwrite edits you made to the first copy. |
+| `/manage` filters tasks by priority, effort and area, and sorts them by priority-then-due, due date, or newest. The tiles keep one fixed order. | Filtering needs room; the wall needs to be glanceable. |
+| History lists the last 50 changes in plain words ("Completed task …", "Moved application … to interview"), filterable by who made them. Undo takes one tap, because an undo can itself be undone. | Reviewing what Claude did, and reversing it, has to be quick. |
+| The change record keeps a year of entries, pruned at most once a day. | Long enough to look back on, small enough to stay fast. |
