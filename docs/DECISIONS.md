@@ -133,3 +133,12 @@ Choices made while building, where [DESIGN.md](DESIGN.md) left room or turned ou
 | `display-off-if-night.sh` reads the small JSON night status with `grep` and `sed`, not `jq`, and saves the last answer for when the server can't be reached. With nothing saved, it leaves the screen on. | One less package on the Pi. Failing toward a lit screen is safer than a dark one that might not wake. |
 | `display-off-if-night.sh` is tested by running it against a test server, with a fake `wlopm`, for night, day, offline-with-saved-hours and offline-with-nothing. `DASHBOARD_NOW` lets the tests pick the time. | It decides whether the screen goes dark, so it's tested like the rest of the code. |
 | CI runs `shellcheck` on `kiosk/*.sh` too. | Same as the VM's scripts. |
+
+## Setting up the repo
+
+| Choice | Why |
+|---|---|
+| The repo allows **rebase merges only**: no squash, no merge commits. Merged branches are deleted automatically, which retargets the next stacked PR to `main`. | The work arrived as seven stacked PRs. With squash merges, each merged phase would come back as a conflict in the next PR. Rebase merges keep `main` just as linear, and "Update branch → rebase" skips the commits already merged. |
+| The `main` ruleset requires a PR, the `check`, `layout` and `dependency-review` jobs passing on an up-to-date branch, and linear history. It forbids force-pushes and deletion, with no bypass, owner included. | DESIGN §13. |
+| Secret scanning, push protection, Dependabot alerts and Dependabot security updates are on. | Dependency review needs the dependency graph, which Dependabot alerts switch on for a new repo. |
+| `.gitignore` ignores `/data/` (the root folder only), not `data/`. | `data/` also matched `src/data/`, so the word list existed only on the laptop until CI's clean checkout caught it. Fixed on the phase 2 branch, and the same commit is carried by the later ones. |
