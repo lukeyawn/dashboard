@@ -1,6 +1,6 @@
 # The dashboard's MCP server
 
-Lets a Claude agent read and change the dashboard: tasks, deadlines, countdowns, goals, habits, job applications and settings, plus read-only events and birthdays (DESIGN §5). It runs on the laptop, wherever Claude runs, and talks to the dashboard's API over Tailscale.
+Lets a Claude agent read and change the dashboard: tasks (with due dates, priority and effort), countdowns, goals, habits, job applications and settings, plus read-only events and birthdays (DESIGN §5). It runs on the laptop, wherever Claude runs, and talks to the dashboard's API over Tailscale.
 
 It needs two settings:
 

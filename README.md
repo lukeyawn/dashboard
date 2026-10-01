@@ -10,7 +10,7 @@ Being built in phases ([DESIGN §12](docs/DESIGN.md#12-build-plan)).
 
 - **Live:** the server runs on a Google Cloud VM, reachable only over Tailscale ([vm/SETUP.md](vm/SETUP.md)). The database is backed up continuously to Cloud Storage and nightly to Google Drive. All nine widgets work, along with the editors in a ✎ modal and at `/manage` (which works on a phone), and the MCP server for Claude Code ([mcp/README.md](mcp/README.md)).
 - **Built, waiting for hardware:** the kiosk, with night mode, the reload rules and the Pi's setup ([kiosk/SETUP.md](kiosk/SETUP.md)).
-- **In progress:** phase 7, data an agent can work with. The status line is merged. Richer tasks (deadlines merged in) and a change record with undo are in review.
+- **Phase 7 (data an agent can work with):** the status line, richer tasks with deadlines merged in, and a change record with History and Undo on `/manage`.
 - **Next:** phases 8 and 9: claude.ai connectors and a scheduled Claude agent ([docs/CONNECTOR.md](docs/CONNECTOR.md), once merged).
 
 ## Development
