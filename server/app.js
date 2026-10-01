@@ -5,10 +5,20 @@ import express from 'express';
 import * as schemas from '../shared/schemas.js';
 import { createAuth } from './auth.js';
 import { HttpError, errorHandler, validate } from './errors.js';
-import { tasksRouter } from './routes/tasks.js';
+import { applicationsRouter, countdownsRouter, deadlinesRouter, goalsRouter, habitsRouter, tasksRouter } from './routes/resources.js';
+import { calendarRouters, locationRouter, nightRouter, settingsRouter, weatherRouter } from './routes/system.js';
+import { createApplicationStore } from './stores/applications.js';
+import { createCountdownStore } from './stores/countdowns.js';
+import { createDeadlineStore } from './stores/deadlines.js';
+import { createGoalStore } from './stores/goals.js';
+import { createHabitStore } from './stores/habits.js';
+import { createSettingsStore } from './stores/settings.js';
 import { createTaskStore } from './stores/tasks.js';
 
-export function createApp({ db, apiToken, kioskToken, build = 'dev', distDir = null, now = Date.now }) {
+const NO_CALENDAR = { between: () => ({ events: [], birthdays: [] }) };
+
+// calendar: from createCalendarFeed; weatherAt: from createWeather. Tests pass fakes.
+export function createApp({ db, apiToken, kioskToken, build = 'dev', distDir = null, now = Date.now, calendar = NO_CALENDAR, weatherAt }) {
     const auth = createAuth({ apiToken, kioskToken, now });
     const app = express();
     app.disable('x-powered-by');
@@ -49,7 +59,20 @@ export function createApp({ db, apiToken, kioskToken, build = 'dev', distDir = n
     });
 
     app.use('/api', auth.requireToken);
+    const settings = createSettingsStore(db);
+    const { events, birthdays } = calendarRouters(calendar);
     app.use('/api/tasks', tasksRouter(createTaskStore(db)));
+    app.use('/api/deadlines', deadlinesRouter(createDeadlineStore(db)));
+    app.use('/api/countdowns', countdownsRouter(createCountdownStore(db)));
+    app.use('/api/goals', goalsRouter(createGoalStore(db)));
+    app.use('/api/habits', habitsRouter(createHabitStore(db, { now: () => new Date(now()) })));
+    app.use('/api/applications', applicationsRouter(createApplicationStore(db)));
+    app.use('/api/settings', settingsRouter(settings));
+    app.use('/api/night', nightRouter(settings, now));
+    app.use('/api/location', locationRouter(settings, now));
+    if (weatherAt) app.use('/api/weather', weatherRouter(settings, weatherAt, now));
+    app.use('/api/events', events);
+    app.use('/api/birthdays', birthdays);
     app.use('/api', (req) => {
         throw new HttpError(404, `There's no API route ${req.method} ${req.path}`);
     });

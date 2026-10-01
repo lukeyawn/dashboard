@@ -5,9 +5,10 @@ import { openDatabase } from './db.js';
 export const API_TOKEN = 'test-api-token-0123456789abcdefghijklmnop';
 export const KIOSK_TOKEN = 'test-kiosk-token-0123456789abcdefghijklmn';
 
-export async function startServer({ now, distDir } = {}) {
+// options: now, distDir, calendar and weatherAt, passed on to createApp
+export async function startServer(options = {}) {
     const db = openDatabase(':memory:');
-    const app = createApp({ db, apiToken: API_TOKEN, kioskToken: KIOSK_TOKEN, build: 'test-build', distDir, now });
+    const app = createApp({ db, apiToken: API_TOKEN, kioskToken: KIOSK_TOKEN, build: 'test-build', ...options });
     const server = await new Promise(resolve => {
         const s = app.listen(0, '127.0.0.1', () => resolve(s));
     });
