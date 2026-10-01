@@ -119,3 +119,17 @@ Choices made while building, where [DESIGN.md](DESIGN.md) left room or turned ou
 | Long-press menus are blocked on the dashboard only. | DESIGN §6.1 is about the kiosk; `/manage` is an ordinary page. |
 | `/api/night` also returns `early`, and the settings show "Cancel early start" only when there's one to cancel, and "Start night now" only while it's off. | Without it, "Cancel" appeared during normal night hours, when there was nothing to cancel. |
 | Browser tests cover the modal (add, rename, delete, staying in the top half) and `/manage` at phone width (no sideways scroll, adding a deadline that then shows on the dashboard, night settings). | Editing is the main way data gets in besides Claude. |
+
+## Phase 6: kiosk
+
+| Choice | Why |
+|---|---|
+| `GET /api/session` returns `{ client }`, `api` or `kiosk`, by which token the browser logged in with. Night darkening and the reload rules happen only on the kiosk. The moon button works on every screen. | A laptop showing the dashboard at night shouldn't go black. Starting night mode from anywhere is still useful. |
+| The night overlay ignores the idle tracker's touch listener, and dismisses itself on the completed click, not on the touch. | If it disappeared on finger-down, the rest of the tap landed on whatever was underneath. A browser test taps a task through the dark screen and checks it isn't ticked; the naive version fails that test. |
+| The moon button darkens the screen at once. Tapped again while awake, it cancels the early start, through `early` in `/api/night`. | DESIGN §6.4. |
+| The page notes the server's `X-Build` from every response. When it differs from its own `__BUILD__` (never for `dev` builds), it reloads at the next 5-idle-minute moment. The nightly reload happens at the first minute after 04:00 since the page loaded. Both reload only once `/api/health` answers. | DESIGN §6.4. Without a stored "last reload", the page reloads at most once a night, and an offline night just retries each minute. |
+| The Pi keeps its settings in `~/.config/dashboard`: `kiosk.env` with `DASHBOARD_URL`, and `kiosk-token`, readable only by its user. The scripts run from a clone of the repo in `~/dashboard`. | Updating the kiosk is `git pull`, and the token never sits in the repo or in the autostart file. |
+| The kiosk's autostart replaces the desktop's, so there's no panel, desktop or file manager. The old one is kept. | It's a single-purpose screen, and it's easy to undo. |
+| `display-off-if-night.sh` reads the small JSON night status with `grep` and `sed`, not `jq`, and saves the last answer for when the server can't be reached. With nothing saved, it leaves the screen on. | One less package on the Pi. Failing toward a lit screen is safer than a dark one that might not wake. |
+| `display-off-if-night.sh` is tested by running it against a test server, with a fake `wlopm`, for night, day, offline-with-saved-hours and offline-with-nothing. `DASHBOARD_NOW` lets the tests pick the time. | It decides whether the screen goes dark, so it's tested like the rest of the code. |
+| CI runs `shellcheck` on `kiosk/*.sh` too. | Same as the VM's scripts. |

@@ -11,9 +11,9 @@ function timeParts(now) {
     return { time, period };
 }
 
-// The clock, the date and the weather (DESIGN §10, Dock), plus a note when
-// the server can't be reached (§6.4)
-export default function Dock() {
+// The clock, the date and the weather (DESIGN §10, Dock), a note when the
+// server can't be reached, and the moon button that starts night mode (§6.4)
+export default function Dock({ night, onMoon }) {
     const now = useNow(1000);
     const { time, period } = timeParts(now);
     const offlineSince = useOfflineSince();
@@ -31,6 +31,18 @@ export default function Dock() {
             <div className="dock-right">
                 {offlineSince && <span className="dock-offline" role="status">offline since {formatTime(offlineSince)}</span>}
                 <Weather />
+                {onMoon && (
+                    <button
+                        type="button"
+                        className={night?.early ? 'dock-moon on' : 'dock-moon'}
+                        data-tap
+                        aria-pressed={Boolean(night?.early)}
+                        aria-label={night?.early ? 'Cancel night mode' : 'Start night mode now'}
+                        onClick={onMoon}
+                    >
+                        ☾
+                    </button>
+                )}
             </div>
         </div>
     );

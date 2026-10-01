@@ -228,3 +228,11 @@ describe('frontend files', () => {
         }
     });
 });
+
+describe('session', () => {
+    it('says which token the request carries', async () => {
+        server = await startServer();
+        expect((await server.request('/api/session')).body).toEqual({ client: 'api' });
+        expect((await server.request('/api/session', { token: KIOSK_TOKEN })).body).toEqual({ client: 'kiosk' });
+    });
+});

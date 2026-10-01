@@ -1,4 +1,11 @@
+import { useState } from 'react';
+import NightOverlay from './components/NightOverlay';
 import Page from './components/Page';
+import { IDLE_MS } from './config';
+import { useIdle } from './hooks/useIdle';
+import { useIsKiosk, useReloadRules } from './hooks/useKiosk';
+import { useResource } from './hooks/useResource';
+import { request } from './lib/api';
 import Dashboard from './components/Dashboard';
 import WidgetShell from './components/WidgetShell';
 import Dock from './components/Dock';
@@ -13,6 +20,23 @@ import TimelineWidget from './widgets/timeline/TimelineWidget';
 import WordOfTheDayWidget from './widgets/wotd/WordOfTheDayWidget';
 
 export default function App() {
+    const isKiosk = useIsKiosk();
+    const { idle, wake } = useIdle(IDLE_MS);
+    const night = useResource('night', { pollMs: 60_000 });
+    // the moon button darkens the screen at once, without waiting for idle
+    const [darkNow, setDarkNow] = useState(false);
+    useReloadRules({ enabled: isKiosk, idle });
+
+    // night mode darkens only the kiosk; other screens can still start or cancel it
+    const dark = isKiosk && Boolean(night.data?.active) && (idle || darkNow);
+
+    async function toggleNight() {
+        const early = night.data?.early;
+        await request(early ? '/night/cancel' : '/night/start', { method: 'POST' }).catch(() => {});
+        await night.refresh();
+        setDarkNow(!early);
+    }
+
     return (
         // long-press menus are suppressed on the kiosk (DESIGN §6.1)
         <Page onContextMenu={event => event.preventDefault()}>
@@ -45,7 +69,8 @@ export default function App() {
                     <HabitsWidget />
                 </WidgetShell>
             </Dashboard>
-            <Dock />
+            <Dock night={night.data} onMoon={toggleNight} />
+            {dark && <NightOverlay onDismiss={() => { setDarkNow(false); wake(); }} />}
         </Page>
     );
 }

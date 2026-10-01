@@ -6,3 +6,10 @@ export const PENDING_MS = 5_000;
 
 // how often widgets refetch their data (DESIGN §6)
 export const POLL_MS = 30_000;
+
+// the kiosk's screen goes dark after this long without a touch at night,
+// and a new deploy is picked up after this long without one (DESIGN §6.4)
+export const IDLE_MS = 5 * 60 * 1000;
+
+// when the kiosk reloads itself each night, to clear slow memory leaks (DESIGN §6.4)
+export const NIGHTLY_RELOAD = '04:00';
