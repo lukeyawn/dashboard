@@ -10,6 +10,27 @@ export class ApiError extends Error {
 
 const unauthorizedListeners = new Set();
 
+// When requests started failing to reach the server, or null while they get through.
+// The dock shows it as "offline since HH:MM" (DESIGN §6.4).
+let offlineSince = null;
+const connectionListeners = new Set();
+
+function setOffline(offline) {
+    const next = offline ? (offlineSince ?? new Date()) : null;
+    if (next === offlineSince) return;
+    offlineSince = next;
+    connectionListeners.forEach(listener => listener());
+}
+
+export function getOfflineSince() {
+    return offlineSince;
+}
+
+export function onConnectionChange(listener) {
+    connectionListeners.add(listener);
+    return () => connectionListeners.delete(listener);
+}
+
 // Called whenever the server says the browser isn't logged in. Returns an unsubscribe function.
 export function onUnauthorized(listener) {
     unauthorizedListeners.add(listener);
@@ -30,8 +51,10 @@ export async function request(path, { method = 'GET', body, signal } = {}) {
         });
     } catch (err) {
         if (err.name === 'AbortError') throw err;
+        setOffline(true);
         throw new ApiError(0, "Can't reach the server");
     }
+    setOffline(false);
 
     if (res.status === 401) unauthorizedListeners.forEach(listener => listener());
     if (!res.ok) {

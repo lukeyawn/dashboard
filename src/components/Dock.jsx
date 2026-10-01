@@ -1,4 +1,7 @@
+import { useOfflineSince } from '../hooks/useConnection';
 import { useNow } from '../hooks/useNow';
+import { useWeather } from '../hooks/useWeather';
+import { formatTime } from '../lib/format';
 import './Dock.css';
 
 function timeParts(now) {
@@ -8,9 +11,12 @@ function timeParts(now) {
     return { time, period };
 }
 
+// The clock, the date and the weather (DESIGN §10, Dock), plus a note when
+// the server can't be reached (§6.4)
 export default function Dock() {
     const now = useNow(1000);
     const { time, period } = timeParts(now);
+    const offlineSince = useOfflineSince();
 
     return (
         <div className="dock">
@@ -22,7 +28,27 @@ export default function Dock() {
                     {now.toLocaleDateString('en-US', {weekday: 'long', month: 'long', day: 'numeric'})}
                 </span>
             </div>
-            <div className="dock-weather" />
+            <div className="dock-right">
+                {offlineSince && <span className="dock-offline" role="status">offline since {formatTime(offlineSince)}</span>}
+                <Weather />
+            </div>
+        </div>
+    );
+}
+
+function Weather() {
+    const weather = useWeather();
+    const w = weather.data;
+    if (!w) return null;
+    return (
+        <div className="dock-weather">
+            <span className="dock-temperature">{w.temperature}°</span>
+            <span className="dock-weather-detail">
+                <span>{w.condition}</span>
+                <span className="dock-muted">
+                    H {w.high}° · L {w.low}°{w.location.name && ` · ${w.location.name}`}
+                </span>
+            </span>
         </div>
     );
 }

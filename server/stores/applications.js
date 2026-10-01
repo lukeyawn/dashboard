@@ -1,7 +1,5 @@
+import { NEXT_STATUS, STATUSES } from '../../shared/schemas.js';
 import { createStore } from '../crud.js';
-
-// applied → interview → offer. Rejected is set only by an edit (DESIGN §10, Job search).
-export const NEXT_STATUS = { applied: 'interview', interview: 'offer' };
 
 export function createApplicationStore(db) {
     const store = createStore(db, {
@@ -10,7 +8,7 @@ export function createApplicationStore(db) {
         // the widget shows the most recently updated first
         orderBy: 'updated_at DESC, id DESC',
         filters: {
-            status: Object.fromEntries(['applied', 'interview', 'offer', 'rejected'].map(s => [s, `status = '${s}'`])),
+            status: Object.fromEntries(STATUSES.map(s => [s, `status = '${s}'`])),
         },
     });
 

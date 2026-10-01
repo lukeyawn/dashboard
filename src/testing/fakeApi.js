@@ -66,3 +66,50 @@ export function fakeTasksApi(initial = []) {
         },
     };
 }
+
+// A fake API from route handlers, for widget tests. Keys are 'METHOD /api/path',
+// with :params; each handler gets { params, query, body } and returns the JSON
+// answer, or a Response for anything else. Every request is recorded.
+export function fakeServer(routes) {
+    const requests = [];
+    const failures = [];
+    const compiled = Object.entries(routes).map(([key, handler]) => {
+        const [method, pattern] = key.split(' ');
+        const names = [];
+        const regex = new RegExp(`^${pattern.replace(/:(\w+)/g, (_, name) => { names.push(name); return '([^/]+)'; })}$`);
+        return { method, regex, names, handler };
+    });
+
+    async function handle(url, init = {}) {
+        const method = init.method ?? 'GET';
+        const body = init.body ? JSON.parse(init.body) : undefined;
+        const [path, search = ''] = url.split('?');
+        requests.push({ method, url, body });
+
+        const failure = failures.shift();
+        if (failure === 'network') throw new TypeError('Failed to fetch');
+        if (failure) return json(failure, { error: { message: `Failed with ${failure}`, details: [] } });
+
+        for (const route of compiled) {
+            const match = route.method === method && route.regex.exec(path);
+            if (!match) continue;
+            const params = Object.fromEntries(route.names.map((name, i) => [name, decodeURIComponent(match[i + 1])]));
+            const answer = await route.handler({ params, query: new URLSearchParams(search), body });
+            return answer instanceof Response ? answer : json(answer === undefined ? 204 : 200, answer);
+        }
+        return json(404, { error: { message: `No fake for ${method} ${path}`, details: [] } });
+    }
+
+    return {
+        requests,
+        failNext(...kinds) {
+            failures.push(...kinds);
+        },
+        install() {
+            vi.stubGlobal('fetch', vi.fn(handle));
+        },
+        writes() {
+            return requests.filter(r => r.method !== 'GET');
+        },
+    };
+}

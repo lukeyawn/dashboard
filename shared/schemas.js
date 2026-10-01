@@ -91,6 +91,8 @@ export const habitQuery = z.strictObject({
 // applications
 
 export const STATUSES = ['applied', 'interview', 'offer', 'rejected'];
+// applied → interview → offer. Rejected is set only by an edit (DESIGN §10, Job search).
+export const NEXT_STATUS = { applied: 'interview', interview: 'offer' };
 const application = {
     company: text(100, 'Company'),
     role: text(100, 'Role'),

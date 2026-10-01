@@ -3,6 +3,7 @@
     display: flex;
     justify-content: space-between;
     align-items: center;
+    gap: calc(32 * var(--px));
     padding: 0 calc(32 * var(--px));
     font-size: calc(22 * var(--px));
 }
@@ -11,6 +12,8 @@
     display: flex;
     align-items: baseline;
     gap: calc(24 * var(--px));
+    min-width: 0;
+    white-space: nowrap;
 }
 
 /* glanceable from across the room: about 40% of the dock's height (DESIGN §8) */
@@ -28,6 +31,40 @@
     color: var(--text-muted);
 }
 
-.dock-date, .dock-weather {
+.dock-date, .dock-muted {
     color: var(--text-muted);
+}
+
+.dock-right {
+    display: flex;
+    align-items: center;
+    gap: calc(32 * var(--px));
+    min-width: 0;
+}
+
+.dock-offline {
+    padding: calc(6 * var(--px)) calc(14 * var(--px));
+    border-radius: 999px;
+    background-color: hsla(0, 85%, 65%, 0.2);
+    color: var(--urgent);
+    white-space: nowrap;
+}
+
+.dock-weather {
+    display: flex;
+    align-items: center;
+    gap: calc(16 * var(--px));
+    white-space: nowrap;
+}
+
+.dock-temperature {
+    font-size: calc(48 * var(--px));
+    font-weight: 300;
+    line-height: 1;
+}
+
+.dock-weather-detail {
+    display: flex;
+    flex-direction: column;
+    line-height: 1.3;
 }

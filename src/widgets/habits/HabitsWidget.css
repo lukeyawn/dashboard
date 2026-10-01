@@ -1,20 +1,43 @@
+/* each day cell is a full-height tap target, a little narrower than --hit so
+   seven fit; the streak sits under the name to leave the name more room (DESIGN §6.1) */
 .habit-grid {
     flex: 1;
     min-height: 0;
     display: grid;
-    grid-template-columns: minmax(0, 1fr) repeat(7, calc(var(--cell) * 0.18)) calc(var(--cell) * 0.23);
+    grid-template-columns: minmax(0, 1fr) repeat(7, calc(var(--hit) * 0.92));
     align-content: space-evenly;
     align-items: center;
     justify-items: center;
-    gap: calc(var(--cell) * 0.05);
+    column-gap: calc(var(--cell) * 0.015);
 }
 
 .habit-name {
-    justify-self: start;
-    max-width: 100%;
+    justify-self: stretch;
+    display: flex;
+    flex-direction: column;
+    min-width: 0;
+}
+
+.habit-name span {
     white-space: nowrap;
     overflow: hidden;
     text-overflow: ellipsis;
+}
+
+/* a long name gets a second line before it's cut short */
+.habit-name span:first-child {
+    white-space: normal;
+    line-height: 1.15;
+    display: -webkit-box;
+    -webkit-line-clamp: 2;
+    -webkit-box-orient: vertical;
+    overflow-wrap: anywhere;
+}
+
+.habit-streak {
+    font-size: var(--fs-small);
+    font-variant-numeric: tabular-nums;
+    color: var(--text-muted);
 }
 
 .habit-day-label {
@@ -27,6 +50,20 @@
     color: var(--accent);
 }
 
+.habit-cell {
+    display: grid;
+    place-items: center;
+    width: 100%;
+    min-height: var(--hit);
+    padding: 0;
+    border: none;
+    background: none;
+}
+
+.habit-cell:active .habit-dot {
+    filter: brightness(1.5);
+}
+
 .habit-dot {
     width: calc(var(--cell) * 0.155);
     height: calc(var(--cell) * 0.155);
@@ -37,11 +74,4 @@
 .habit-dot.done {
     border-color: var(--accent);
     background-color: var(--accent);
-}
-
-.habit-streak {
-    justify-self: end;
-    font-size: var(--fs-small);
-    font-variant-numeric: tabular-nums;
-    color: var(--text-muted);
 }

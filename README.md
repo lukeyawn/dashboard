@@ -6,7 +6,7 @@ The full design, and the reasons behind it, is in [docs/DESIGN.md](docs/DESIGN.m
 
 ## Status
 
-Being built in phases ([DESIGN §12](docs/DESIGN.md#12-build-plan)). The layout works on any landscape screen, and the tasks widget works end to end: SQLite, the API with token login, and the dashboard. The other widgets still show placeholder data.
+Being built in phases ([DESIGN §12](docs/DESIGN.md#12-build-plan)). Done: the layout (any landscape screen), the API with token login, SQLite, Google Calendar, weather, and all nine widgets with their one-tap actions. Next: cloud hosting and backups, the Claude MCP server, then the editors and `/manage`.
 
 ## Development
 
@@ -15,7 +15,7 @@ Requires Node 24 (see `.nvmrc`).
 ```sh
 npm ci
 cp .env.example .env # then fill in two random tokens (the file says how)
-npm run seed         # optional: a few sample tasks
+npm run seed         # optional: sample data in every empty table
 npm run dev:server   # the API on http://localhost:3001
 npm run dev          # in a second terminal: the dashboard at http://localhost:5173
 npm test             # unit, database and API tests (Vitest)
@@ -28,6 +28,10 @@ Log in with the `API_TOKEN` from `.env`.
 
 The first `npm run e2e` needs `npx playwright install chromium`. Screenshots of every resolution land in `test-results/screens/`.
 
+## Credits
+
+The word-of-the-day list is built from [complete-hsk-vocabulary](https://github.com/drkameleon/complete-hsk-vocabulary) (MIT), whose definitions come from [CC-CEDICT](https://cc-cedict.org/) (CC BY-SA 4.0). `src/data/words.json` is shared under CC BY-SA 4.0 accordingly.
+
 ## License
 
-MIT. See [LICENSE](LICENSE).
+MIT for the code; see [LICENSE](LICENSE). The word list is CC BY-SA 4.0 (see Credits).

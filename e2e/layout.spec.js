@@ -33,12 +33,20 @@ function measure() {
     const bodySizes = [...document.querySelectorAll('.widget')]
         .map(el => parseFloat(getComputedStyle(el).fontSize));
 
+    // habit day cells are allowed 0.92 of the width, so seven fit (DESIGN §6.1)
+    const hit = 48 * px - 0.5;
     const smallTargets = [...document.querySelectorAll('[data-tap]')]
-        .map(el => ({ label: el.textContent.trim().slice(0, 40), ...el.getBoundingClientRect().toJSON() }))
-        .filter(r => r.width < 48 * px - 0.5 || r.height < 48 * px - 0.5)
+        .map(el => ({ label: el.getAttribute('aria-label') ?? el.textContent.trim().slice(0, 40), narrow: el.dataset.tap === 'narrow', ...el.getBoundingClientRect().toJSON() }))
+        .filter(r => r.width < (r.narrow ? 0.92 * 48 * px - 0.5 : hit) || r.height < hit)
         .map(r => `${r.label} (${Math.round(r.width)}×${Math.round(r.height)})`);
 
+    // every widget should have data from the fixtures, not a loading or error message
+    const messages = [...document.querySelectorAll('.widget-message, .widget-notice')]
+        .map(el => el.textContent)
+        .filter(text => /Loading|Couldn't/.test(text));
+
     return {
+        messages,
         pageScrolls: root.scrollWidth > root.clientWidth || root.scrollHeight > root.clientHeight,
         shells,
         dockInside: dock.top >= 0 && dock.bottom <= innerHeight + 0.5 && dock.height > 0,
@@ -55,6 +63,8 @@ for (const [width, height] of RESOLUTIONS) {
             await mockApi(page);
             await page.goto('/');
             await page.locator('.task').first().waitFor();
+            await page.locator('.dock-weather').waitFor();
+            await page.locator('.timeline-event').first().waitFor();
             await page.evaluate(() => document.fonts.ready);
             await page.screenshot({ path: `test-results/screens/${width}x${height}.png` });
 
@@ -62,6 +72,7 @@ for (const [width, height] of RESOLUTIONS) {
 
             expect(m.pageScrolls, 'the page scrolls').toBe(false);
             expect(m.shells).toHaveLength(9);
+            expect(m.messages, 'widgets showing loading or error').toEqual([]);
             expect(m.shells.filter(s => s.overflowing).map(s => s.area), 'widgets whose content overflows').toEqual([]);
             expect(m.shells.filter(s => !s.inside).map(s => s.area), 'widgets off screen').toEqual([]);
             expect(m.dockInside, 'the dock is on screen').toBe(true);

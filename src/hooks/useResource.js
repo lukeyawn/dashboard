@@ -92,5 +92,21 @@ export function useResource(resource, { params, pollMs = POLL_MS } = {}) {
         });
     }, [resource, change]);
 
-    return { ...state, refresh, create, update, remove };
+    // a quick action on one row, such as POST /goals/7/increment, whose answer
+    // is the row's new state; optimistic(row) is how it should look meanwhile
+    const action = useCallback((id, path, { method = 'POST', body, optimistic } = {}) => {
+        let original;
+        return change({
+            apply: optimistic && (rows => rows.map(row => {
+                if (row.id !== id) return row;
+                original = row;
+                return optimistic(row);
+            })),
+            send: () => request(`/${resource}/${id}${path}`, { method, body }),
+            confirm: (rows, saved) => rows.map(row => (row.id === id ? saved : row)),
+            undo: rows => rows.map(row => (row.id === id && original ? original : row)),
+        });
+    }, [resource, change]);
+
+    return { ...state, refresh, create, update, remove, action };
 }

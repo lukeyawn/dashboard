@@ -1,4 +1,7 @@
 .widget .timeline {
+    flex: 1;
+    min-height: 0;
+    overflow: hidden;
     --indent: calc(var(--cell) * 0.13);
     --dot: calc(var(--cell) * 0.08);
     display: flex;
@@ -50,5 +53,46 @@
 }
 
 .timeline-event.current .timeline-time {
+    color: var(--accent);
+}
+
+/* one step larger: it's glanceable from across the room (DESIGN §8) */
+.timeline-event.current .timeline-title {
+    font-size: calc(var(--fs-body) * 1.25);
+    font-weight: 600;
+}
+
+.timeline-location {
+    font-size: var(--fs-small);
+    color: var(--text-muted);
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+}
+
+.timeline-earlier {
+    font-size: var(--fs-small);
+    color: var(--text-muted);
+}
+
+.timeline-chips {
+    display: flex;
+    flex-wrap: wrap;
+    gap: calc(var(--cell) * 0.04);
+}
+
+.chip {
+    max-width: 100%;
+    padding: calc(var(--cell) * 0.02) calc(var(--cell) * 0.065);
+    border-radius: 999px;
+    background-color: hsla(0, 0%, 100%, 0.1);
+    font-size: var(--fs-small);
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+}
+
+.chip.birthday {
+    background-color: var(--accent-glow);
     color: var(--accent);
 }

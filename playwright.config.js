@@ -15,6 +15,8 @@ export default defineConfig({
     use: {
         ...devices['Desktop Chrome'],
         baseURL: 'http://localhost:4173',
+        // the fixtures are written for this time zone, like the unit tests
+        timezoneId: 'America/Chicago',
     },
     webServer: [
         {
@@ -25,7 +27,7 @@ export default defineConfig({
         },
         {
             // waits for the build above, then serves dist/ like production
-            command: 'until [ -f dist/index.html ]; do sleep 1; done; node server/index.js',
+            command: 'until [ -f dist/index.html ]; do sleep 1; done; node e2e/server.js',
             url: `${FULLSTACK_URL}/api/health`,
             reuseExistingServer: false,
             timeout: 120_000,
@@ -33,9 +35,6 @@ export default defineConfig({
                 API_TOKEN: TEST_API_TOKEN,
                 KIOSK_TOKEN: TEST_KIOSK_TOKEN,
                 PORT: '4174',
-                HOST: '127.0.0.1',
-                DATABASE: ':memory:',
-                BUILD: 'e2e',
             },
         },
     ],
