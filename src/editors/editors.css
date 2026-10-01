@@ -173,3 +173,24 @@
     flex-wrap: wrap;
     gap: calc(var(--e-gap) * 0.6);
 }
+
+.editor-toolbar {
+    display: flex;
+    flex-wrap: wrap;
+    gap: var(--e-gap);
+}
+
+.editor-toolbar label {
+    display: flex;
+    flex-direction: column;
+    gap: calc(var(--e-gap) * 0.3);
+}
+
+.editor-toolbar select {
+    min-height: var(--e-hit);
+    padding: 0 calc(var(--e-gap) * 0.6);
+    border: 1px solid hsla(0, 0%, 100%, 0.25);
+    border-radius: calc(var(--e-gap) * 0.6);
+    background-color: hsla(0, 0%, 0%, 0.25);
+    color-scheme: dark;
+}

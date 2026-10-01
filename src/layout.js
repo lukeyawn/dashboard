@@ -11,7 +11,7 @@ export const AREAS = {
     job: { col: [5, 8], row: [1, 2] },
     goals: { col: [9, 11], row: [1, 2] },
     timeline: { col: [1, 2], row: [3, 5] },
-    deadlines: { col: [3, 4], row: [3, 4] },
+    due: { col: [3, 4], row: [3, 4] },
     wotd: { col: [3, 3], row: [5, 5] },
     countdown: { col: [4, 4], row: [5, 5] },
     tasks: { col: [5, 8], row: [3, 5] },

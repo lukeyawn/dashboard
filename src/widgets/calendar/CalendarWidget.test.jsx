@@ -13,9 +13,9 @@ afterEach(() => {
     vi.unstubAllGlobals();
 });
 
-it('shows today and dots days with a deadline, countdown or birthday', async () => {
+it('shows today and dots days with a task due, a countdown or a birthday', async () => {
     const api = fakeServer({
-        'GET /api/deadlines': () => [{ id: 1, due: '2026-09-28', done_at: null }],
+        'GET /api/tasks': () => [{ id: 1, due: '2026-09-28', done_at: null }, { id: 2, due: null, done_at: null }],
         'GET /api/countdowns': () => [{ id: 1, target_date: '2026-09-15' }],
         'GET /api/birthdays': () => [{ id: 'm', date: '2026-09-03' }],
     });

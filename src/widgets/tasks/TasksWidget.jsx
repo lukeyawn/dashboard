@@ -1,14 +1,19 @@
 import { useCallback, useState } from 'react';
+import { today } from '../../../shared/dates';
+import { compareTasks, isDueSoon } from '../../../shared/tasks';
+import EditButton from '../../components/EditButton';
+import { TasksEditor } from '../../editors/editors';
+import { useNow } from '../../hooks/useNow';
 import { usePendingAction } from '../../hooks/usePendingAction';
 import { useResource } from '../../hooks/useResource';
 import './TasksWidget.css';
-import EditButton from '../../components/EditButton';
-import { TasksEditor } from '../../editors/editors';
 
-// Open tasks, oldest first (DESIGN §10). Tapping a row clears it after 5
-// seconds; tapping again cancels. Cleared tasks get done_at and can be restored.
+// Open tasks that aren't in Due soon, by priority, then due date, then effort
+// (DESIGN §10). Tapping a row clears it after 5 seconds; tapping again cancels.
+// Cleared tasks get done_at and can be restored.
 export default function TasksWidget() {
     const tasks = useResource('tasks', { params: { done: false } });
+    const todayDate = today(useNow());
     const { update, create } = tasks;
     const complete = useCallback(id => update(id, { done_at: new Date().toISOString() }), [update]);
     const pending = usePendingAction(complete);
@@ -19,19 +24,20 @@ export default function TasksWidget() {
                 <p className="widget-title">Tasks</p>
                 <EditButton title="Tasks" editor={TasksEditor} onClosed={tasks.refresh} />
             </div>
-            <TaskList tasks={tasks} pending={pending} />
+            <TaskList tasks={tasks} pending={pending} todayDate={todayDate} />
             {!tasks.loading && tasks.data && <AddTask onAdd={name => create({ name })} />}
             {tasks.saveError && <p className="widget-notice" role="status">Couldn't save. {tasks.saveError.message}</p>}
         </div>
     );
 }
 
-function TaskList({ tasks, pending }) {
+function TaskList({ tasks, pending, todayDate }) {
     if (tasks.loading) return <p className="widget-message">Loading…</p>;
     if (!tasks.data) return <p className="widget-message">Couldn't load tasks. {tasks.error?.message}</p>;
 
-    // filtered at render time: a completed task leaves the view as soon as done_at is set
-    const open = tasks.data.filter(t => !t.done_at);
+    // filtered at render time: a completed task leaves the view as soon as done_at
+    // is set, and the ones due soon are in their own tile
+    const open = tasks.data.filter(t => !t.done_at && !isDueSoon(t, todayDate)).sort(compareTasks);
     if (open.length === 0) return <p className="widget-message">No tasks! Time to relax!</p>;
 
     return (
@@ -39,11 +45,13 @@ function TaskList({ tasks, pending }) {
             {open.map(t => {
                 const isPending = pending.isPending(t.id);
                 return (
-                    <li key={t.id} className={isPending ? 'task pending' : 'task'} style={{'--pending-ms': `${pending.delayMs}ms`}}>
+                    <li key={t.id} className={['task', isPending && 'pending', t.priority === 'low' && 'low'].filter(Boolean).join(' ')} style={{'--pending-ms': `${pending.delayMs}ms`}}>
                         {/* the whole row is the label, so a tap anywhere on it toggles the checkbox (DESIGN §6.1) */}
                         <label data-tap>
-                            <span className="task-name">{t.name}</span>
                             <input type="checkbox" checked={isPending} onChange={() => pending.toggle(t.id)} />
+                            {t.priority === 'high' && <span className="task-high" aria-label="high priority">!</span>}
+                            <span className="task-name">{t.name}</span>
+                            {t.effort === 'quick' && <span className="task-tag">quick</span>}
                         </label>
                     </li>
                 );

@@ -17,24 +17,39 @@ async function start(options = {}) {
     return server;
 }
 
-describe('deadlines', () => {
-    it('round-trip, with an optional course that an empty string clears', async () => {
+describe('tasks with details', () => {
+    it('take an optional due date, priority, effort, area, notes and link', async () => {
         const { request } = await start();
-        const created = await request('/api/deadlines', { method: 'POST', body: { name: 'Pset 4', due: '2026-10-01', course: 'M 340L' } });
+        const created = await request('/api/tasks', { method: 'POST', body: {
+            name: 'Pset 4', due: '2026-10-01', priority: 'high', effort: 'big', area: 'M 340L', notes: 'Problems 1-6', link: 'https://canvas.example/a/4',
+        } });
         expect(created.status).toBe(201);
-        expect(created.body).toMatchObject({ name: 'Pset 4', due: '2026-10-01', course: 'M 340L', done_at: null });
-        const cleared = await request(`/api/deadlines/${created.body.id}`, { method: 'PATCH', body: { course: '' } });
-        expect(cleared.body.course).toBeNull();
-        expect((await request('/api/deadlines?done=false')).body).toHaveLength(1);
+        expect(created.body).toMatchObject({ due: '2026-10-01', priority: 'high', effort: 'big', area: 'M 340L', source: null });
+        const plain = (await request('/api/tasks', { method: 'POST', body: { name: 'Buy milk' } })).body;
+        expect(plain).toMatchObject({ due: null, priority: 'normal', effort: null, area: null });
+        const cleared = await request(`/api/tasks/${created.body.id}`, { method: 'PATCH', body: { area: '', due: null } });
+        expect(cleared.body).toMatchObject({ area: null, due: null });
     });
 
-    it('reject impossible dates', async () => {
+    it('reject impossible dates and unknown priorities', async () => {
         const { request } = await start();
-        for (const due of ['2026-02-30', '10/01/2026', '2026-10-1']) {
-            const res = await request('/api/deadlines', { method: 'POST', body: { name: 'x', due } });
-            expect(res.status).toBe(400);
-            expect(res.body.error.details[0].path).toBe('due');
+        for (const body of [{ name: 'x', due: '2026-02-30' }, { name: 'x', priority: 'urgent' }, { name: 'x', effort: 'tiny' }]) {
+            expect((await request('/api/tasks', { method: 'POST', body })).status).toBe(400);
         }
+    });
+
+    it('never create a second item from the same source', async () => {
+        const { request } = await start();
+        const body = { name: 'Reply to recruiter', source: 'gmail:18c2f0' };
+        const first = await request('/api/tasks', { method: 'POST', body });
+        const again = await request('/api/tasks', { method: 'POST', body: { ...body, name: 'Different wording' } });
+        expect(first.status).toBe(201);
+        expect(again.status).toBe(200);
+        expect(again.body).toEqual(first.body);
+        expect((await request('/api/tasks')).body).toHaveLength(1);
+        const app = { company: 'Stripe', role: 'Intern', source: 'gmail:abc' };
+        await request('/api/applications', { method: 'POST', body: app });
+        expect((await request('/api/applications', { method: 'POST', body: app })).status).toBe(200);
     });
 });
 
@@ -229,9 +244,9 @@ describe('today', () => {
     it('gathers the day for the agent', async () => {
         const { request } = await start({ calendar, weatherAt });
         await request('/api/tasks', { method: 'POST', body: { name: 'Do laundry' } });
-        await request('/api/deadlines', { method: 'POST', body: { name: 'Overdue', due: '2026-09-29' } });
-        await request('/api/deadlines', { method: 'POST', body: { name: 'Soon', due: '2026-10-05' } });
-        await request('/api/deadlines', { method: 'POST', body: { name: 'Far off', due: '2026-12-01' } });
+        await request('/api/tasks', { method: 'POST', body: { name: 'Overdue', due: '2026-09-29' } });
+        await request('/api/tasks', { method: 'POST', body: { name: 'Soon', due: '2026-10-05' } });
+        await request('/api/tasks', { method: 'POST', body: { name: 'Far off', due: '2026-12-01', priority: 'high' } });
         await request('/api/countdowns', { method: 'POST', body: { label: 'Break', target_date: '2026-11-25' } });
         const habit = (await request('/api/habits', { method: 'POST', body: { name: 'Read' } })).body;
         await request(`/api/habits/${habit.id}/checks/2026-09-30`, { method: 'PUT' });
@@ -241,8 +256,8 @@ describe('today', () => {
         expect(body.date).toBe('2026-09-30');
         expect(body.events.map(e => e.title)).toEqual(['Algorithms lecture (moved)', 'Office hours']);
         expect(body.birthdays_this_week.map(b => b.title)).toEqual(["Mom's birthday"]);
-        expect(body.tasks.map(t => t.name)).toEqual(['Do laundry']);
-        expect(body.deadlines.map(d => [d.name, d.days_left])).toEqual([['Overdue', -1], ['Soon', 5]]);
+        expect(body.due_soon.map(t => [t.name, t.days_left])).toEqual([['Overdue', -1], ['Soon', 5]]);
+        expect(body.tasks.map(t => t.name)).toEqual(['Far off', 'Do laundry']);
         expect(body.habits).toEqual([expect.objectContaining({ name: 'Read', done_today: true, streak: 1 })]);
         expect(body.countdowns[0]).toMatchObject({ label: 'Break', days_left: 56 });
         expect(body.applications.counts).toEqual({ applied: 1, interview: 0, offer: 0, rejected: 0 });

@@ -15,7 +15,6 @@
 
 .task label {
     display: flex;
-    justify-content: space-between;
     align-items: center;
     gap: var(--row-gap);
     min-height: var(--hit);
@@ -27,16 +26,57 @@
 }
 
 .task-name {
+    flex: 1;
     min-width: 0;
     overflow-wrap: anywhere;
 }
 
+/* a round checkbox, like the habit dots: an outline that fills with a tick */
 .task input {
+    appearance: none;
     flex-shrink: 0;
-    width: calc(var(--cell) * 0.13);
-    height: calc(var(--cell) * 0.13);
+    display: grid;
+    place-items: center;
+    width: calc(var(--cell) * 0.14);
+    height: calc(var(--cell) * 0.14);
     margin: 0;
-    accent-color: var(--accent);
+    border: max(1px, calc(1.5 * var(--px))) solid hsla(0, 0%, 100%, 0.45);
+    border-radius: 50%;
+}
+
+.task input:checked {
+    border-color: var(--accent);
+    background-color: var(--accent);
+}
+
+.task input:checked::after {
+    content: '';
+    width: 28%;
+    height: 50%;
+    margin-top: -12%;
+    border: solid var(--on-accent);
+    border-width: 0 max(1.5px, calc(2 * var(--px))) max(1.5px, calc(2 * var(--px))) 0;
+    transform: rotate(45deg);
+}
+
+/* high priority: a small mark before the name; low: muted (DESIGN §10) */
+.task-high {
+    flex-shrink: 0;
+    color: var(--urgent);
+    font-weight: 700;
+}
+
+.task.low .task-name {
+    color: var(--text-muted);
+}
+
+.task-tag {
+    flex-shrink: 0;
+    padding: 0 calc(var(--cell) * 0.04);
+    border: 1px solid hsla(0, 0%, 100%, 0.25);
+    border-radius: 999px;
+    font-size: var(--fs-small);
+    color: var(--text-muted);
 }
 
 /* pending: crossed out, with a line shrinking underneath as the timer (DESIGN §6.2) */

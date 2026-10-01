@@ -5,7 +5,7 @@ import './CalendarWidget.css';
 
 const WEEKDAYS = ['S', 'M', 'T', 'W', 'T', 'F', 'S'];
 
-// Today, and this month with a dot on days that have a deadline, a countdown
+// Today, and this month with a dot on days that have a task due, a countdown
 // or a birthday (DESIGN §10, Calendar). Regular events aren't dotted: weekly
 // classes would dot every weekday.
 export default function CalendarWidget() {
@@ -18,11 +18,11 @@ export default function CalendarWidget() {
     const monthStart = formatDate(new Date(year, month, 1));
     const monthEnd = formatDate(new Date(year, month, daysInMonth));
 
-    const deadlines = useResource('deadlines', { params: { done: false } });
+    const tasks = useResource('tasks', { params: { done: false } });
     const countdowns = useResource('countdowns');
     const birthdays = useResource('birthdays', { params: { from: monthStart, to: monthEnd } });
     const marked = new Set([
-        ...(deadlines.data ?? []).filter(d => !d.done_at).map(d => d.due),
+        ...(tasks.data ?? []).filter(t => !t.done_at && t.due).map(t => t.due),
         ...(countdowns.data ?? []).map(c => c.target_date),
         ...(birthdays.data ?? []).map(b => b.date),
     ]);

@@ -1,6 +1,7 @@
 // The editor for each resource, configuring ResourceEditor (DESIGN §6.3).
 import * as schemas from '../../shared/schemas';
 import { parseDate } from '../../shared/dates';
+import { compareTasks } from '../../shared/tasks';
 import { formatNumber } from '../lib/format';
 import ResourceEditor from './ResourceEditor';
 
@@ -8,43 +9,51 @@ const now = () => new Date().toISOString();
 const shortDate = date => parseDate(date).toLocaleDateString('en-US', { weekday: 'short', month: 'short', day: 'numeric', year: 'numeric' });
 const recentFirst = (a, b) => (b.done_at ?? b.archived_at ?? '').localeCompare(a.done_at ?? a.archived_at ?? '');
 
+// One list for to-dos and deadlines; a due date makes a task a deadline (DESIGN §3)
 export function TasksEditor() {
+    const fields = [
+        { key: 'name', label: 'Task' },
+        { key: 'due', label: 'Due', type: 'date', optional: true },
+        { key: 'priority', label: 'Priority', type: 'select', options: schemas.PRIORITIES, default: 'normal' },
+        { key: 'effort', label: 'Effort', type: 'select', options: ['', ...schemas.EFFORTS], optional: true },
+        { key: 'area', label: 'Area', optional: true, placeholder: 'e.g. CS 439, job search, home' },
+        { key: 'notes', label: 'Notes', type: 'textarea', optional: true },
+        { key: 'link', label: 'Link', optional: true, placeholder: 'https://' },
+    ];
     return (
         <ResourceEditor
             resource="tasks"
             noun="task"
-            fields={[{ key: 'name', label: 'Task' }]}
+            fields={fields}
+            // a new task leaves out what isn't filled in; the server picks normal priority
+            createFields={fields.map(f => (f.optional ? { ...f, optional: false, omitEmpty: true } : f))}
             createSchema={schemas.taskCreate}
             updateSchema={schemas.taskUpdate}
+            filters={[
+                { key: 'priority', label: 'Priority', options: schemas.PRIORITIES },
+                { key: 'effort', label: 'Effort', options: schemas.EFFORTS },
+                { key: 'area', label: 'Area', options: rows => [...new Set(rows.map(r => r.area).filter(Boolean))].sort() },
+            ]}
+            sorts={[
+                { label: 'Priority, then due', compare: compareTasks },
+                { label: 'Due date', compare: (a, b) => (a.due ?? '9999').localeCompare(b.due ?? '9999') || a.id - b.id },
+                { label: 'Newest', compare: (a, b) => b.id - a.id },
+            ]}
             sections={rows => [
                 { title: null, rows: rows.filter(t => !t.done_at) },
                 // cleared tasks can be restored (DESIGN §6.2)
                 { title: 'Completed', rows: rows.filter(t => t.done_at).sort(recentFirst).slice(0, 20) },
             ]}
-            describe={t => ({ title: t.name })}
-            actions={t => (t.done_at ? [{ label: 'Restore', changes: { done_at: null } }] : [])}
-        />
-    );
-}
-
-export function DeadlinesEditor() {
-    return (
-        <ResourceEditor
-            resource="deadlines"
-            noun="deadline"
-            fields={[
-                { key: 'name', label: 'Deadline' },
-                { key: 'due', label: 'Due', type: 'date' },
-                { key: 'course', label: 'Course', optional: true, placeholder: 'e.g. CS 439' },
-            ]}
-            createSchema={schemas.deadlineCreate}
-            updateSchema={schemas.deadlineUpdate}
-            sections={rows => [
-                { title: null, rows: rows.filter(d => !d.done_at) },
-                { title: 'Completed', rows: rows.filter(d => d.done_at).sort(recentFirst).slice(0, 20) },
-            ]}
-            describe={d => ({ title: d.name, detail: [shortDate(d.due), d.course].filter(Boolean).join(' · ') })}
-            actions={d => (d.done_at ? [{ label: 'Restore', changes: { done_at: null } }] : [{ label: 'Done', changes: { done_at: now() } }])}
+            describe={t => ({
+                title: t.name,
+                detail: [
+                    t.due && `due ${shortDate(t.due)}`,
+                    t.priority !== 'normal' && `${t.priority} priority`,
+                    t.effort,
+                    t.area,
+                ].filter(Boolean).join(' · ') || null,
+            })}
+            actions={t => (t.done_at ? [{ label: 'Restore', changes: { done_at: null } }] : [{ label: 'Done', changes: { done_at: now() } }])}
         />
     );
 }

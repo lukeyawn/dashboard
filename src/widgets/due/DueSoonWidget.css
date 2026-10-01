@@ -1,4 +1,4 @@
-.deadlines-list {
+.due-list {
     flex: 1;
     min-height: 0;
     display: flex;
@@ -8,16 +8,16 @@
     mask-image: linear-gradient(to bottom, black calc(100% - var(--hit) / 2), transparent);
 }
 
-.deadline {
+.due {
     position: relative;
     border-bottom: 1px solid var(--hairline);
 }
 
-.deadline:last-child {
+.due:last-child {
     border-bottom: none;
 }
 
-.deadline button {
+.due button {
     all: unset;
     box-sizing: border-box;
     display: flex;
@@ -29,23 +29,23 @@
     padding: calc(var(--cell) * 0.04) 0;
 }
 
-.deadline button:active {
+.due button:active {
     filter: brightness(1.3);
 }
 
-.deadline-info {
+.due-info {
     display: flex;
     flex-direction: column;
     min-width: 0;
 }
 
-.deadline-name {
+.due-name {
     white-space: nowrap;
     overflow: hidden;
     text-overflow: ellipsis;
 }
 
-.deadline-date {
+.due-date {
     font-size: var(--fs-small);
     color: var(--text-muted);
     white-space: nowrap;
@@ -53,7 +53,7 @@
     text-overflow: ellipsis;
 }
 
-.deadline-days {
+.due-days {
     flex-shrink: 0;
     padding: calc(var(--cell) * 0.02) calc(var(--cell) * 0.065);
     border-radius: 999px;
@@ -63,18 +63,18 @@
     white-space: nowrap;
 }
 
-.deadline.urgent .deadline-days {
+.due.urgent .due-days {
     background-color: hsla(0, 85%, 65%, 0.2);
     color: var(--urgent);
 }
 
 /* pending: crossed out, with the shrinking timer line (DESIGN §6.2) */
-.deadline.pending .deadline-name {
+.due.pending .due-name {
     text-decoration: line-through;
     color: var(--text-muted);
 }
 
-.deadline.pending::after {
+.due.pending::after {
     content: '';
     position: absolute;
     left: 0;

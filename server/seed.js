@@ -3,7 +3,6 @@ import { addDays, today } from '../shared/dates.js';
 import { openDatabase } from './db.js';
 import { createApplicationStore } from './stores/applications.js';
 import { createCountdownStore } from './stores/countdowns.js';
-import { createDeadlineStore } from './stores/deadlines.js';
 import { createGoalStore } from './stores/goals.js';
 import { createHabitStore } from './stores/habits.js';
 import { createTaskStore } from './stores/tasks.js';
@@ -21,18 +20,15 @@ function seed(name, store, rows, after = () => {}) {
 }
 
 seed('tasks', createTaskStore(db), [
-    { name: 'Do laundry' },
-    { name: 'Finish OS Shell project' },
-    { name: 'Email professor about office hours' },
-    { name: 'Renew library books' },
-]);
-
-seed('deadlines', createDeadlineStore(db), [
-    { name: 'Linear Algebra pset 4', due: day(1), course: 'M 340L' },
-    { name: 'OS Shell project', due: day(2), course: 'CS 439' },
-    { name: 'Stripe OA', due: day(9) },
-    { name: 'Algorithms midterm', due: day(14), course: 'CS 331' },
-]);
+    { name: 'Do laundry', effort: 'medium', area: 'home' },
+    { name: 'Email professor about office hours', priority: 'high', effort: 'quick' },
+    { name: 'Renew library books', priority: 'low', effort: 'quick' },
+    { name: 'Linear Algebra pset 4', due: day(1), priority: 'high', effort: 'big', area: 'M 340L' },
+    { name: 'OS Shell project', due: day(2), effort: 'big', area: 'CS 439' },
+    { name: 'Stripe OA', due: day(9), area: 'job search' },
+    { name: 'Algorithms midterm', due: day(14), area: 'CS 331' },
+    { name: 'Book flights for Thanksgiving', due: day(30) },
+].map(task => ({ priority: 'normal', ...task })));
 
 seed('countdowns', createCountdownStore(db), [
     { label: 'Thanksgiving break', target_date: day(56), pinned: true },

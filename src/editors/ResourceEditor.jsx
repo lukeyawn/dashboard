@@ -10,15 +10,25 @@ import './editors.css';
 // sections(rows): [{ title, rows }] how to group the items
 // describe(row): { title, detail } how an item reads in the list
 // actions(row): [{ label, changes }] extra one-tap buttons, such as Archive
-export default function ResourceEditor({ resource, noun, params, fields, createSchema, updateSchema, sections, describe, actions = () => [], createFields = fields }) {
+// filters: [{ key, label, options }] narrow the list; options may be a function of the rows
+// sorts:   [{ label, compare }] orders the list; the first is the default
+export default function ResourceEditor({ resource, noun, params, fields, createSchema, updateSchema, sections, describe, actions = () => [], createFields = fields, filters = [], sorts = [] }) {
     const items = useResource(resource, { params });
     const [editing, setEditing] = useState(null);
+    const [chosen, setChosen] = useState({});
+    const [sortIndex, setSortIndex] = useState(0);
+
+    // the rows the sections see: filtered, then sorted
+    const shown = rows => {
+        const filtered = rows.filter(row => filters.every(f => !chosen[f.key] || String(row[f.key] ?? '') === chosen[f.key]));
+        return sorts[sortIndex] ? [...filtered].sort(sorts[sortIndex].compare) : filtered;
+    };
 
     let list;
     if (items.loading) list = <p className="editor-message">Loading…</p>;
     else if (!items.data) list = <p className="editor-message">Couldn't load. {items.error?.message}</p>;
     else {
-        list = sections(items.data).filter(s => s.rows.length > 0 || !s.title).map(section => (
+        list = sections(shown(items.data)).filter(s => s.rows.length > 0 || !s.title).map(section => (
             <section key={section.title ?? 'main'} className="editor-section">
                 {section.title && <h3>{section.title}</h3>}
                 {section.rows.length === 0 && <p className="editor-message">Nothing here yet.</p>}
@@ -62,6 +72,30 @@ export default function ResourceEditor({ resource, noun, params, fields, createS
                 <EditorForm fields={createFields} schema={createSchema} submitLabel={`Add ${noun}`} onSubmit={values => items.create(values)} />
             </details>
             {items.saveError && <p className="editor-error" role="status">Couldn't save. {items.saveError.message}</p>}
+            {(filters.length > 0 || sorts.length > 1) && items.data && (
+                <div className="editor-toolbar">
+                    {filters.map(f => {
+                        const options = typeof f.options === 'function' ? f.options(items.data) : f.options;
+                        return (
+                            <label key={f.key}>
+                                <span className="editor-label">{f.label}</span>
+                                <select value={chosen[f.key] ?? ''} onChange={event => setChosen(prev => ({ ...prev, [f.key]: event.target.value }))}>
+                                    <option value="">All</option>
+                                    {options.map(o => <option key={o} value={o}>{o}</option>)}
+                                </select>
+                            </label>
+                        );
+                    })}
+                    {sorts.length > 1 && (
+                        <label>
+                            <span className="editor-label">Sort</span>
+                            <select value={sortIndex} onChange={event => setSortIndex(Number(event.target.value))}>
+                                {sorts.map((o, i) => <option key={o.label} value={i}>{o.label}</option>)}
+                            </select>
+                        </label>
+                    )}
+                </div>
+            )}
             {list}
         </div>
     );
