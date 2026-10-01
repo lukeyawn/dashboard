@@ -34,6 +34,16 @@ jobs:
       - run: npm run coverage
       - run: npm run build
       - run: npm audit --omit=dev --audit-level=high
+      # The server's packages must install where there's no compiler, like the
+      # VM's minimal Debian; GitHub's runner has one, which once hid a failure
+      - name: Production install without build tools
+        run: |
+          docker run --rm -v "$PWD:/src:ro" node:24-trixie-slim sh -ec '
+            mkdir /app && cp /src/package.json /src/package-lock.json /app && cd /app
+            ! command -v make
+            npm ci --omit=dev --no-audit --no-fund
+            node -e "new (require(\"better-sqlite3\"))(\":memory:\").prepare(\"select 1\").get()"
+          '
       - run: npm run check:secrets
 
   layout:

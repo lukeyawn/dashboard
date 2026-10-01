@@ -35,6 +35,9 @@ echo "== The code"
 if [ ! -d "$APP/.git" ]; then
     install -d -o dashboard -g dashboard "$APP"
     sudo -u dashboard git clone --quiet "$REPO" "$APP"
+else
+    # running again, e.g. after a fix: bring the code up to date first
+    sudo -u dashboard git -C "$APP" pull --quiet --ff-only
 fi
 sudo -u dashboard bash -c "cd $APP && npm ci --omit=dev --silent"
 
@@ -52,6 +55,13 @@ DATABASE=$DATA/dashboard.db
 ENV
     chown dashboard:dashboard "$APP/.env"
     chmod 600 "$APP/.env"
+fi
+
+if [ -n "${SUDO_USER:-}" ] && [ "$SUDO_USER" != root ]; then
+    echo "== sudo without a password for $SUDO_USER, so vm/deploy.sh works over Tailscale SSH"
+    echo "$SUDO_USER ALL=(ALL) NOPASSWD: ALL" > /etc/sudoers.d/dashboard-deploy
+    chmod 440 /etc/sudoers.d/dashboard-deploy
+    visudo -cf /etc/sudoers.d/dashboard-deploy >/dev/null
 fi
 
 echo "== Services"
