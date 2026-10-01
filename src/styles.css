@@ -1,3 +1,23 @@
+* {
+    box-sizing: border-box;
+}
+
+:root {
+    --text-muted: hsla(0, 0%, 100%, 0.6);
+    --hairline: hsla(0, 0%, 100%, 0.15);
+    --track: hsla(0, 0%, 100%, 0.12);
+    --accent: hsl(195, 90%, 70%);
+    --accent-glow: hsla(195, 90%, 70%, 0.3);
+    --urgent: hsl(0, 85%, 72%);
+    --applied: hsl(210, 80%, 75%);
+    --interview: hsl(40, 90%, 65%);
+    --offer: hsl(140, 60%, 62%);
+    --rejected: hsl(0, 0%, 65%);
+}
+
+#root {
+    height: 100%;
+}
 html {
     height: 100%;
 }
@@ -7,9 +27,17 @@ body {
     background-position: center;
     background-repeat: no-repeat;
     height: 100%;
-    margin: 15px;
+    padding: 20px;
     color: white;
     font-family: "Inter";
+}
+
+.page {
+    display: flex;
+    flex-direction: column;
+    justify-content: space-around;
+    gap: 1.25vw;
+    height: 100%;
 }
 
 .dashboard {
@@ -30,14 +58,434 @@ body {
     flex-shrink: 0;
 }
 
-.widget-shell {
+.widget-shell, .dock {
     container-type: inline-size;
     border: 1px solid hsla(0, 0%, 70%, 0.3); 
     backdrop-filter: blur(15px);
     background-color: hsla(0, 0%, 50%, 0.1);
     box-shadow: inset 0px 0px 20px hsla(0, 0%, 80%, 0.4);
     padding: 5px;
-    border-radius: 1.5vw;
+    border-radius: 1.5cqw;
+}
+
+.widget-shell {
+    overflow: hidden;
+}
+
+.widget-shell > * {
+    height: 100%;
+}
+
+.dock {
+    flex-grow: 1;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding: 0 1.2vw;
+    font-size: 0.9vw;
+}
+
+.dock-date-and-time {
+    display: flex;
+    align-items: baseline;
+    gap: 0.8vw;
+}
+
+.dock-date, .dock-weather {
+    color: var(--text-muted);
+}
+
+.dock-time {
+    font-weight: 600;
+    font-variant-numeric: tabular-nums;
+}
+
+/* shared widget chrome */
+
+.widget {
+    display: flex;
+    flex-direction: column;
+    gap: 0.6vw;
+    padding: 0.6vw;
+    font-size: 0.95vw;
+}
+
+.widget ul, .widget ol {
+    list-style: none;
+    margin: 0;
+    padding: 0;
+}
+
+.widget-title {
+    margin: 0;
+    font-size: 0.7vw;
+    font-weight: 600;
+    letter-spacing: 0.08em;
+    text-transform: uppercase;
+    color: var(--text-muted);
+}
+
+/* calendar */
+
+.calendar-widget {
+    flex-direction: row;
+    gap: 1vw;
+}
+
+.calendar-today {
+    flex: 0 0 35%;
+    display: flex;
+    flex-direction: column;
+    justify-content: center;
+    padding-left: 0.6vw;
+}
+
+.calendar-weekday {
+    font-size: 0.9vw;
+    font-weight: 600;
+    letter-spacing: 0.08em;
+    text-transform: uppercase;
+    color: var(--accent);
+}
+
+.calendar-day {
+    font-size: 5.5vw;
+    font-weight: 200;
+    line-height: 1;
+}
+
+.calendar-month {
+    color: var(--text-muted);
+}
+
+.calendar-grid {
+    flex: 1;
+    display: grid;
+    grid-template-columns: repeat(7, 1fr);
+    grid-template-rows: repeat(7, 1fr);
+    font-size: 0.8vw;
+    font-variant-numeric: tabular-nums;
+}
+
+.calendar-heading, .calendar-cell {
+    display: grid;
+    place-items: center;
+}
+
+.calendar-heading {
+    font-weight: 600;
+    color: var(--text-muted);
+}
+
+.calendar-cell span {
+    display: grid;
+    place-items: center;
+    width: 1.8vw;
+    height: 1.8vw;
+    border-radius: 50%;
+}
+
+.calendar-cell.today span {
+    background-color: var(--accent);
+    color: hsl(200, 50%, 12%);
+    font-weight: 700;
+}
+
+/* job search */
+
+.applied { --status: var(--applied); }
+.interview { --status: var(--interview); }
+.offer { --status: var(--offer); }
+.rejected { --status: var(--rejected); }
+
+.job-stages {
+    display: grid;
+    grid-template-columns: repeat(4, 1fr);
+    gap: 0.5vw;
+}
+
+.job-stage {
+    padding: 0.4vw 0.6vw;
+    border-top: 2px solid var(--status);
+    border-radius: 0.4vw;
+    background-color: hsla(0, 0%, 100%, 0.06);
+}
+
+.job-stage-count {
+    font-size: 1.8vw;
+    font-weight: 300;
+    line-height: 1.1;
+    color: var(--status);
+}
+
+.job-stage-label {
+    font-size: 0.65vw;
+    letter-spacing: 0.08em;
+    text-transform: uppercase;
+    color: var(--text-muted);
+}
+
+.job-list {
+    display: flex;
+    flex-direction: column;
+}
+
+.job-list li {
+    display: grid;
+    grid-template-columns: auto minmax(0, 1fr) auto;
+    align-items: center;
+    gap: 0.6vw;
+    padding: 0.4vw 0;
+    border-bottom: 1px solid var(--hairline);
+}
+
+.job-list li:last-child {
+    border-bottom: none;
+}
+
+.job-company {
+    font-weight: 600;
+}
+
+.job-role {
+    color: var(--text-muted);
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+}
+
+.status-pill {
+    padding: 0.1vw 0.5vw;
+    border: 1px solid var(--status);
+    border-radius: 999px;
+    font-size: 0.6vw;
+    letter-spacing: 0.06em;
+    text-transform: uppercase;
+    color: var(--status);
+}
+
+/* goals */
+
+.goals-list {
+    flex: 1;
+    display: flex;
+    flex-direction: column;
+    justify-content: space-evenly;
+}
+
+.goal-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: baseline;
+    gap: 0.5vw;
+    margin-bottom: 0.35vw;
+}
+
+.goal-name {
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+}
+
+.goal-progress {
+    flex-shrink: 0;
+    font-size: 0.75vw;
+    font-variant-numeric: tabular-nums;
+    color: var(--text-muted);
+}
+
+.progress-track {
+    height: 0.4vw;
+    border-radius: 999px;
+    background-color: var(--track);
+    overflow: hidden;
+}
+
+.progress-fill {
+    height: 100%;
+    border-radius: inherit;
+    background-color: var(--accent);
+}
+
+/* habits */
+
+.habit-grid {
+    flex: 1;
+    display: grid;
+    grid-template-columns: minmax(0, 1fr) repeat(7, 1.4vw) 1.8vw;
+    align-content: space-evenly;
+    align-items: center;
+    justify-items: center;
+    gap: 0.4vw;
+}
+
+.habit-name {
+    justify-self: start;
+    max-width: 100%;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+}
+
+.habit-day-label {
+    font-size: 0.7vw;
+    font-weight: 600;
+    color: var(--text-muted);
+}
+
+.habit-day-label.today {
+    color: var(--accent);
+}
+
+.habit-dot {
+    width: 1.2vw;
+    height: 1.2vw;
+    border: 1px solid hsla(0, 0%, 100%, 0.3);
+    border-radius: 50%;
+}
+
+.habit-dot.done {
+    border-color: var(--accent);
+    background-color: var(--accent);
+}
+
+.habit-streak {
+    justify-self: end;
+    font-size: 0.75vw;
+    font-variant-numeric: tabular-nums;
+    color: var(--text-muted);
+}
+
+/* timeline */
+
+.widget .timeline {
+    display: flex;
+    flex-direction: column;
+    gap: 0.9vw;
+    margin-left: 0.4vw;
+    padding-left: 1vw;
+    border-left: 1px solid hsla(0, 0%, 100%, 0.25);
+}
+
+.timeline-event {
+    position: relative;
+    display: flex;
+    flex-direction: column;
+    min-width: 0;
+}
+
+/* dot sits centered on the ol's left border */
+.timeline-event::before {
+    content: '';
+    position: absolute;
+    left: calc(-1vw - 0.3vw - 0.5px);
+    top: 0.15vw;
+    width: 0.6vw;
+    height: 0.6vw;
+    border-radius: 50%;
+    background-color: hsla(0, 0%, 100%, 0.5);
+}
+
+.timeline-time {
+    font-size: 0.7vw;
+    font-variant-numeric: tabular-nums;
+    color: var(--text-muted);
+}
+
+.timeline-title {
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+}
+
+.timeline-event.past {
+    opacity: 0.45;
+}
+
+.timeline-event.current::before {
+    background-color: var(--accent);
+    box-shadow: 0 0 0 0.25vw var(--accent-glow);
+}
+
+.timeline-event.current .timeline-time {
+    color: var(--accent);
+}
+
+/* deadlines */
+
+.deadlines-list {
+    display: flex;
+    flex-direction: column;
+}
+
+.deadline {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    gap: 0.5vw;
+    padding: 0.45vw 0;
+    border-bottom: 1px solid var(--hairline);
+}
+
+.deadline:last-child {
+    border-bottom: none;
+}
+
+.deadline-info {
+    display: flex;
+    flex-direction: column;
+    min-width: 0;
+}
+
+.deadline-name {
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+}
+
+.deadline-date {
+    font-size: 0.7vw;
+    color: var(--text-muted);
+}
+
+.deadline-days {
+    flex-shrink: 0;
+    padding: 0.15vw 0.5vw;
+    border-radius: 999px;
+    background-color: hsla(0, 0%, 100%, 0.1);
+    font-size: 0.7vw;
+    font-weight: 600;
+    white-space: nowrap;
+}
+
+.deadline.urgent .deadline-days {
+    background-color: hsla(0, 85%, 65%, 0.2);
+    color: var(--urgent);
+}
+
+/* tasks */
+
+.tasks-widget {
+    display: flex;
+    flex-direction: column;
+    margin: 0;
+    padding: 0.6vw;
+    list-style: none;
+    font-size: 0.95vw;
+}
+
+.tasks-widget li {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding: 0.5vw 0;
+    border-bottom: 1px solid var(--hairline);
+}
+
+.tasks-widget input {
+    width: 1vw;
+    height: 1vw;
+    accent-color: var(--accent);
 }
 
 .countdown-widget {

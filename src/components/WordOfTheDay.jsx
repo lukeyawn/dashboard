@@ -1,9 +1,9 @@
 export default function WOTDWidget({word, pinyin, definition}) {
     return (
-        <div class="wotd-widget">
-            <div class="pinyin">{pinyin}</div>
-            <div class="wotd">{word}</div>
-            <div class="definition">{definition}</div>
+        <div className="wotd-widget">
+            <div className="pinyin" lang="zh-Hans">{pinyin}</div>
+            <div className="wotd">{word}</div>
+            <div className="definition">{definition}</div>
         </div>
     );
 }
