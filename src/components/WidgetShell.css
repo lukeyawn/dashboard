@@ -1,0 +1,47 @@
+/* --cell is one grid cell, measured through the shell (DESIGN §9). The cq units
+   resolve where the tokens are used, in the widget, against this container, so
+   the shell itself must never use them. */
+.widget-shell {
+    container-type: size;
+    --inset: calc(2 * (5 * var(--px) + 1px));
+    --cell-w: calc((100cqw + var(--inset) + var(--gap)) / var(--cols) - var(--gap));
+    --cell-h: calc((100cqh + var(--inset) + var(--gap)) / var(--rows) - var(--gap));
+    --cell: min(var(--cell-w), var(--cell-h));
+
+    --fs-title: calc(var(--cell) * 0.09);
+    --fs-small: calc(var(--cell) * 0.095);
+    --fs-body: calc(var(--cell) * 0.12);
+    --fs-stat: calc(var(--cell) * 0.23);
+    --pad: calc(var(--cell) * 0.077);
+    --row-gap: calc(var(--cell) * 0.06);
+}
+
+.widget-shell > * {
+    height: 100%;
+}
+
+/* shared widget chrome */
+
+.widget {
+    display: flex;
+    flex-direction: column;
+    gap: var(--pad);
+    min-height: 0;
+    padding: var(--pad);
+    font-size: var(--fs-body);
+}
+
+.widget ul, .widget ol {
+    list-style: none;
+    margin: 0;
+    padding: 0;
+}
+
+.widget-title {
+    margin: 0;
+    font-size: var(--fs-title);
+    font-weight: 600;
+    letter-spacing: 0.08em;
+    text-transform: uppercase;
+    color: var(--text-muted);
+}

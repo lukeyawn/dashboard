@@ -1,0 +1,47 @@
+.habit-grid {
+    flex: 1;
+    min-height: 0;
+    display: grid;
+    grid-template-columns: minmax(0, 1fr) repeat(7, calc(var(--cell) * 0.18)) calc(var(--cell) * 0.23);
+    align-content: space-evenly;
+    align-items: center;
+    justify-items: center;
+    gap: calc(var(--cell) * 0.05);
+}
+
+.habit-name {
+    justify-self: start;
+    max-width: 100%;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+}
+
+.habit-day-label {
+    font-size: var(--fs-title);
+    font-weight: 600;
+    color: var(--text-muted);
+}
+
+.habit-day-label.today {
+    color: var(--accent);
+}
+
+.habit-dot {
+    width: calc(var(--cell) * 0.155);
+    height: calc(var(--cell) * 0.155);
+    border: 1px solid hsla(0, 0%, 100%, 0.3);
+    border-radius: 50%;
+}
+
+.habit-dot.done {
+    border-color: var(--accent);
+    background-color: var(--accent);
+}
+
+.habit-streak {
+    justify-self: end;
+    font-size: var(--fs-small);
+    font-variant-numeric: tabular-nums;
+    color: var(--text-muted);
+}

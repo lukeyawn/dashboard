@@ -1,0 +1,33 @@
+.wotd-widget {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    gap: 3cqmin;
+    padding: 4cqmin;
+    text-align: center;
+}
+
+/* hero glyphs: sized against their own tile (DESIGN §9), and small enough that
+   a long word stays on one line (--chars is set by the widget) */
+.wotd-hanzi {
+    font-family: var(--font-cjk);
+    font-size: min(42cqmin, calc(88cqw / var(--chars, 2)));
+    line-height: 1;
+    white-space: nowrap;
+}
+
+.wotd-pinyin {
+    font-size: 13cqmin;
+    color: var(--text-muted);
+}
+
+/* long definitions clamp to two lines (DESIGN §10) */
+.wotd-definition {
+    font-size: 13cqmin;
+    line-height: 1.15;
+    display: -webkit-box;
+    -webkit-line-clamp: 2;
+    -webkit-box-orient: vertical;
+    overflow: hidden;
+}

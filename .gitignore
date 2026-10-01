@@ -23,5 +23,14 @@ dist-ssr
 *.sln
 *.sw?
 
-# exercises
-exercises.jsx
+
+# test output
+coverage
+playwright-report
+test-results
+
+# secrets and data (DESIGN §2)
+.env
+.env.*
+!.env.example
+data/

@@ -1,0 +1,70 @@
+.applied { --status: var(--applied); }
+.interview { --status: var(--interview); }
+.offer { --status: var(--offer); }
+.rejected { --status: var(--rejected); }
+
+.job-stages {
+    display: grid;
+    grid-template-columns: repeat(4, minmax(0, 1fr));
+    gap: var(--row-gap);
+}
+
+.job-stage {
+    padding: calc(var(--cell) * 0.05) var(--pad);
+    border-top: max(1px, calc(2 * var(--px))) solid var(--status);
+    border-radius: calc(var(--cell) * 0.05);
+    background-color: hsla(0, 0%, 100%, 0.06);
+}
+
+.job-stage-count {
+    font-size: var(--fs-stat);
+    font-weight: 300;
+    line-height: 1.1;
+    color: var(--status);
+}
+
+.job-stage-label {
+    font-size: calc(var(--cell) * 0.084);
+    letter-spacing: 0.08em;
+    text-transform: uppercase;
+    color: var(--text-muted);
+}
+
+.job-list {
+    display: flex;
+    flex-direction: column;
+}
+
+.job-list li {
+    display: grid;
+    grid-template-columns: auto minmax(0, 1fr) auto;
+    align-items: center;
+    gap: var(--pad);
+    padding: calc(var(--cell) * 0.05) 0;
+    border-bottom: 1px solid var(--hairline);
+}
+
+.job-list li:last-child {
+    border-bottom: none;
+}
+
+.job-company {
+    font-weight: 600;
+}
+
+.job-role {
+    color: var(--text-muted);
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+}
+
+.status-pill {
+    padding: calc(var(--cell) * 0.013) calc(var(--cell) * 0.065);
+    border: 1px solid var(--status);
+    border-radius: 999px;
+    font-size: calc(var(--cell) * 0.077);
+    letter-spacing: 0.06em;
+    text-transform: uppercase;
+    color: var(--status);
+}

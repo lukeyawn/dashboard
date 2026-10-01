@@ -1,17 +1,16 @@
-import './styles.css';
-import CountdownWidget from "./components/CountdownWidget";
-import TasksWidget from "./components/TasksWidget"
-import WidgetShell from './components/WidgetShell';
-import Dashboard from './components/Dashboard'
-import WOTDWidget from './components/WordOfTheDay';
 import Page from './components/Page';
+import Dashboard from './components/Dashboard';
+import WidgetShell from './components/WidgetShell';
 import Dock from './components/Dock';
-import CalendarWidget from './components/CalendarWidget';
-import JobWidget from './components/JobWidget';
-import GoalsWidget from './components/GoalsWidget';
-import HabitWidget from './components/HabitWidget';
-import TimelineWidget from './components/TimelineWidget';
-import DeadlinesWidget from './components/DeadlinesWidget';
+import CalendarWidget from './widgets/calendar/CalendarWidget';
+import CountdownWidget from './widgets/countdown/CountdownWidget';
+import DeadlinesWidget from './widgets/deadlines/DeadlinesWidget';
+import GoalsWidget from './widgets/goals/GoalsWidget';
+import HabitsWidget from './widgets/habits/HabitsWidget';
+import JobWidget from './widgets/job/JobWidget';
+import TasksWidget from './widgets/tasks/TasksWidget';
+import TimelineWidget from './widgets/timeline/TimelineWidget';
+import WordOfTheDayWidget from './widgets/wotd/WordOfTheDayWidget';
 
 // placeholder data until these come from real sources
 const applications = [
@@ -53,19 +52,15 @@ const deadlines = [
     {id: 4, name: "Algorithms midterm", due: "2026-10-14"},
 ];
 
+const tasks = [
+    {id: 1, name: "Do laundry"},
+    {id: 2, name: "Finish OS Shell project"},
+];
+
 export default function App() {
     return (
         <Page>
             <Dashboard>
-                <WidgetShell area="countdown">
-                    <CountdownWidget time={42} unit="weeks" event="Thanksgiving Break"/>
-                </WidgetShell>
-                <WidgetShell area="tasks">
-                    <TasksWidget tasks={[{id: 1, name: "do laundry"}, {id: 2, name: "Finish OS Shell project"}]}/>
-                </WidgetShell>
-                <WidgetShell area="wotd">
-                    <WOTDWidget word="你好" pinyin="nǐ hǎo" definition="hello"></WOTDWidget>
-                </WidgetShell>
                 <WidgetShell area="calendar">
                     <CalendarWidget />
                 </WidgetShell>
@@ -75,17 +70,26 @@ export default function App() {
                 <WidgetShell area="goals">
                     <GoalsWidget goals={goals} />
                 </WidgetShell>
-                <WidgetShell area="habit">
-                    <HabitWidget habits={habits} />
-                </WidgetShell>
                 <WidgetShell area="timeline">
                     <TimelineWidget events={events} />
                 </WidgetShell>
                 <WidgetShell area="deadlines">
                     <DeadlinesWidget deadlines={deadlines} />
                 </WidgetShell>
+                <WidgetShell area="wotd">
+                    <WordOfTheDayWidget word="你好" pinyin="nǐ hǎo" definition="hello" />
+                </WidgetShell>
+                <WidgetShell area="countdown">
+                    <CountdownWidget time={42} unit="days" event="Thanksgiving Break" />
+                </WidgetShell>
+                <WidgetShell area="tasks">
+                    <TasksWidget tasks={tasks} />
+                </WidgetShell>
+                <WidgetShell area="habits">
+                    <HabitsWidget habits={habits} />
+                </WidgetShell>
             </Dashboard>
-            <Dock time="1:35 PM" date="Sep 10, 2026" weather="Sunny"/>
+            <Dock />
         </Page>
     );
 }

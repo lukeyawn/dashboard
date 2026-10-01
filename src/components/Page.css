@@ -1,0 +1,7 @@
+/* the dashboard grid takes whatever height the dock leaves (DESIGN §7) */
+.page {
+    height: 100%;
+    display: grid;
+    grid-template-rows: minmax(0, 1fr) var(--dock-h);
+    gap: var(--gap);
+}

@@ -4,6 +4,8 @@ Sep 30, 2026 (revised the same day: cloud hosting, any screen size, testing and 
 
 This replaces `DESIGN.md` and `DESIGN2.md` at the repo root. Everything here is decided unless it's listed under [Open questions](#16-open-questions). Where a decision has a reason, the reason is what counts: use it to judge cases the rule doesn't cover. Where this doc changes something in the earlier ones, [§17](#17-what-changed-from-the-earlier-docs) says what changed and why.
 
+Choices made while building, where this doc left room, are logged in [DECISIONS.md](DECISIONS.md).
+
 **How the work is split:** Luke decides the design and reviews the code, and Claude writes it. The original plan was for Luke to hand-write the code with AI help, but there's no longer time for that.
 
 ---

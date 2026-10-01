@@ -1,3 +1,5 @@
+import './GoalsWidget.css';
+
 // goals: {id: number, name: string, current: number, target: number, unit?: string}[]
 export default function GoalsWidget({goals = []}) {
     return (

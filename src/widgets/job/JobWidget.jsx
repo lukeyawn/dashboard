@@ -1,3 +1,5 @@
+import './JobWidget.css';
+
 const STAGES = ['applied', 'interview', 'offer', 'rejected'];
 
 // applications: {id: number, company: string, role: string, status: 'applied' | 'interview' | 'offer' | 'rejected'}[], newest first

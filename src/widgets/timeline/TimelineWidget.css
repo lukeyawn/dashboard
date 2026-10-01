@@ -1,0 +1,54 @@
+.widget .timeline {
+    --indent: calc(var(--cell) * 0.13);
+    --dot: calc(var(--cell) * 0.08);
+    display: flex;
+    flex-direction: column;
+    gap: calc(var(--cell) * 0.115);
+    margin-left: calc(var(--cell) * 0.05);
+    padding-left: var(--indent);
+    border-left: 1px solid hsla(0, 0%, 100%, 0.25);
+}
+
+.timeline-event {
+    position: relative;
+    display: flex;
+    flex-direction: column;
+    min-width: 0;
+}
+
+/* dot sits centered on the list's left border */
+.timeline-event::before {
+    content: '';
+    position: absolute;
+    left: calc(-1 * var(--indent) - var(--dot) / 2 - 0.5px);
+    top: calc(var(--cell) * 0.02);
+    width: var(--dot);
+    height: var(--dot);
+    border-radius: 50%;
+    background-color: hsla(0, 0%, 100%, 0.5);
+}
+
+.timeline-time {
+    font-size: var(--fs-title);
+    font-variant-numeric: tabular-nums;
+    color: var(--text-muted);
+}
+
+.timeline-title {
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+}
+
+.timeline-event.past {
+    opacity: 0.45;
+}
+
+.timeline-event.current::before {
+    background-color: var(--accent);
+    box-shadow: 0 0 0 calc(var(--cell) * 0.032) var(--accent-glow);
+}
+
+.timeline-event.current .timeline-time {
+    color: var(--accent);
+}

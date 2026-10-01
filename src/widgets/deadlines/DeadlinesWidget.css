@@ -1,0 +1,49 @@
+.deadlines-list {
+    display: flex;
+    flex-direction: column;
+}
+
+.deadline {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    gap: var(--row-gap);
+    padding: calc(var(--cell) * 0.058) 0;
+    border-bottom: 1px solid var(--hairline);
+}
+
+.deadline:last-child {
+    border-bottom: none;
+}
+
+.deadline-info {
+    display: flex;
+    flex-direction: column;
+    min-width: 0;
+}
+
+.deadline-name {
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+}
+
+.deadline-date {
+    font-size: var(--fs-small);
+    color: var(--text-muted);
+}
+
+.deadline-days {
+    flex-shrink: 0;
+    padding: calc(var(--cell) * 0.02) calc(var(--cell) * 0.065);
+    border-radius: 999px;
+    background-color: hsla(0, 0%, 100%, 0.1);
+    font-size: var(--fs-small);
+    font-weight: 600;
+    white-space: nowrap;
+}
+
+.deadline.urgent .deadline-days {
+    background-color: hsla(0, 85%, 65%, 0.2);
+    color: var(--urgent);
+}
