@@ -22,3 +22,23 @@ Choices made while building, where [DESIGN.md](DESIGN.md) left room or turned ou
 | Dependency review blocks copyleft licenses (GPL, AGPL, LGPL, SSPL) instead of allowing a fixed list. | An allow-list fails on harmless licenses nobody listed (font and data licenses especially). The goal is MIT compatibility, and copyleft is what breaks it. |
 | The git remote uses HTTPS with `gh` as the credential helper, configured for this repo only. | The laptop's SSH key isn't registered with GitHub. |
 | In WSL without `sudo`, Playwright's Chromium gets its missing libraries (`libnspr4`, `libnss3`, `libasound2`) from packages extracted into `~/.cache/playwright-libs`, used through `LD_LIBRARY_PATH`. | Lets the layout checks run locally. CI installs them normally. |
+
+## Phase 1: first slice (tasks)
+
+| Choice | Why |
+|---|---|
+| Completing a task sends `{ "done_at": "<the client's ISO time>" }`. Restoring sends `null`. | The JSON uses the column names exactly (DESIGN §3), so there's no separate `done: true` action. The server validates it as a UTC timestamp. |
+| Each task row is a `<label>` that wraps its checkbox, rather than a checkbox paired with a separate `<label htmlFor>`. | Same result: a tap anywhere on the row toggles it. Wrapping needs no ids and can't get out of step. |
+| The inline "+ Add task" row is built now, not in phase 5. | A vertical slice you can't add to isn't usable. The other widgets still get their editors in phase 5. |
+| A long task list scrolls inside its tile, with a fade at the bottom edge; the add row stays pinned below it. | The page never scrolls, but a long list has to go somewhere. The fade shows there's more without a "+N more" control. |
+| The login rate limit covers login attempts only (`POST /api/login` and the `/login?token=` link), not every API request. The server refuses to start unless both tokens are at least 32 characters and different. | A device with an old token would keep polling with it, and locking every request after 10 failures would lock everyone out. With 32 random characters, guessing through the API isn't feasible anyway. |
+| The cookie is named `dashboard_token`. Any 401 response switches the page to the login screen. | One place handles being logged out, whichever widget notices first. |
+| `POST` answers `201 Created` with the new row. | Standard for a create. |
+| Caching uses Express's built-in weak ETags, plus `Cache-Control: no-cache, private` on `/api`. | `no-cache` makes the browser revalidate every poll, and the ETag turns an unchanged answer into an empty 304, with no ETag code of our own. |
+| Tables are SQLite `STRICT`, and task names are limited to 1–200 characters both in zod and in a `CHECK` constraint. | The database guards itself even if a bug skips validation. |
+| Changes made through `useResource` resolve to the saved row, or `null` if saving failed. A failed save is kept as `saveError`, separate from a failed load (`error`). | Widgets never need `try`/`catch`. "Couldn't save" and "couldn't load" are different messages. |
+| `.env` is read with Node's own `--env-file-if-exists`, not the `dotenv` package. | One fewer dependency (priority 2). |
+| A local `.env` with random tokens is generated for development and gitignored. | So the dev server starts straight away. |
+| The server serves `dist/` even if it doesn't exist yet at startup. | Lets a build land after the server has started, which the full-stack browser test relies on. |
+| Browser tests come in two kinds: layout checks against `vite preview` with a mocked API, and full-stack tests against the real server on an in-memory database (port 4174). | The layout checks need fixed data, such as very long names. The full-stack tests prove the slice works end to end: login, add, clear, and the clear surviving a reload. |
+| A shared Vitest setup file unmounts Testing Library renders after each test. | Without test globals, Testing Library doesn't do it on its own, and leftover hooks kept polling across tests. |

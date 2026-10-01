@@ -45,3 +45,16 @@
     text-transform: uppercase;
     color: var(--text-muted);
 }
+
+/* loading, error and empty states */
+.widget-message {
+    margin: 0;
+    color: var(--text-muted);
+}
+
+/* a short note under the content, such as a failed save */
+.widget-notice {
+    margin: 0;
+    font-size: var(--fs-small);
+    color: var(--urgent);
+}

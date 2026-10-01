@@ -1,14 +1,83 @@
-.tasks-list li {
+/* the list scrolls inside the tile when it's long; the add row stays at the bottom */
+.tasks-list {
+    flex: 1;
+    min-height: 0;
+    overflow-y: auto;
+    scrollbar-width: none;
+    /* fades the bottom edge, so a row cut off by the tile reads as "more below" */
+    mask-image: linear-gradient(to bottom, black calc(100% - var(--hit) / 2), transparent);
+}
+
+.task {
+    position: relative;
+    border-bottom: 1px solid var(--hairline);
+}
+
+.task label {
     display: flex;
     justify-content: space-between;
     align-items: center;
     gap: var(--row-gap);
+    min-height: var(--hit);
     padding: var(--row-gap) 0;
-    border-bottom: 1px solid var(--hairline);
 }
 
-.tasks-list input {
+.task label:active {
+    filter: brightness(1.3);
+}
+
+.task-name {
+    min-width: 0;
+    overflow-wrap: anywhere;
+}
+
+.task input {
+    flex-shrink: 0;
     width: calc(var(--cell) * 0.13);
     height: calc(var(--cell) * 0.13);
+    margin: 0;
     accent-color: var(--accent);
+}
+
+/* pending: crossed out, with a line shrinking underneath as the timer (DESIGN §6.2) */
+.task.pending .task-name {
+    text-decoration: line-through;
+    color: var(--text-muted);
+}
+
+.task.pending::after {
+    content: '';
+    position: absolute;
+    left: 0;
+    bottom: -1px;
+    width: 100%;
+    height: max(1px, calc(2 * var(--px)));
+    background-color: var(--accent);
+    transform-origin: left;
+    animation: pending-timer var(--pending-ms) linear forwards;
+}
+
+@keyframes pending-timer {
+    from { transform: scaleX(1); }
+    to { transform: scaleX(0); }
+}
+
+.task-add input {
+    width: 100%;
+    min-height: var(--hit);
+    padding: 0;
+    border: none;
+    border-bottom: 1px solid transparent;
+    background: none;
+    color: var(--text);
+    font: inherit;
+    outline: none;
+}
+
+.task-add input::placeholder {
+    color: var(--text-muted);
+}
+
+.task-add input:focus {
+    border-bottom-color: var(--accent);
 }
