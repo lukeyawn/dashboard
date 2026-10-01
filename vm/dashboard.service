@@ -1,0 +1,25 @@
+# The dashboard server (DESIGN §11.1). Installed by vm/setup.sh.
+[Unit]
+Description=Dashboard server
+After=network-online.target
+Wants=network-online.target
+
+[Service]
+User=dashboard
+WorkingDirectory=/opt/dashboard
+EnvironmentFile=/opt/dashboard/.env
+# written by vm/deploy.sh: the commit being served, sent as X-Build
+EnvironmentFile=-/opt/dashboard/build.env
+ExecStart=/usr/bin/node server/index.js
+Restart=on-failure
+RestartSec=2
+
+# The server can write only its data directory
+NoNewPrivileges=true
+ProtectSystem=strict
+ProtectHome=true
+PrivateTmp=true
+ReadWritePaths=/var/lib/dashboard
+
+[Install]
+WantedBy=multi-user.target

@@ -1,0 +1,11 @@
+# The nightly backup: a snapshot and the JSON export, copied to Google Drive (DESIGN §2).
+[Unit]
+Description=Dashboard nightly backup
+After=network-online.target
+
+[Service]
+Type=oneshot
+User=dashboard
+WorkingDirectory=/opt/dashboard
+EnvironmentFile=/opt/dashboard/.env
+ExecStart=/opt/dashboard/vm/backup.sh

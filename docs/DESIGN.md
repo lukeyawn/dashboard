@@ -755,7 +755,17 @@ The rule is **one complete vertical slice before any breadth**: a few real widge
 | **4. Agent access** | The MCP server and `/api/today`. This comes before the editing UI because it's small once the API exists, and it immediately gives a way to bulk-enter real data. |
 | **5. Touch and editing** | The touch rules (§6.1), pending actions for deadlines and jobs, the inline add row, shared editors, the `/manage` page, and the dashboard modal with ✎ buttons. |
 | **6. Kiosk** | Everything in §11.2: Chromium flags and startup, kiosk login, squeekboard, night mode with the moon button, and the reload rules (§6.4). |
-| **Later** | Click-to-focus with container-query condensing; an assistant widget on the dashboard; sunrise gradient; an idle photo-album mode; a wins log; recurring tasks. |
+| **Later** | Click-to-focus with container-query condensing; a daily background photo from Unsplash (below); an assistant widget on the dashboard; sunrise gradient; an idle photo-album mode; a wins log; recurring tasks. |
+
+### Later: a daily background photo from Unsplash
+
+The owner's idea: a new background each day, through the Unsplash API. Until then the bundled photo stays, and it remains the fallback afterwards.
+
+- **Only dark photos.** A random photo will often be bright, and a bright photo is what broke readability before (§8). The photos come from an Unsplash collection of dark night photos that the owner curates, and the API picks one from it at random.
+- **The server picks the day's photo,** once each morning, and remembers it, so every screen shows the same one. That's about one API call a day, far inside the free limit. The access key lives in `.env`.
+- **Unsplash's API rules:** the page loads the image from Unsplash's own URL, not a saved copy. Each use is reported to Unsplash's download endpoint. The photographer and Unsplash are credited on screen, as a small line in a corner of the dock.
+- **Offline:** an image loaded from Unsplash can't load without internet, so the bundled photo shows instead.
+- The bundled photo is from Unsplash too. Its license allows keeping it in the repo, and the photographer is credited in the README.
 
 ### Later, already designed: click-to-focus
 
@@ -889,6 +899,7 @@ Each of these caused a real bug or near-miss, or is a known trap. Keep them in m
 | 2026-09-30 | Tests are written with the code: Vitest for the database, API, logic and hooks; Playwright layout checks at 8 resolutions |
 | 2026-09-30 | Public GitHub repo, MIT license. CI with read-only permissions and pinned actions; `main` changes only through green pull requests, merged by Luke. |
 | 2026-09-30 | Node 24 LTS, pinned in `.nvmrc` |
+| 2026-10-01 | A daily background photo from an owner-curated Unsplash collection goes on the Later list. The bundled photo stays for v1. |
 
 ---
 

@@ -1,0 +1,10 @@
+[Unit]
+Description=Run the dashboard backup every night
+
+[Timer]
+# 03:00 dashboard time, before the kiosk's 04:00 reload; catches up after downtime
+OnCalendar=*-*-* 03:00:00 America/Chicago
+Persistent=true
+
+[Install]
+WantedBy=timers.target

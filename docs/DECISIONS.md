@@ -75,3 +75,17 @@ Choices made while building, where [DESIGN.md](DESIGN.md) left room or turned ou
 | Browser tests fix the page's clock at 1:35 PM on 2026-09-30 in America/Chicago. | Screenshots and states (past, current, overdue) are the same on every run. |
 | `npm run seed` fills every table with sample data, but only tables that are empty. | Safe to run against a real database by mistake. |
 | npm only runs install scripts for approved packages. `better-sqlite3` is approved, pinned to its version. | It needs its script to fetch its compiled binary. Any new package with an install script fails `npm ci` until someone approves it, which is a useful guardrail. |
+
+## Phase 3: cloud server and backups (the parts that don't need the Google Cloud account)
+
+| Choice | Why |
+|---|---|
+| On the VM, the code is in `/opt/dashboard` and the data in `/var/lib/dashboard`: the database, its calendar cache, and the backups. The server runs as a `dashboard` user that can write only the data directory. | Code and data stay apart, so a deploy can never touch the data. systemd's `ProtectSystem=strict` enforces it. |
+| `.env` on the VM sets `DATABASE=/var/lib/dashboard/dashboard.db`, `HOST=127.0.0.1` and `PORT=3000`. `vm/setup.sh` writes it with two new random tokens. | The tokens are generated where they live, and never typed or copied around in plain text. |
+| Litestream is pinned to v0.5.17 and keeps 30 days (`snapshot.retention: 720h`). It signs in with the VM's own service account, which can reach only the backup bucket. | Litestream's default is 24 hours. No key file exists anywhere to leak. |
+| The nightly backup runs at 03:00 Chicago time through a systemd timer (`Persistent=true`, so a missed night runs at the next boot). It keeps 14 nights on the VM and 30 in Google Drive. Only dated copies go to Drive. | Pre-deploy snapshots are for rolling back a deploy, so they stay on the VM: the last 5. |
+| `GET /api/export` downloads as `dashboard-export-YYYY-MM-DD.json`, with every table and the schema version. The nightly backup writes the same export next to each snapshot. | One export format, used both ways. |
+| `vm/deploy.sh` deploys the head of `origin/main`. It requires that commit's CI run to be `success`. It builds in a clean worktree on the laptop, snapshots the database, checks the commit out on the VM, swaps `dist/`, restarts, and waits until `/api/health` answers with the new `X-Build`. | Only reviewed, green code reaches the server, and a failed start is reported instead of passing silently. |
+| The build ID is the commit SHA: `BUILD` is passed to Vite as `__BUILD__`, and written to `/opt/dashboard/build.env` for the server's `X-Build`. | The page and the server compare the same string (DESIGN §6.4). |
+| CI runs `shellcheck` on `vm/*.sh` and `scripts/*.sh`. | The deploy and backup scripts guard the data, so they get linted like everything else. |
+| An application's `applied_on` defaults to today on the server, by the server's clock, rather than in the shared schema. | Found on the first day after the build started: the schema's default used the machine's real date, ignoring the clock the server and tests run on. |

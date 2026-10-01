@@ -1,0 +1,12 @@
+# Continuous backup of the database to Cloud Storage (DESIGN §2, §11.1).
+# vm/setup.sh fills in the bucket and installs this as /etc/litestream.yml.
+# On a Google Cloud VM, Litestream signs in with the VM's service account.
+dbs:
+  - path: /var/lib/dashboard/dashboard.db
+    replica:
+      url: gs://LITESTREAM_BUCKET/dashboard
+
+# keep 30 days of history, so the database can be restored to any moment in them
+snapshot:
+  interval: 24h
+  retention: 720h
