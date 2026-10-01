@@ -361,7 +361,7 @@ The full design is in [CONNECTOR.md](CONNECTOR.md). In short:
   - Both are remote MCP endpoints (Streamable HTTP) at `https://dashboard.<tailnet>.ts.net:8443`. Claude Code keeps full access through the stdio server.
   - **The owner's call:** direct adding from chats is worth more than a guarantee that the agent only suggests, given that everything Claude does can be found and undone, plus the backups (§5.2, point 1).
 - **Tailscale Funnel, on port 8443 only,** to a separate listener that mounts just the two endpoints, the sign-in endpoints and their metadata. Funnel works per port, not per path, so port 443 (the dashboard and `/api`) stays tailnet-only.
-- **Sign-in is OAuth 2.1** per the MCP authorization spec, with one pre-registered client whose ID and secret are entered in claude.ai.
+- **Sign-in is OAuth 2.1** per the MCP authorization spec, with one pre-registered client per connector, whose ID and secret are entered in claude.ai. The client a token was issued to decides what it can do.
   - The public sign-in endpoint shows no page and asks for no secret. It redirects to an approval page on the tailnet, which needs your login and the browser that started the request.
   - Access tokens last an hour; refresh tokens are replaced on every use.
 - **What each connector can reach is an allow-list in the API itself.** The MCP endpoints call `/api` with the caller's own token, so there's one place that enforces it.
@@ -832,7 +832,7 @@ The rule is **one complete vertical slice before any breadth**: a few real widge
 | **6. Kiosk** | Everything in §11.2: Chromium flags and startup, kiosk login, squeekboard, night mode with the moon button, and the reload rules (§6.4). |
 | **7. Agent-ready data** | Deadlines merged into tasks, with priority, effort, area, notes, link and source; the Due soon and Tasks tiles; the change record with History and Undo; sources and no duplicates; the status line. (§5.5) |
 | **8. The public door** | Three PRs ([CONNECTOR.md §14](CONNECTOR.md#14-how-its-built-three-pull-requests-one-after-another)): the credential allow-lists, OAuth with approval on the tailnet, the public listener and the chat connector, Claude's changes with Undo everything since; then go-live on Funnel port 8443; then suggestions, the agent connector and the review modal. (§5.2–5.4) |
-| **9. The agent** | Its standing instructions and schedule, with its Gmail and Calendar connectors read-only; run reports in the status line; the daily briefing. (§5.1) |
+| **9. The agent** | Its standing instructions and schedule, with its Gmail and Calendar connectors read-only; run reports in the status line, including a warning for any direct write through the chat connector during a run; the daily briefing. (§5.1, [CONNECTOR.md §2](CONNECTOR.md#2-two-connectors-and-what-the-second-one-doesnt-guarantee)) |
 | **Later** | Click-to-focus with container-query condensing; a daily background photo from Unsplash (below); an assistant widget on the dashboard; sunrise gradient; an idle photo-album mode; a wins log; recurring tasks. |
 
 ### Later: a daily background photo from Unsplash
@@ -987,6 +987,7 @@ Each of these caused a real bug or near-miss, or is a known trap. Keep them in m
 | 2026-10-01 | Two claude.ai connectors: chats add and change directly (no deleting), the agent suggests. Because connectors are account-wide, the agent can reach both; the owner accepts that, with Claude's changes and Undo everything since as the safety net. |
 | 2026-10-01 | The public door is Funnel on port 8443 to a separate listener with only the MCP and sign-in routes. Sign-ins are approved on the tailnet. |
 | 2026-10-01 | Links from connectors must be `https` and are shown with their domain. Text from connectors is cleaned of characters that disguise it. |
+| 2026-10-01 | One OAuth client per connector; the client, not the `resource` parameter, decides a token's access. Refresh replacements are derived from the old token, so a repeat in the grace window gets the same one. *Undo everything since* defaults to claude.ai only. |
 | 2026-10-01 | Public rate limits are split by connection, visitor and kind, so strangers can't use up claude.ai's share or trigger the dashboard's login lockout. A replaced refresh token keeps working until its replacement is used, so a lost reply doesn't look like theft. A lost connection shows in the status line. |
 
 ---
