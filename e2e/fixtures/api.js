@@ -88,6 +88,7 @@ const FIXTURES = {
     '/api/applications': () => APPLICATIONS,
     '/api/weather': () => WEATHER,
     '/api/session': () => ({ client: 'api' }),
+    '/api/status': () => ({ backup: null, calendar: null, problems: [] }),
     '/api/night': () => ({ active: false, early: false, until: null, start: '22:00', end: '06:30' }),
     '/api/events': q => (q.get('from') <= '2026-09-30' && q.get('to') >= '2026-09-30' ? EVENTS : []),
     '/api/birthdays': q => BIRTHDAYS.filter(b => b.date >= q.get('from') && b.date <= q.get('to')),

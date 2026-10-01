@@ -34,7 +34,8 @@ const calendar = createCalendarFeed({
 });
 if (!GCAL_ICS_URL) console.warn('GCAL_ICS_URL is not set, so the timeline and birthdays will be empty.');
 calendar.start();
-const app = createApp({ db, apiToken, kioskToken, build: BUILD, distDir: 'dist', calendar, weatherAt: createWeather() });
+const backupStatusFile = DATABASE === ':memory:' ? null : path.join(path.dirname(DATABASE), 'backups', 'last-run.json');
+const app = createApp({ db, apiToken, kioskToken, build: BUILD, distDir: 'dist', calendar, weatherAt: createWeather(), backupStatusFile });
 
 const server = app.listen(Number(PORT), HOST, () => {
     console.log(`Dashboard server on http://${HOST}:${PORT} (build ${BUILD}, database ${DATABASE})`);

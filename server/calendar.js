@@ -78,7 +78,8 @@ export function occurrences({ calendar, events }, from, to) {
 // a failed fetch or an offline restart still serves events.
 export function createCalendarFeed({ url, cacheFile, fetch = globalThis.fetch, now = Date.now, log = console } = {}) {
     let feed = { calendar: null, events: [] };
-    let status = { configured: Boolean(url), last_success: null, last_error: null };
+    // failing_since: when fetches started failing, so a brief outage isn't a problem
+    let status = { configured: Boolean(url), last_success: null, last_error: null, failing_since: null };
     let timer = null;
 
     if (cacheFile && fs.existsSync(cacheFile)) {
@@ -96,7 +97,7 @@ export function createCalendarFeed({ url, cacheFile, fetch = globalThis.fetch, n
             if (!res.ok) throw new Error(`Google answered ${res.status}`);
             const text = await res.text();
             feed = parseFeed(text);
-            status = { ...status, last_success: new Date(now()).toISOString(), last_error: null };
+            status = { ...status, last_success: new Date(now()).toISOString(), last_error: null, failing_since: null };
             if (cacheFile) {
                 fs.mkdirSync(path.dirname(cacheFile), { recursive: true });
                 fs.writeFileSync(`${cacheFile}.tmp`, text);
@@ -104,7 +105,7 @@ export function createCalendarFeed({ url, cacheFile, fetch = globalThis.fetch, n
             }
         } catch (err) {
             // never log the URL itself: it's a password (DESIGN §2)
-            status = { ...status, last_error: err.message };
+            status = { ...status, last_error: err.message, failing_since: status.failing_since ?? new Date(now()).toISOString() };
             log.error(`Calendar refresh failed: ${err.message}`);
         }
     }

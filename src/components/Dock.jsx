@@ -1,4 +1,5 @@
 import { useOfflineSince } from '../hooks/useConnection';
+import { useResource } from '../hooks/useResource';
 import { useNow } from '../hooks/useNow';
 import { useWeather } from '../hooks/useWeather';
 import { formatTime } from '../lib/format';
@@ -12,11 +13,15 @@ function timeParts(now) {
 }
 
 // The clock, the date and the weather (DESIGN §10, Dock), a note when the
-// server can't be reached, and the moon button that starts night mode (§6.4)
+// server can't be reached or a background job is failing, and the moon
+// button that starts night mode (§6.4, §5.5)
 export default function Dock({ night, onMoon }) {
     const now = useNow(1000);
     const { time, period } = timeParts(now);
     const offlineSince = useOfflineSince();
+    // backups and the calendar feed; only a problem is shown (DESIGN §5.5)
+    const status = useResource('status', { pollMs: 5 * 60 * 1000 });
+    const problems = status.data?.problems ?? [];
 
     return (
         <div className="dock">
@@ -30,6 +35,7 @@ export default function Dock({ night, onMoon }) {
             </div>
             <div className="dock-right">
                 {offlineSince && <span className="dock-offline" role="status">offline since {formatTime(offlineSince)}</span>}
+                {!offlineSince && problems.map(p => <span key={p.kind} className="dock-offline dock-problem" role="status">{p.message}</span>)}
                 <Weather />
                 {onMoon && (
                     <button
