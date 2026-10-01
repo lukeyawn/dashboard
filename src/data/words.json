@@ -1,0 +1,3572 @@
+[
+ {
+  "hanzi": "声音",
+  "pinyin": "shēng yīn",
+  "definition": "voice",
+  "level": 3
+ },
+ {
+  "hanzi": "高",
+  "pinyin": "gāo",
+  "definition": "high",
+  "level": 2
+ },
+ {
+  "hanzi": "然后",
+  "pinyin": "rán hòu",
+  "definition": "then; after that; afterwards",
+  "level": 3
+ },
+ {
+  "hanzi": "雪",
+  "pinyin": "xuě",
+  "definition": "snow",
+  "level": 2
+ },
+ {
+  "hanzi": "地图",
+  "pinyin": "dì tú",
+  "definition": "map",
+  "level": 3
+ },
+ {
+  "hanzi": "分",
+  "pinyin": "fēn",
+  "definition": "to divide; to separate",
+  "level": 3
+ },
+ {
+  "hanzi": "检查",
+  "pinyin": "jiǎn chá",
+  "definition": "inspection",
+  "level": 3
+ },
+ {
+  "hanzi": "宾馆",
+  "pinyin": "bīn guǎn",
+  "definition": "guesthouse",
+  "level": 3
+ },
+ {
+  "hanzi": "普通话",
+  "pinyin": "pǔ tōng huà",
+  "definition": "Mandarin (common language)",
+  "level": 3
+ },
+ {
+  "hanzi": "蛋糕",
+  "pinyin": "dàn gāo",
+  "definition": "cake",
+  "level": 3
+ },
+ {
+  "hanzi": "年",
+  "pinyin": "nián",
+  "definition": "year",
+  "level": 1
+ },
+ {
+  "hanzi": "放",
+  "pinyin": "fàng",
+  "definition": "to put",
+  "level": 3
+ },
+ {
+  "hanzi": "自己",
+  "pinyin": "zì jǐ",
+  "definition": "oneself",
+  "level": 3
+ },
+ {
+  "hanzi": "夏",
+  "pinyin": "xià",
+  "definition": "summer",
+  "level": 3
+ },
+ {
+  "hanzi": "兴趣",
+  "pinyin": "xìng qù",
+  "definition": "interest (desire to know about sth)",
+  "level": 3
+ },
+ {
+  "hanzi": "解决",
+  "pinyin": "jiě jué",
+  "definition": "to solve; to resolve; to settle (a problem)",
+  "level": 3
+ },
+ {
+  "hanzi": "街道",
+  "pinyin": "jiē dào",
+  "definition": "street",
+  "level": 3
+ },
+ {
+  "hanzi": "六",
+  "pinyin": "liù",
+  "definition": "six",
+  "level": 1
+ },
+ {
+  "hanzi": "电视",
+  "pinyin": "diàn shì",
+  "definition": "television; TV",
+  "level": 1
+ },
+ {
+  "hanzi": "说话",
+  "pinyin": "shuō huà",
+  "definition": "to speak",
+  "level": 1
+ },
+ {
+  "hanzi": "层",
+  "pinyin": "céng",
+  "definition": "to pile on top of one another",
+  "level": 3
+ },
+ {
+  "hanzi": "聪明",
+  "pinyin": "cōng ming",
+  "definition": "intelligent",
+  "level": 3
+ },
+ {
+  "hanzi": "发烧",
+  "pinyin": "fā shāo",
+  "definition": "to have a high temperature (from illness)",
+  "level": 3
+ },
+ {
+  "hanzi": "最近",
+  "pinyin": "zuì jìn",
+  "definition": "recently",
+  "level": 3
+ },
+ {
+  "hanzi": "刮",
+  "pinyin": "guā",
+  "definition": "to scrape",
+  "level": 3
+ },
+ {
+  "hanzi": "短",
+  "pinyin": "duǎn",
+  "definition": "short",
+  "level": 3
+ },
+ {
+  "hanzi": "清楚",
+  "pinyin": "qīng chu",
+  "definition": "clear",
+  "level": 3
+ },
+ {
+  "hanzi": "我",
+  "pinyin": "wǒ",
+  "definition": "I; me; my",
+  "level": 1
+ },
+ {
+  "hanzi": "姓",
+  "pinyin": "xìng",
+  "definition": "family name",
+  "level": 2
+ },
+ {
+  "hanzi": "甜",
+  "pinyin": "tián",
+  "definition": "sweet",
+  "level": 3
+ },
+ {
+  "hanzi": "阴",
+  "pinyin": "yīn",
+  "definition": "overcast (weather)",
+  "level": 2
+ },
+ {
+  "hanzi": "虽然",
+  "pinyin": "suī rán",
+  "definition": "although; even though (often used correlatively with 是 or 是 etc)",
+  "level": 3
+ },
+ {
+  "hanzi": "爸爸",
+  "pinyin": "bà ba",
+  "definition": "(coll.) father; dad",
+  "level": 1
+ },
+ {
+  "hanzi": "七",
+  "pinyin": "qī",
+  "definition": "seven",
+  "level": 1
+ },
+ {
+  "hanzi": "日",
+  "pinyin": "rì",
+  "definition": "sun",
+  "level": 1
+ },
+ {
+  "hanzi": "耳朵",
+  "pinyin": "ěr duo",
+  "definition": "ear",
+  "level": 3
+ },
+ {
+  "hanzi": "近",
+  "pinyin": "jìn",
+  "definition": "near",
+  "level": 2
+ },
+ {
+  "hanzi": "世界",
+  "pinyin": "shì jiè",
+  "definition": "world",
+  "level": 3
+ },
+ {
+  "hanzi": "衬衫",
+  "pinyin": "chèn shān",
+  "definition": "shirt",
+  "level": 3
+ },
+ {
+  "hanzi": "越",
+  "pinyin": "yuè",
+  "definition": "to exceed",
+  "level": 3
+ },
+ {
+  "hanzi": "听",
+  "pinyin": "tīng",
+  "definition": "to listen to; to hear",
+  "level": 1
+ },
+ {
+  "hanzi": "错",
+  "pinyin": "cuò",
+  "definition": "mistake",
+  "level": 2
+ },
+ {
+  "hanzi": "饭馆",
+  "pinyin": "fàn guǎn",
+  "definition": "restaurant",
+  "level": 1
+ },
+ {
+  "hanzi": "地",
+  "pinyin": "dì",
+  "definition": "earth",
+  "level": 3
+ },
+ {
+  "hanzi": "必须",
+  "pinyin": "bì xū",
+  "definition": "to have to",
+  "level": 3
+ },
+ {
+  "hanzi": "本",
+  "pinyin": "běn",
+  "definition": "root",
+  "level": 1
+ },
+ {
+  "hanzi": "学校",
+  "pinyin": "xué xiào",
+  "definition": "school",
+  "level": 1
+ },
+ {
+  "hanzi": "举行",
+  "pinyin": "jǔ xíng",
+  "definition": "to hold (a meeting, ceremony etc)",
+  "level": 3
+ },
+ {
+  "hanzi": "生病",
+  "pinyin": "shēng bìng",
+  "definition": "to fall ill",
+  "level": 2
+ },
+ {
+  "hanzi": "洗澡",
+  "pinyin": "xǐ zǎo",
+  "definition": "to bathe",
+  "level": 3
+ },
+ {
+  "hanzi": "努力",
+  "pinyin": "nǔ lì",
+  "definition": "to make an effort; to try hard; to strive",
+  "level": 3
+ },
+ {
+  "hanzi": "简单",
+  "pinyin": "jiǎn dān",
+  "definition": "simple",
+  "level": 3
+ },
+ {
+  "hanzi": "飞机",
+  "pinyin": "fēi jī",
+  "definition": "airplane",
+  "level": 1
+ },
+ {
+  "hanzi": "告诉",
+  "pinyin": "gào su",
+  "definition": "to tell; to inform",
+  "level": 2
+ },
+ {
+  "hanzi": "绿",
+  "pinyin": "lǜ",
+  "definition": "green",
+  "level": 3
+ },
+ {
+  "hanzi": "和",
+  "pinyin": "hé",
+  "definition": "(joining two nouns) and; together with; with (Taiwan pr. [hàn])",
+  "level": 1
+ },
+ {
+  "hanzi": "船",
+  "pinyin": "chuán",
+  "definition": "boat",
+  "level": 2
+ },
+ {
+  "hanzi": "公司",
+  "pinyin": "gōng sī",
+  "definition": "company; firm; corporation",
+  "level": 2
+ },
+ {
+  "hanzi": "让",
+  "pinyin": "ràng",
+  "definition": "to yield",
+  "level": 2
+ },
+ {
+  "hanzi": "点",
+  "pinyin": "diǎn",
+  "definition": "point",
+  "level": 1
+ },
+ {
+  "hanzi": "经过",
+  "pinyin": "jīng guò",
+  "definition": "to pass",
+  "level": 3
+ },
+ {
+  "hanzi": "旅游",
+  "pinyin": "lǚ yóu",
+  "definition": "trip",
+  "level": 2
+ },
+ {
+  "hanzi": "关心",
+  "pinyin": "guān xīn",
+  "definition": "to be concerned about",
+  "level": 3
+ },
+ {
+  "hanzi": "热",
+  "pinyin": "rè",
+  "definition": "to warm up",
+  "level": 1
+ },
+ {
+  "hanzi": "些",
+  "pinyin": "xiē",
+  "definition": "classifier indicating a small amount or small number greater than 1: some, a few, several",
+  "level": 1
+ },
+ {
+  "hanzi": "九",
+  "pinyin": "jiǔ",
+  "definition": "nine",
+  "level": 1
+ },
+ {
+  "hanzi": "祝",
+  "pinyin": "zhù",
+  "definition": "to wish (someone well)",
+  "level": 3
+ },
+ {
+  "hanzi": "裙子",
+  "pinyin": "qún zi",
+  "definition": "skirt",
+  "level": 3
+ },
+ {
+  "hanzi": "叔叔",
+  "pinyin": "shū shu",
+  "definition": "father's younger brother",
+  "level": 3
+ },
+ {
+  "hanzi": "比赛",
+  "pinyin": "bǐ sài",
+  "definition": "competition (sports etc)",
+  "level": 3
+ },
+ {
+  "hanzi": "着",
+  "pinyin": "zhe",
+  "definition": "particle for an action in progress",
+  "level": 2
+ },
+ {
+  "hanzi": "好吃",
+  "pinyin": "hǎo chī",
+  "definition": "tasty",
+  "level": 2
+ },
+ {
+  "hanzi": "作业",
+  "pinyin": "zuò yè",
+  "definition": "school assignment",
+  "level": 3
+ },
+ {
+  "hanzi": "明天",
+  "pinyin": "míng tiān",
+  "definition": "tomorrow",
+  "level": 1
+ },
+ {
+  "hanzi": "行李箱",
+  "pinyin": "xíng li xiāng",
+  "definition": "suitcase",
+  "level": 3
+ },
+ {
+  "hanzi": "来",
+  "pinyin": "lái",
+  "definition": "to come",
+  "level": 1
+ },
+ {
+  "hanzi": "电子",
+  "pinyin": "diàn zǐ",
+  "definition": "electronic",
+  "level": 3
+ },
+ {
+  "hanzi": "向",
+  "pinyin": "xiàng",
+  "definition": "towards",
+  "level": 2
+ },
+ {
+  "hanzi": "远",
+  "pinyin": "yuǎn",
+  "definition": "far",
+  "level": 2
+ },
+ {
+  "hanzi": "关",
+  "pinyin": "guān",
+  "definition": "to close; to shut",
+  "level": 3
+ },
+ {
+  "hanzi": "蓝",
+  "pinyin": "lán",
+  "definition": "blue",
+  "level": 3
+ },
+ {
+  "hanzi": "地铁",
+  "pinyin": "dì tiě",
+  "definition": "underground railway; subway",
+  "level": 3
+ },
+ {
+  "hanzi": "脚",
+  "pinyin": "jiǎo",
+  "definition": "foot",
+  "level": 3
+ },
+ {
+  "hanzi": "周末",
+  "pinyin": "zhōu mò",
+  "definition": "weekend",
+  "level": 3
+ },
+ {
+  "hanzi": "二",
+  "pinyin": "èr",
+  "definition": "two",
+  "level": 1
+ },
+ {
+  "hanzi": "晚上",
+  "pinyin": "wǎn shang",
+  "definition": "evening",
+  "level": 2
+ },
+ {
+  "hanzi": "可爱",
+  "pinyin": "kě ài",
+  "definition": "adorable",
+  "level": 3
+ },
+ {
+  "hanzi": "再",
+  "pinyin": "zài",
+  "definition": "again; once more; re-",
+  "level": 2
+ },
+ {
+  "hanzi": "跳舞",
+  "pinyin": "tiào wǔ",
+  "definition": "to dance",
+  "level": 2
+ },
+ {
+  "hanzi": "更",
+  "pinyin": "gèng",
+  "definition": "more",
+  "level": 3
+ },
+ {
+  "hanzi": "儿子",
+  "pinyin": "ér zi",
+  "definition": "son",
+  "level": 1
+ },
+ {
+  "hanzi": "年级",
+  "pinyin": "nián jí",
+  "definition": "grade",
+  "level": 3
+ },
+ {
+  "hanzi": "坐",
+  "pinyin": "zuò",
+  "definition": "to sit",
+  "level": 1
+ },
+ {
+  "hanzi": "影响",
+  "pinyin": "yǐng xiǎng",
+  "definition": "influence",
+  "level": 3
+ },
+ {
+  "hanzi": "太",
+  "pinyin": "tài",
+  "definition": "highest",
+  "level": 1
+ },
+ {
+  "hanzi": "怎么",
+  "pinyin": "zěn me",
+  "definition": "how?",
+  "level": 1
+ },
+ {
+  "hanzi": "中国",
+  "pinyin": "Zhōng guó",
+  "definition": "China",
+  "level": 1
+ },
+ {
+  "hanzi": "终于",
+  "pinyin": "zhōng yú",
+  "definition": "at last",
+  "level": 3
+ },
+ {
+  "hanzi": "瘦",
+  "pinyin": "shòu",
+  "definition": "thin",
+  "level": 3
+ },
+ {
+  "hanzi": "一",
+  "pinyin": "yī",
+  "definition": "one",
+  "level": 1
+ },
+ {
+  "hanzi": "票",
+  "pinyin": "piào",
+  "definition": "ticket",
+  "level": 2
+ },
+ {
+  "hanzi": "字",
+  "pinyin": "zì",
+  "definition": "letter",
+  "level": 1
+ },
+ {
+  "hanzi": "奇怪",
+  "pinyin": "qí guài",
+  "definition": "strange",
+  "level": 3
+ },
+ {
+  "hanzi": "商店",
+  "pinyin": "shāng diàn",
+  "definition": "store; shop",
+  "level": 1
+ },
+ {
+  "hanzi": "桌子",
+  "pinyin": "zhuō zi",
+  "definition": "table",
+  "level": 1
+ },
+ {
+  "hanzi": "久",
+  "pinyin": "jiǔ",
+  "definition": "(long) time",
+  "level": 3
+ },
+ {
+  "hanzi": "咖啡",
+  "pinyin": "kā fēi",
+  "definition": "coffee (loanword)",
+  "level": 2
+ },
+ {
+  "hanzi": "刻",
+  "pinyin": "kè",
+  "definition": "quarter (hour)",
+  "level": 3
+ },
+ {
+  "hanzi": "但是",
+  "pinyin": "dàn shì",
+  "definition": "but; however",
+  "level": 2
+ },
+ {
+  "hanzi": "懂",
+  "pinyin": "dǒng",
+  "definition": "to understand",
+  "level": 2
+ },
+ {
+  "hanzi": "打算",
+  "pinyin": "dǎ suàn",
+  "definition": "to plan",
+  "level": 3
+ },
+ {
+  "hanzi": "提高",
+  "pinyin": "tí gāo",
+  "definition": "to raise",
+  "level": 3
+ },
+ {
+  "hanzi": "帮助",
+  "pinyin": "bāng zhù",
+  "definition": "assistance; aid",
+  "level": 2
+ },
+ {
+  "hanzi": "礼物",
+  "pinyin": "lǐ wù",
+  "definition": "gift; present",
+  "level": 3
+ },
+ {
+  "hanzi": "口",
+  "pinyin": "kǒu",
+  "definition": "mouth",
+  "level": 3
+ },
+ {
+  "hanzi": "包",
+  "pinyin": "bāo",
+  "definition": "to cover",
+  "level": 3
+ },
+ {
+  "hanzi": "地方",
+  "pinyin": "dì fang",
+  "definition": "area",
+  "level": 3
+ },
+ {
+  "hanzi": "附近",
+  "pinyin": "fù jìn",
+  "definition": "nearby; neighboring",
+  "level": 3
+ },
+ {
+  "hanzi": "厨房",
+  "pinyin": "chú fáng",
+  "definition": "kitchen",
+  "level": 3
+ },
+ {
+  "hanzi": "鸡蛋",
+  "pinyin": "jī dàn",
+  "definition": "(chicken) egg",
+  "level": 2
+ },
+ {
+  "hanzi": "相同",
+  "pinyin": "xiāng tóng",
+  "definition": "identical",
+  "level": 3
+ },
+ {
+  "hanzi": "啊",
+  "pinyin": "a",
+  "definition": "particle of affirmation or surprise",
+  "level": 3
+ },
+ {
+  "hanzi": "渴",
+  "pinyin": "kě",
+  "definition": "thirsty",
+  "level": 3
+ },
+ {
+  "hanzi": "作用",
+  "pinyin": "zuò yòng",
+  "definition": "to act on",
+  "level": 3
+ },
+ {
+  "hanzi": "自行车",
+  "pinyin": "zì xíng chē",
+  "definition": "bicycle; bike",
+  "level": 2
+ },
+ {
+  "hanzi": "相信",
+  "pinyin": "xiāng xìn",
+  "definition": "to be convinced (that sth is true); to believe; to accept sth as true",
+  "level": 3
+ },
+ {
+  "hanzi": "马",
+  "pinyin": "mǎ",
+  "definition": "horse",
+  "level": 3
+ },
+ {
+  "hanzi": "苹果",
+  "pinyin": "píng guǒ",
+  "definition": "apple",
+  "level": 1
+ },
+ {
+  "hanzi": "外",
+  "pinyin": "wài",
+  "definition": "outside",
+  "level": 2
+ },
+ {
+  "hanzi": "跟",
+  "pinyin": "gēn",
+  "definition": "heel",
+  "level": 3
+ },
+ {
+  "hanzi": "便宜",
+  "pinyin": "pián yi",
+  "definition": "cheap",
+  "level": 2
+ },
+ {
+  "hanzi": "公园",
+  "pinyin": "gōng yuán",
+  "definition": "park (for public recreation)",
+  "level": 3
+ },
+ {
+  "hanzi": "成绩",
+  "pinyin": "chéng jì",
+  "definition": "achievement",
+  "level": 3
+ },
+ {
+  "hanzi": "环境",
+  "pinyin": "huán jìng",
+  "definition": "environment",
+  "level": 3
+ },
+ {
+  "hanzi": "鸟",
+  "pinyin": "niǎo",
+  "definition": "bird",
+  "level": 3
+ },
+ {
+  "hanzi": "安静",
+  "pinyin": "ān jìng",
+  "definition": "quiet",
+  "level": 3
+ },
+ {
+  "hanzi": "帽子",
+  "pinyin": "mào zi",
+  "definition": "hat",
+  "level": 3
+ },
+ {
+  "hanzi": "文化",
+  "pinyin": "wén huà",
+  "definition": "culture",
+  "level": 3
+ },
+ {
+  "hanzi": "了解",
+  "pinyin": "liǎo jiě",
+  "definition": "to understand",
+  "level": 3
+ },
+ {
+  "hanzi": "骑",
+  "pinyin": "qí",
+  "definition": "to sit astride",
+  "level": 3
+ },
+ {
+  "hanzi": "猫",
+  "pinyin": "māo",
+  "definition": "cat",
+  "level": 1
+ },
+ {
+  "hanzi": "千",
+  "pinyin": "qiān",
+  "definition": "thousand",
+  "level": 2
+ },
+ {
+  "hanzi": "正在",
+  "pinyin": "zhèng zài",
+  "definition": "just at (that time)",
+  "level": 2
+ },
+ {
+  "hanzi": "漂亮",
+  "pinyin": "piào liang",
+  "definition": "pretty",
+  "level": 1
+ },
+ {
+  "hanzi": "白",
+  "pinyin": "bái",
+  "definition": "white",
+  "level": 2
+ },
+ {
+  "hanzi": "位",
+  "pinyin": "wèi",
+  "definition": "position",
+  "level": 3
+ },
+ {
+  "hanzi": "接",
+  "pinyin": "jiē",
+  "definition": "to receive",
+  "level": 3
+ },
+ {
+  "hanzi": "筷子",
+  "pinyin": "kuài zi",
+  "definition": "chopsticks",
+  "level": 3
+ },
+ {
+  "hanzi": "今天",
+  "pinyin": "jīn tiān",
+  "definition": "today",
+  "level": 1
+ },
+ {
+  "hanzi": "长",
+  "pinyin": "cháng",
+  "definition": "long",
+  "level": 2
+ },
+ {
+  "hanzi": "跑步",
+  "pinyin": "pǎo bù",
+  "definition": "to run",
+  "level": 2
+ },
+ {
+  "hanzi": "药",
+  "pinyin": "yào",
+  "definition": "medicine",
+  "level": 2
+ },
+ {
+  "hanzi": "拿",
+  "pinyin": "ná",
+  "definition": "to hold",
+  "level": 3
+ },
+ {
+  "hanzi": "有",
+  "pinyin": "yǒu",
+  "definition": "to have; there is",
+  "level": 1
+ },
+ {
+  "hanzi": "打篮球",
+  "pinyin": "dǎ lán qiú",
+  "definition": "to play basketball",
+  "level": 2
+ },
+ {
+  "hanzi": "写",
+  "pinyin": "xiě",
+  "definition": "to write",
+  "level": 1
+ },
+ {
+  "hanzi": "一起",
+  "pinyin": "yī qǐ",
+  "definition": "in the same place",
+  "level": 2
+ },
+ {
+  "hanzi": "差",
+  "pinyin": "chà",
+  "definition": "different",
+  "level": 3
+ },
+ {
+  "hanzi": "分钟",
+  "pinyin": "fēn zhōng",
+  "definition": "minute",
+  "level": 1
+ },
+ {
+  "hanzi": "菜单",
+  "pinyin": "cài dān",
+  "definition": "menu",
+  "level": 3
+ },
+ {
+  "hanzi": "几乎",
+  "pinyin": "jī hū",
+  "definition": "almost; nearly; practically",
+  "level": 3
+ },
+ {
+  "hanzi": "字典",
+  "pinyin": "zì diǎn",
+  "definition": "Chinese character dictionary (containing entries for single characters, contrasted with a 词典, which has entries for words of one or more characters)",
+  "level": 3
+ },
+ {
+  "hanzi": "回答",
+  "pinyin": "huí dá",
+  "definition": "to reply; to answer",
+  "level": 2
+ },
+ {
+  "hanzi": "喜欢",
+  "pinyin": "xǐ huan",
+  "definition": "to like; to be fond of",
+  "level": 1
+ },
+ {
+  "hanzi": "一定",
+  "pinyin": "yī dìng",
+  "definition": "surely",
+  "level": 3
+ },
+ {
+  "hanzi": "在",
+  "pinyin": "zài",
+  "definition": "to exist; to be alive",
+  "level": 1
+ },
+ {
+  "hanzi": "认识",
+  "pinyin": "rèn shi",
+  "definition": "to know",
+  "level": 1
+ },
+ {
+  "hanzi": "帮忙",
+  "pinyin": "bāng máng",
+  "definition": "to help",
+  "level": 3
+ },
+ {
+  "hanzi": "讲",
+  "pinyin": "jiǎng",
+  "definition": "to speak",
+  "level": 3
+ },
+ {
+  "hanzi": "题",
+  "pinyin": "tí",
+  "definition": "topic",
+  "level": 2
+ },
+ {
+  "hanzi": "鼻子",
+  "pinyin": "bí zi",
+  "definition": "nose",
+  "level": 3
+ },
+ {
+  "hanzi": "妻子",
+  "pinyin": "qī zi",
+  "definition": "wife",
+  "level": 2
+ },
+ {
+  "hanzi": "男人",
+  "pinyin": "nán rén",
+  "definition": "a man",
+  "level": 2
+ },
+ {
+  "hanzi": "已经",
+  "pinyin": "yǐ jīng",
+  "definition": "already",
+  "level": 2
+ },
+ {
+  "hanzi": "办法",
+  "pinyin": "bàn fǎ",
+  "definition": "means",
+  "level": 3
+ },
+ {
+  "hanzi": "太阳",
+  "pinyin": "tài yang",
+  "definition": "sun",
+  "level": 3
+ },
+ {
+  "hanzi": "送",
+  "pinyin": "sòng",
+  "definition": "to send; to deliver; to transmit",
+  "level": 2
+ },
+ {
+  "hanzi": "数学",
+  "pinyin": "shù xué",
+  "definition": "mathematics",
+  "level": 3
+ },
+ {
+  "hanzi": "主要",
+  "pinyin": "zhǔ yào",
+  "definition": "main",
+  "level": 3
+ },
+ {
+  "hanzi": "眼镜",
+  "pinyin": "yǎn jìng",
+  "definition": "spectacles",
+  "level": 3
+ },
+ {
+  "hanzi": "意思",
+  "pinyin": "yì si",
+  "definition": "idea",
+  "level": 2
+ },
+ {
+  "hanzi": "洗",
+  "pinyin": "xǐ",
+  "definition": "to wash; to bathe",
+  "level": 2
+ },
+ {
+  "hanzi": "百",
+  "pinyin": "bǎi",
+  "definition": "hundred",
+  "level": 2
+ },
+ {
+  "hanzi": "请",
+  "pinyin": "qǐng",
+  "definition": "to ask",
+  "level": 1
+ },
+ {
+  "hanzi": "医院",
+  "pinyin": "yī yuàn",
+  "definition": "hospital",
+  "level": 1
+ },
+ {
+  "hanzi": "妹妹",
+  "pinyin": "mèi mei",
+  "definition": "younger sister",
+  "level": 2
+ },
+ {
+  "hanzi": "用",
+  "pinyin": "yòng",
+  "definition": "to use",
+  "level": 3
+ },
+ {
+  "hanzi": "音乐",
+  "pinyin": "yīn yuè",
+  "definition": "music",
+  "level": 3
+ },
+ {
+  "hanzi": "难过",
+  "pinyin": "nán guò",
+  "definition": "to feel sad",
+  "level": 3
+ },
+ {
+  "hanzi": "菜",
+  "pinyin": "cài",
+  "definition": "dish (type of food)",
+  "level": 1
+ },
+ {
+  "hanzi": "岁",
+  "pinyin": "suì",
+  "definition": "classifier for years (of age)",
+  "level": 1
+ },
+ {
+  "hanzi": "校长",
+  "pinyin": "xiào zhǎng",
+  "definition": "(college, university) president",
+  "level": 3
+ },
+ {
+  "hanzi": "要求",
+  "pinyin": "yāo qiú",
+  "definition": "to request",
+  "level": 3
+ },
+ {
+  "hanzi": "希望",
+  "pinyin": "xī wàng",
+  "definition": "to hope",
+  "level": 2
+ },
+ {
+  "hanzi": "季节",
+  "pinyin": "jì jié",
+  "definition": "time",
+  "level": 3
+ },
+ {
+  "hanzi": "它",
+  "pinyin": "tā",
+  "definition": "it",
+  "level": 2
+ },
+ {
+  "hanzi": "出现",
+  "pinyin": "chū xiàn",
+  "definition": "to appear",
+  "level": 3
+ },
+ {
+  "hanzi": "不客气",
+  "pinyin": "bù kè qi",
+  "definition": "you're welcome",
+  "level": 1
+ },
+ {
+  "hanzi": "找",
+  "pinyin": "zhǎo",
+  "definition": "to try to find",
+  "level": 2
+ },
+ {
+  "hanzi": "坏",
+  "pinyin": "huài",
+  "definition": "bad",
+  "level": 3
+ },
+ {
+  "hanzi": "水",
+  "pinyin": "shuǐ",
+  "definition": "water",
+  "level": 1
+ },
+ {
+  "hanzi": "机会",
+  "pinyin": "jī huì",
+  "definition": "opportunity",
+  "level": 3
+ },
+ {
+  "hanzi": "习惯",
+  "pinyin": "xí guàn",
+  "definition": "habit",
+  "level": 3
+ },
+ {
+  "hanzi": "东",
+  "pinyin": "dōng",
+  "definition": "east",
+  "level": 3
+ },
+ {
+  "hanzi": "后面",
+  "pinyin": "hòu mian",
+  "definition": "the back; the rear; the last bit",
+  "level": 1
+ },
+ {
+  "hanzi": "学生",
+  "pinyin": "xué sheng",
+  "definition": "student",
+  "level": 1
+ },
+ {
+  "hanzi": "饱",
+  "pinyin": "bǎo",
+  "definition": "to eat till full",
+  "level": 3
+ },
+ {
+  "hanzi": "件",
+  "pinyin": "jiàn",
+  "definition": "item",
+  "level": 2
+ },
+ {
+  "hanzi": "奶奶",
+  "pinyin": "nǎi nai",
+  "definition": "(informal) grandma (paternal grandmother)",
+  "level": 3
+ },
+ {
+  "hanzi": "冰箱",
+  "pinyin": "bīng xiāng",
+  "definition": "icebox",
+  "level": 3
+ },
+ {
+  "hanzi": "中间",
+  "pinyin": "zhōng jiān",
+  "definition": "the middle; the inside",
+  "level": 3
+ },
+ {
+  "hanzi": "天气",
+  "pinyin": "tiān qì",
+  "definition": "weather",
+  "level": 1
+ },
+ {
+  "hanzi": "关系",
+  "pinyin": "guān xi",
+  "definition": "relation",
+  "level": 3
+ },
+ {
+  "hanzi": "还是",
+  "pinyin": "hái shi",
+  "definition": "still (as before)",
+  "level": 3
+ },
+ {
+  "hanzi": "灯",
+  "pinyin": "dēng",
+  "definition": "lamp",
+  "level": 3
+ },
+ {
+  "hanzi": "同事",
+  "pinyin": "tóng shì",
+  "definition": "colleague; co-worker",
+  "level": 3
+ },
+ {
+  "hanzi": "把",
+  "pinyin": "bǎ",
+  "definition": "to hold; to grasp",
+  "level": 3
+ },
+ {
+  "hanzi": "敢",
+  "pinyin": "gǎn",
+  "definition": "to dare",
+  "level": 3
+ },
+ {
+  "hanzi": "疼",
+  "pinyin": "téng",
+  "definition": "(it) hurts; sore",
+  "level": 3
+ },
+ {
+  "hanzi": "洗手间",
+  "pinyin": "xǐ shǒu jiān",
+  "definition": "toilet",
+  "level": 3
+ },
+ {
+  "hanzi": "杯子",
+  "pinyin": "bēi zi",
+  "definition": "cup",
+  "level": 1
+ },
+ {
+  "hanzi": "姐姐",
+  "pinyin": "jiě jie",
+  "definition": "older sister",
+  "level": 2
+ },
+ {
+  "hanzi": "过去",
+  "pinyin": "guò qù",
+  "definition": "(in the) past",
+  "level": 3
+ },
+ {
+  "hanzi": "照顾",
+  "pinyin": "zhào gu",
+  "definition": "to take care of",
+  "level": 3
+ },
+ {
+  "hanzi": "河",
+  "pinyin": "hé",
+  "definition": "river",
+  "level": 3
+ },
+ {
+  "hanzi": "城市",
+  "pinyin": "chéng shì",
+  "definition": "city; town",
+  "level": 3
+ },
+ {
+  "hanzi": "可能",
+  "pinyin": "kě néng",
+  "definition": "might (happen)",
+  "level": 2
+ },
+ {
+  "hanzi": "除了",
+  "pinyin": "chú le",
+  "definition": "besides",
+  "level": 3
+ },
+ {
+  "hanzi": "买",
+  "pinyin": "mǎi",
+  "definition": "to buy",
+  "level": 1
+ },
+ {
+  "hanzi": "晴",
+  "pinyin": "qíng",
+  "definition": "clear",
+  "level": 2
+ },
+ {
+  "hanzi": "门",
+  "pinyin": "mén",
+  "definition": "gate",
+  "level": 2
+ },
+ {
+  "hanzi": "历史",
+  "pinyin": "lì shǐ",
+  "definition": "history",
+  "level": 3
+ },
+ {
+  "hanzi": "面包",
+  "pinyin": "miàn bāo",
+  "definition": "bread",
+  "level": 3
+ },
+ {
+  "hanzi": "都",
+  "pinyin": "dōu",
+  "definition": "all; both; entirely",
+  "level": 1
+ },
+ {
+  "hanzi": "南",
+  "pinyin": "nán",
+  "definition": "south",
+  "level": 3
+ },
+ {
+  "hanzi": "生气",
+  "pinyin": "shēng qì",
+  "definition": "to get angry",
+  "level": 3
+ },
+ {
+  "hanzi": "鱼",
+  "pinyin": "yú",
+  "definition": "fish",
+  "level": 2
+ },
+ {
+  "hanzi": "担心",
+  "pinyin": "dān xīn",
+  "definition": "anxious",
+  "level": 3
+ },
+ {
+  "hanzi": "号",
+  "pinyin": "hào",
+  "definition": "ordinal number",
+  "level": 2
+ },
+ {
+  "hanzi": "得",
+  "pinyin": "de",
+  "definition": "particle linking a verb to its result",
+  "level": 2
+ },
+ {
+  "hanzi": "住",
+  "pinyin": "zhù",
+  "definition": "to live",
+  "level": 1
+ },
+ {
+  "hanzi": "上班",
+  "pinyin": "shàng bān",
+  "definition": "to go to work",
+  "level": 2
+ },
+ {
+  "hanzi": "国家",
+  "pinyin": "guó jiā",
+  "definition": "country; nation; state",
+  "level": 3
+ },
+ {
+  "hanzi": "一直",
+  "pinyin": "yī zhí",
+  "definition": "straight (in a straight line)",
+  "level": 3
+ },
+ {
+  "hanzi": "铅笔",
+  "pinyin": "qiān bǐ",
+  "definition": "(lead) pencil",
+  "level": 3
+ },
+ {
+  "hanzi": "春",
+  "pinyin": "chūn",
+  "definition": "spring (season)",
+  "level": 3
+ },
+ {
+  "hanzi": "几",
+  "pinyin": "jǐ",
+  "definition": "how much",
+  "level": 1
+ },
+ {
+  "hanzi": "快乐",
+  "pinyin": "kuài lè",
+  "definition": "happy; joyful",
+  "level": 2
+ },
+ {
+  "hanzi": "刷",
+  "pinyin": "shuā",
+  "definition": "to brush",
+  "level": 3
+ },
+ {
+  "hanzi": "一会儿",
+  "pinyin": "yī huì r",
+  "definition": "a moment",
+  "level": 3
+ },
+ {
+  "hanzi": "课",
+  "pinyin": "kè",
+  "definition": "subject",
+  "level": 2
+ },
+ {
+  "hanzi": "以前",
+  "pinyin": "yǐ qián",
+  "definition": "before",
+  "level": 3
+ },
+ {
+  "hanzi": "房间",
+  "pinyin": "fáng jiān",
+  "definition": "room",
+  "level": 2
+ },
+ {
+  "hanzi": "像",
+  "pinyin": "xiàng",
+  "definition": "to resemble",
+  "level": 3
+ },
+ {
+  "hanzi": "会议",
+  "pinyin": "huì yì",
+  "definition": "meeting",
+  "level": 3
+ },
+ {
+  "hanzi": "机场",
+  "pinyin": "jī chǎng",
+  "definition": "airport; airfield",
+  "level": 2
+ },
+ {
+  "hanzi": "前面",
+  "pinyin": "qián miàn",
+  "definition": "ahead",
+  "level": 1
+ },
+ {
+  "hanzi": "遇到",
+  "pinyin": "yù dào",
+  "definition": "to meet; to run into; to come across",
+  "level": 3
+ },
+ {
+  "hanzi": "家",
+  "pinyin": "jiā",
+  "definition": "home",
+  "level": 1
+ },
+ {
+  "hanzi": "米",
+  "pinyin": "mǐ",
+  "definition": "rice",
+  "level": 3
+ },
+ {
+  "hanzi": "云",
+  "pinyin": "yún",
+  "definition": "cloud",
+  "level": 3
+ },
+ {
+  "hanzi": "极",
+  "pinyin": "jí",
+  "definition": "extremely",
+  "level": 3
+ },
+ {
+  "hanzi": "同意",
+  "pinyin": "tóng yì",
+  "definition": "to agree",
+  "level": 3
+ },
+ {
+  "hanzi": "了",
+  "pinyin": "le",
+  "definition": "(completed action marker)",
+  "level": 1
+ },
+ {
+  "hanzi": "准备",
+  "pinyin": "zhǔn bèi",
+  "definition": "preparation",
+  "level": 2
+ },
+ {
+  "hanzi": "锻炼",
+  "pinyin": "duàn liàn",
+  "definition": "to toughen",
+  "level": 3
+ },
+ {
+  "hanzi": "出租车",
+  "pinyin": "chū zū chē",
+  "definition": "taxi",
+  "level": 1
+ },
+ {
+  "hanzi": "害怕",
+  "pinyin": "hài pà",
+  "definition": "to be afraid",
+  "level": 3
+ },
+ {
+  "hanzi": "胖",
+  "pinyin": "pàng",
+  "definition": "fat; plump",
+  "level": 3
+ },
+ {
+  "hanzi": "那",
+  "pinyin": "nà",
+  "definition": "(specifier) that; the; those (colloquial pr. [nèi])",
+  "level": 1
+ },
+ {
+  "hanzi": "花园",
+  "pinyin": "huā yuán",
+  "definition": "garden",
+  "level": 3
+ },
+ {
+  "hanzi": "走",
+  "pinyin": "zǒu",
+  "definition": "to walk",
+  "level": 2
+ },
+ {
+  "hanzi": "个",
+  "pinyin": "gè",
+  "definition": "(classifier used before a noun that has no specific classifier)",
+  "level": 1
+ },
+ {
+  "hanzi": "玩",
+  "pinyin": "wán",
+  "definition": "to play",
+  "level": 2
+ },
+ {
+  "hanzi": "能",
+  "pinyin": "néng",
+  "definition": "can",
+  "level": 1
+ },
+ {
+  "hanzi": "以为",
+  "pinyin": "yǐ wéi",
+  "definition": "to think (i.e. to take it to be true that ...) (Usually there is an implication that the notion is mistaken – except when expressing one's own current opinion.)",
+  "level": 3
+ },
+ {
+  "hanzi": "还",
+  "pinyin": "hái",
+  "definition": "still",
+  "level": 2
+ },
+ {
+  "hanzi": "而且",
+  "pinyin": "ér qiě",
+  "definition": "(not only ...) but also",
+  "level": 3
+ },
+ {
+  "hanzi": "火车站",
+  "pinyin": "huǒ chē zhàn",
+  "definition": "train station",
+  "level": 1
+ },
+ {
+  "hanzi": "老师",
+  "pinyin": "lǎo shī",
+  "definition": "teacher",
+  "level": 1
+ },
+ {
+  "hanzi": "比较",
+  "pinyin": "bǐ jiào",
+  "definition": "to compare",
+  "level": 3
+ },
+ {
+  "hanzi": "多",
+  "pinyin": "duō",
+  "definition": "many; much",
+  "level": 1
+ },
+ {
+  "hanzi": "面条",
+  "pinyin": "miàn tiáo",
+  "definition": "noodles",
+  "level": 3
+ },
+ {
+  "hanzi": "块",
+  "pinyin": "kuài",
+  "definition": "lump; chunk; piece",
+  "level": 1
+ },
+ {
+  "hanzi": "累",
+  "pinyin": "lèi",
+  "definition": "tired",
+  "level": 2
+ },
+ {
+  "hanzi": "四",
+  "pinyin": "sì",
+  "definition": "four",
+  "level": 1
+ },
+ {
+  "hanzi": "果汁",
+  "pinyin": "guǒ zhī",
+  "definition": "fruit juice",
+  "level": 3
+ },
+ {
+  "hanzi": "眼睛",
+  "pinyin": "yǎn jing",
+  "definition": "eye",
+  "level": 2
+ },
+ {
+  "hanzi": "黄",
+  "pinyin": "huáng",
+  "definition": "yellow",
+  "level": 3
+ },
+ {
+  "hanzi": "香蕉",
+  "pinyin": "xiāng jiāo",
+  "definition": "banana",
+  "level": 3
+ },
+ {
+  "hanzi": "离开",
+  "pinyin": "lí kāi",
+  "definition": "to depart; to leave",
+  "level": 3
+ },
+ {
+  "hanzi": "如果",
+  "pinyin": "rú guǒ",
+  "definition": "if",
+  "level": 3
+ },
+ {
+  "hanzi": "右边",
+  "pinyin": "yòu bian",
+  "definition": "right side",
+  "level": 2
+ },
+ {
+  "hanzi": "很",
+  "pinyin": "hěn",
+  "definition": "(adverb of degree)",
+  "level": 1
+ },
+ {
+  "hanzi": "零",
+  "pinyin": "líng",
+  "definition": "zero",
+  "level": 1
+ },
+ {
+  "hanzi": "同学",
+  "pinyin": "tóng xué",
+  "definition": "to study at the same school",
+  "level": 1
+ },
+ {
+  "hanzi": "又",
+  "pinyin": "yòu",
+  "definition": "(once) again",
+  "level": 3
+ },
+ {
+  "hanzi": "舒服",
+  "pinyin": "shū fu",
+  "definition": "comfortable",
+  "level": 3
+ },
+ {
+  "hanzi": "难",
+  "pinyin": "nán",
+  "definition": "difficult (to...)",
+  "level": 3
+ },
+ {
+  "hanzi": "满意",
+  "pinyin": "mǎn yì",
+  "definition": "satisfied",
+  "level": 3
+ },
+ {
+  "hanzi": "别人",
+  "pinyin": "bié ren",
+  "definition": "other people; others; other person",
+  "level": 3
+ },
+ {
+  "hanzi": "朋友",
+  "pinyin": "péng you",
+  "definition": "friend",
+  "level": 1
+ },
+ {
+  "hanzi": "想",
+  "pinyin": "xiǎng",
+  "definition": "to think (about)",
+  "level": 1
+ },
+ {
+  "hanzi": "护照",
+  "pinyin": "hù zhào",
+  "definition": "passport",
+  "level": 3
+ },
+ {
+  "hanzi": "椅子",
+  "pinyin": "yǐ zi",
+  "definition": "chair",
+  "level": 1
+ },
+ {
+  "hanzi": "谁",
+  "pinyin": "shéi",
+  "definition": "who",
+  "level": 1
+ },
+ {
+  "hanzi": "吗",
+  "pinyin": "ma",
+  "definition": "question particle for yes-no questions",
+  "level": 1
+ },
+ {
+  "hanzi": "小心",
+  "pinyin": "xiǎo xīn",
+  "definition": "to be careful",
+  "level": 3
+ },
+ {
+  "hanzi": "应该",
+  "pinyin": "yīng gāi",
+  "definition": "ought to",
+  "level": 3
+ },
+ {
+  "hanzi": "认真",
+  "pinyin": "rèn zhēn",
+  "definition": "conscientious",
+  "level": 3
+ },
+ {
+  "hanzi": "就",
+  "pinyin": "jiù",
+  "definition": "(after a suppositional clause) in that case; then",
+  "level": 2
+ },
+ {
+  "hanzi": "着急",
+  "pinyin": "zháo jí",
+  "definition": "to worry; to feel anxious",
+  "level": 3
+ },
+ {
+  "hanzi": "其他",
+  "pinyin": "qí tā",
+  "definition": "other",
+  "level": 3
+ },
+ {
+  "hanzi": "关于",
+  "pinyin": "guān yú",
+  "definition": "pertaining to",
+  "level": 3
+ },
+ {
+  "hanzi": "喂",
+  "pinyin": "wèi",
+  "definition": "hey",
+  "level": 1
+ },
+ {
+  "hanzi": "银行",
+  "pinyin": "yín háng",
+  "definition": "bank",
+  "level": 3
+ },
+ {
+  "hanzi": "西",
+  "pinyin": "xī",
+  "definition": "west",
+  "level": 3
+ },
+ {
+  "hanzi": "多么",
+  "pinyin": "duō me",
+  "definition": "how (wonderful etc)",
+  "level": 3
+ },
+ {
+  "hanzi": "什么",
+  "pinyin": "shén me",
+  "definition": "what?",
+  "level": 1
+ },
+ {
+  "hanzi": "名字",
+  "pinyin": "míng zi",
+  "definition": "name (of a person or thing)",
+  "level": 1
+ },
+ {
+  "hanzi": "好",
+  "pinyin": "hǎo",
+  "definition": "good",
+  "level": 1
+ },
+ {
+  "hanzi": "旁边",
+  "pinyin": "páng biān",
+  "definition": "side; adjacent place",
+  "level": 2
+ },
+ {
+  "hanzi": "当然",
+  "pinyin": "dāng rán",
+  "definition": "only natural",
+  "level": 3
+ },
+ {
+  "hanzi": "三",
+  "pinyin": "sān",
+  "definition": "three",
+  "level": 1
+ },
+ {
+  "hanzi": "书",
+  "pinyin": "shū",
+  "definition": "book",
+  "level": 1
+ },
+ {
+  "hanzi": "打电话",
+  "pinyin": "dǎ diàn huà",
+  "definition": "to make a telephone call",
+  "level": 1
+ },
+ {
+  "hanzi": "多少",
+  "pinyin": "duō shao",
+  "definition": "how many; how much",
+  "level": 1
+ },
+ {
+  "hanzi": "图书馆",
+  "pinyin": "tú shū guǎn",
+  "definition": "library",
+  "level": 3
+ },
+ {
+  "hanzi": "颜色",
+  "pinyin": "yán sè",
+  "definition": "color",
+  "level": 2
+ },
+ {
+  "hanzi": "冷",
+  "pinyin": "lěng",
+  "definition": "cold",
+  "level": 1
+ },
+ {
+  "hanzi": "弟弟",
+  "pinyin": "dì di",
+  "definition": "younger brother",
+  "level": 2
+ },
+ {
+  "hanzi": "选择",
+  "pinyin": "xuǎn zé",
+  "definition": "to select",
+  "level": 3
+ },
+ {
+  "hanzi": "新闻",
+  "pinyin": "xīn wén",
+  "definition": "news",
+  "level": 3
+ },
+ {
+  "hanzi": "借",
+  "pinyin": "jiè",
+  "definition": "to lend",
+  "level": 3
+ },
+ {
+  "hanzi": "健康",
+  "pinyin": "jiàn kāng",
+  "definition": "health",
+  "level": 3
+ },
+ {
+  "hanzi": "西瓜",
+  "pinyin": "xī guā",
+  "definition": "watermelon",
+  "level": 2
+ },
+ {
+  "hanzi": "愿意",
+  "pinyin": "yuàn yì",
+  "definition": "to wish",
+  "level": 3
+ },
+ {
+  "hanzi": "伞",
+  "pinyin": "sǎn",
+  "definition": "umbrella",
+  "level": 3
+ },
+ {
+  "hanzi": "认为",
+  "pinyin": "rèn wéi",
+  "definition": "to believe; to think; to consider; to feel",
+  "level": 3
+ },
+ {
+  "hanzi": "学习",
+  "pinyin": "xué xí",
+  "definition": "to learn",
+  "level": 1
+ },
+ {
+  "hanzi": "新",
+  "pinyin": "xīn",
+  "definition": "new",
+  "level": 2
+ },
+ {
+  "hanzi": "八",
+  "pinyin": "bā",
+  "definition": "eight; 8",
+  "level": 1
+ },
+ {
+  "hanzi": "照相机",
+  "pinyin": "zhào xiàng jī",
+  "definition": "camera",
+  "level": 3
+ },
+ {
+  "hanzi": "秋",
+  "pinyin": "qiū",
+  "definition": "autumn",
+  "level": 3
+ },
+ {
+  "hanzi": "上",
+  "pinyin": "shàng",
+  "definition": "(bound form) up; upper; above; previous",
+  "level": 1
+ },
+ {
+  "hanzi": "条",
+  "pinyin": "tiáo",
+  "definition": "strip",
+  "level": 3
+ },
+ {
+  "hanzi": "葡萄",
+  "pinyin": "pú tao",
+  "definition": "grape",
+  "level": 3
+ },
+ {
+  "hanzi": "身体",
+  "pinyin": "shēn tǐ",
+  "definition": "the body",
+  "level": 2
+ },
+ {
+  "hanzi": "对不起",
+  "pinyin": "duì bu qǐ",
+  "definition": "I'm sorry; excuse me; I beg your pardon",
+  "level": 1
+ },
+ {
+  "hanzi": "刚才",
+  "pinyin": "gāng cái",
+  "definition": "just now",
+  "level": 3
+ },
+ {
+  "hanzi": "做",
+  "pinyin": "zuò",
+  "definition": "to make; to produce",
+  "level": 1
+ },
+ {
+  "hanzi": "草",
+  "pinyin": "cǎo",
+  "definition": "grass",
+  "level": 3
+ },
+ {
+  "hanzi": "低",
+  "pinyin": "dī",
+  "definition": "low",
+  "level": 3
+ },
+ {
+  "hanzi": "牛奶",
+  "pinyin": "niú nǎi",
+  "definition": "cow's milk",
+  "level": 2
+ },
+ {
+  "hanzi": "万",
+  "pinyin": "wàn",
+  "definition": "ten thousand",
+  "level": 3
+ },
+ {
+  "hanzi": "才",
+  "pinyin": "cái",
+  "definition": "ability; talent",
+  "level": 3
+ },
+ {
+  "hanzi": "茶",
+  "pinyin": "chá",
+  "definition": "tea",
+  "level": 1
+ },
+ {
+  "hanzi": "到",
+  "pinyin": "dào",
+  "definition": "to reach; to arrive",
+  "level": 2
+ },
+ {
+  "hanzi": "怎么样",
+  "pinyin": "zěn me yàng",
+  "definition": "how?",
+  "level": 1
+ },
+ {
+  "hanzi": "会",
+  "pinyin": "huì",
+  "definition": "can; to have the skill; to know how to",
+  "level": 1
+ },
+ {
+  "hanzi": "红",
+  "pinyin": "hóng",
+  "definition": "red",
+  "level": 2
+ },
+ {
+  "hanzi": "第一",
+  "pinyin": "dì yī",
+  "definition": "first",
+  "level": 2
+ },
+ {
+  "hanzi": "最",
+  "pinyin": "zuì",
+  "definition": "most",
+  "level": 2
+ },
+ {
+  "hanzi": "马上",
+  "pinyin": "mǎ shàng",
+  "definition": "at once",
+  "level": 3
+ },
+ {
+  "hanzi": "大家",
+  "pinyin": "dà jiā",
+  "definition": "everyone",
+  "level": 2
+ },
+ {
+  "hanzi": "贵",
+  "pinyin": "guì",
+  "definition": "expensive",
+  "level": 2
+ },
+ {
+  "hanzi": "一样",
+  "pinyin": "yī yàng",
+  "definition": "same",
+  "level": 3
+ },
+ {
+  "hanzi": "段",
+  "pinyin": "duàn",
+  "definition": "paragraph",
+  "level": 3
+ },
+ {
+  "hanzi": "出",
+  "pinyin": "chū",
+  "definition": "to go out",
+  "level": 2
+ },
+ {
+  "hanzi": "头发",
+  "pinyin": "tóu fa",
+  "definition": "hair (on the head)",
+  "level": 3
+ },
+ {
+  "hanzi": "再见",
+  "pinyin": "zài jiàn",
+  "definition": "goodbye",
+  "level": 1
+ },
+ {
+  "hanzi": "一般",
+  "pinyin": "yī bān",
+  "definition": "same",
+  "level": 3
+ },
+ {
+  "hanzi": "问",
+  "pinyin": "wèn",
+  "definition": "to ask; to inquire",
+  "level": 2
+ },
+ {
+  "hanzi": "啤酒",
+  "pinyin": "pí jiǔ",
+  "definition": "beer (loanword)",
+  "level": 3
+ },
+ {
+  "hanzi": "饿",
+  "pinyin": "è",
+  "definition": "to be hungry",
+  "level": 3
+ },
+ {
+  "hanzi": "只",
+  "pinyin": "zhǐ",
+  "definition": "only",
+  "level": 3
+ },
+ {
+  "hanzi": "先生",
+  "pinyin": "xiān sheng",
+  "definition": "teacher",
+  "level": 1
+ },
+ {
+  "hanzi": "穿",
+  "pinyin": "chuān",
+  "definition": "to wear",
+  "level": 2
+ },
+ {
+  "hanzi": "唱歌",
+  "pinyin": "chàng gē",
+  "definition": "to sing a song",
+  "level": 2
+ },
+ {
+  "hanzi": "方便",
+  "pinyin": "fāng biàn",
+  "definition": "convenient",
+  "level": 3
+ },
+ {
+  "hanzi": "爷爷",
+  "pinyin": "yé ye",
+  "definition": "(coll.) father's father",
+  "level": 3
+ },
+ {
+  "hanzi": "月亮",
+  "pinyin": "yuè liang",
+  "definition": "the moon",
+  "level": 3
+ },
+ {
+  "hanzi": "开始",
+  "pinyin": "kāi shǐ",
+  "definition": "to begin",
+  "level": 2
+ },
+ {
+  "hanzi": "手表",
+  "pinyin": "shǒu biǎo",
+  "definition": "wristwatch",
+  "level": 2
+ },
+ {
+  "hanzi": "考试",
+  "pinyin": "kǎo shì",
+  "definition": "to take an exam",
+  "level": 2
+ },
+ {
+  "hanzi": "运动",
+  "pinyin": "yùn dòng",
+  "definition": "to move",
+  "level": 2
+ },
+ {
+  "hanzi": "迟到",
+  "pinyin": "chí dào",
+  "definition": "to arrive late",
+  "level": 3
+ },
+ {
+  "hanzi": "干净",
+  "pinyin": "gān jìng",
+  "definition": "clean",
+  "level": 3
+ },
+ {
+  "hanzi": "中午",
+  "pinyin": "zhōng wǔ",
+  "definition": "noon",
+  "level": 1
+ },
+ {
+  "hanzi": "参加",
+  "pinyin": "cān jiā",
+  "definition": "to participate",
+  "level": 3
+ },
+ {
+  "hanzi": "矮",
+  "pinyin": "ǎi",
+  "definition": "low",
+  "level": 3
+ },
+ {
+  "hanzi": "两",
+  "pinyin": "liǎng",
+  "definition": "two",
+  "level": 2
+ },
+ {
+  "hanzi": "体育",
+  "pinyin": "tǐ yù",
+  "definition": "sports",
+  "level": 3
+ },
+ {
+  "hanzi": "画",
+  "pinyin": "huà",
+  "definition": "to draw; to paint",
+  "level": 3
+ },
+ {
+  "hanzi": "女儿",
+  "pinyin": "nǚ ér",
+  "definition": "daughter",
+  "level": 1
+ },
+ {
+  "hanzi": "吃",
+  "pinyin": "chī",
+  "definition": "to eat; to consume",
+  "level": 1
+ },
+ {
+  "hanzi": "你",
+  "pinyin": "nǐ",
+  "definition": "you (informal, as opposed to courteous 您)",
+  "level": 1
+ },
+ {
+  "hanzi": "快",
+  "pinyin": "kuài",
+  "definition": "rapid",
+  "level": 2
+ },
+ {
+  "hanzi": "盘子",
+  "pinyin": "pán zi",
+  "definition": "tray",
+  "level": 3
+ },
+ {
+  "hanzi": "司机",
+  "pinyin": "sī jī",
+  "definition": "chauffeur; driver",
+  "level": 3
+ },
+ {
+  "hanzi": "喝",
+  "pinyin": "hē",
+  "definition": "to drink",
+  "level": 1
+ },
+ {
+  "hanzi": "感冒",
+  "pinyin": "gǎn mào",
+  "definition": "to catch cold",
+  "level": 3
+ },
+ {
+  "hanzi": "忙",
+  "pinyin": "máng",
+  "definition": "busy",
+  "level": 2
+ },
+ {
+  "hanzi": "见面",
+  "pinyin": "jiàn miàn",
+  "definition": "to meet; to see each other",
+  "level": 3
+ },
+ {
+  "hanzi": "左边",
+  "pinyin": "zuǒ bian",
+  "definition": "left",
+  "level": 2
+ },
+ {
+  "hanzi": "完成",
+  "pinyin": "wán chéng",
+  "definition": "to complete; to accomplish",
+  "level": 3
+ },
+ {
+  "hanzi": "每",
+  "pinyin": "měi",
+  "definition": "each",
+  "level": 2
+ },
+ {
+  "hanzi": "站",
+  "pinyin": "zhàn",
+  "definition": "station",
+  "level": 3
+ },
+ {
+  "hanzi": "节目",
+  "pinyin": "jié mù",
+  "definition": "program",
+  "level": 3
+ },
+ {
+  "hanzi": "容易",
+  "pinyin": "róng yì",
+  "definition": "easy; straightforward",
+  "level": 3
+ },
+ {
+  "hanzi": "碗",
+  "pinyin": "wǎn",
+  "definition": "bowl",
+  "level": 3
+ },
+ {
+  "hanzi": "妈妈",
+  "pinyin": "mā ma",
+  "definition": "mama",
+  "level": 1
+ },
+ {
+  "hanzi": "表示",
+  "pinyin": "biǎo shì",
+  "definition": "to express",
+  "level": 3
+ },
+ {
+  "hanzi": "鞋",
+  "pinyin": "xié",
+  "definition": "shoe",
+  "level": 3
+ },
+ {
+  "hanzi": "变化",
+  "pinyin": "biàn huà",
+  "definition": "(intransitive) to change; to vary",
+  "level": 3
+ },
+ {
+  "hanzi": "为什么",
+  "pinyin": "wèi shén me",
+  "definition": "why?",
+  "level": 3
+ },
+ {
+  "hanzi": "进",
+  "pinyin": "jìn",
+  "definition": "to go forward",
+  "level": 2
+ },
+ {
+  "hanzi": "练习",
+  "pinyin": "liàn xí",
+  "definition": "to practice",
+  "level": 3
+ },
+ {
+  "hanzi": "您",
+  "pinyin": "nín",
+  "definition": "you (courteous, as opposed to informal 你)",
+  "level": 2
+ },
+ {
+  "hanzi": "她",
+  "pinyin": "tā",
+  "definition": "she",
+  "level": 1
+ },
+ {
+  "hanzi": "月",
+  "pinyin": "yuè",
+  "definition": "moon",
+  "level": 1
+ },
+ {
+  "hanzi": "需要",
+  "pinyin": "xū yào",
+  "definition": "to need; to want; to demand; to require",
+  "level": 3
+ },
+ {
+  "hanzi": "新鲜",
+  "pinyin": "xīn xiān",
+  "definition": "fresh (experience, food etc)",
+  "level": 3
+ },
+ {
+  "hanzi": "高兴",
+  "pinyin": "gāo xìng",
+  "definition": "happy",
+  "level": 1
+ },
+ {
+  "hanzi": "客人",
+  "pinyin": "kè rén",
+  "definition": "visitor",
+  "level": 3
+ },
+ {
+  "hanzi": "总是",
+  "pinyin": "zǒng shì",
+  "definition": "always",
+  "level": 3
+ },
+ {
+  "hanzi": "现在",
+  "pinyin": "xiàn zài",
+  "definition": "now",
+  "level": 1
+ },
+ {
+  "hanzi": "问题",
+  "pinyin": "wèn tí",
+  "definition": "question",
+  "level": 2
+ },
+ {
+  "hanzi": "的",
+  "pinyin": "de",
+  "definition": "of; ~'s (possessive particle)",
+  "level": 1
+ },
+ {
+  "hanzi": "女人",
+  "pinyin": "nǚ rén",
+  "definition": "woman",
+  "level": 2
+ },
+ {
+  "hanzi": "词语",
+  "pinyin": "cí yǔ",
+  "definition": "word (general term including monosyllables through to short phrases)",
+  "level": 3
+ },
+ {
+  "hanzi": "去",
+  "pinyin": "qù",
+  "definition": "to go",
+  "level": 1
+ },
+ {
+  "hanzi": "时间",
+  "pinyin": "shí jiān",
+  "definition": "time",
+  "level": 2
+ },
+ {
+  "hanzi": "人",
+  "pinyin": "rén",
+  "definition": "person; people",
+  "level": 1
+ },
+ {
+  "hanzi": "别",
+  "pinyin": "bié",
+  "definition": "don't",
+  "level": 2
+ },
+ {
+  "hanzi": "黑",
+  "pinyin": "hēi",
+  "definition": "black",
+  "level": 2
+ },
+ {
+  "hanzi": "踢",
+  "pinyin": "tī",
+  "definition": "to kick",
+  "level": 2
+ },
+ {
+  "hanzi": "下雨",
+  "pinyin": "xià yǔ",
+  "definition": "to rain",
+  "level": 1
+ },
+ {
+  "hanzi": "水平",
+  "pinyin": "shuǐ píng",
+  "definition": "level (of achievement etc)",
+  "level": 3
+ },
+ {
+  "hanzi": "里",
+  "pinyin": "lǐ",
+  "definition": "inside; in",
+  "level": 1
+ },
+ {
+  "hanzi": "知道",
+  "pinyin": "zhī dào",
+  "definition": "to know; to become aware of",
+  "level": 2
+ },
+ {
+  "hanzi": "为了",
+  "pinyin": "wèi le",
+  "definition": "for; for the purpose of; in order to",
+  "level": 3
+ },
+ {
+  "hanzi": "不",
+  "pinyin": "bù",
+  "definition": "no; not so",
+  "level": 1
+ },
+ {
+  "hanzi": "上网",
+  "pinyin": "shàng wǎng",
+  "definition": "to go online",
+  "level": 3
+ },
+ {
+  "hanzi": "熊猫",
+  "pinyin": "xióng māo",
+  "definition": "panda",
+  "level": 3
+ },
+ {
+  "hanzi": "忘记",
+  "pinyin": "wàng jì",
+  "definition": "to forget",
+  "level": 3
+ },
+ {
+  "hanzi": "节日",
+  "pinyin": "jié rì",
+  "definition": "holiday",
+  "level": 3
+ },
+ {
+  "hanzi": "开",
+  "pinyin": "kāi",
+  "definition": "to open (transitive or intransitive)",
+  "level": 1
+ },
+ {
+  "hanzi": "游泳",
+  "pinyin": "yóu yǒng",
+  "definition": "swimming",
+  "level": 2
+ },
+ {
+  "hanzi": "钱",
+  "pinyin": "qián",
+  "definition": "coin",
+  "level": 1
+ },
+ {
+  "hanzi": "公共汽车",
+  "pinyin": "gōng gòng qì chē",
+  "definition": "bus",
+  "level": 2
+ },
+ {
+  "hanzi": "事情",
+  "pinyin": "shì qing",
+  "definition": "affair; matter; thing; business",
+  "level": 2
+ },
+ {
+  "hanzi": "阿姨",
+  "pinyin": "ā yí",
+  "definition": "maternal aunt",
+  "level": 3
+ },
+ {
+  "hanzi": "狗",
+  "pinyin": "gǒu",
+  "definition": "dog",
+  "level": 1
+ },
+ {
+  "hanzi": "换",
+  "pinyin": "huàn",
+  "definition": "to exchange",
+  "level": 3
+ },
+ {
+  "hanzi": "或者",
+  "pinyin": "huò zhě",
+  "definition": "or",
+  "level": 3
+ },
+ {
+  "hanzi": "笑",
+  "pinyin": "xiào",
+  "definition": "to laugh; to smile",
+  "level": 2
+ },
+ {
+  "hanzi": "角",
+  "pinyin": "jiǎo",
+  "definition": "angle",
+  "level": 3
+ },
+ {
+  "hanzi": "张",
+  "pinyin": "zhāng",
+  "definition": "classifier for flat things (paper, tables, tickets)",
+  "level": 2
+ },
+ {
+  "hanzi": "办公室",
+  "pinyin": "bàn gōng shì",
+  "definition": "office",
+  "level": 3
+ },
+ {
+  "hanzi": "呢",
+  "pinyin": "ne",
+  "definition": "particle indicating that a previously asked question is to be applied to the preceding word (\"What about ...?\", \"And ...?\")",
+  "level": 1
+ },
+ {
+  "hanzi": "十",
+  "pinyin": "shí",
+  "definition": "ten",
+  "level": 1
+ },
+ {
+  "hanzi": "上午",
+  "pinyin": "shàng wǔ",
+  "definition": "morning",
+  "level": 1
+ },
+ {
+  "hanzi": "也",
+  "pinyin": "yě",
+  "definition": "(adverb) also; both ... and ... (before predicates only)",
+  "level": 2
+ },
+ {
+  "hanzi": "有名",
+  "pinyin": "yǒu míng",
+  "definition": "famous",
+  "level": 3
+ },
+ {
+  "hanzi": "一边",
+  "pinyin": "yī biān",
+  "definition": "one side",
+  "level": 3
+ },
+ {
+  "hanzi": "医生",
+  "pinyin": "yī shēng",
+  "definition": "doctor",
+  "level": 1
+ },
+ {
+  "hanzi": "下",
+  "pinyin": "xià",
+  "definition": "down",
+  "level": 1
+ },
+ {
+  "hanzi": "休息",
+  "pinyin": "xiū xi",
+  "definition": "rest",
+  "level": 2
+ },
+ {
+  "hanzi": "手机",
+  "pinyin": "shǒu jī",
+  "definition": "cell phone",
+  "level": 2
+ },
+ {
+  "hanzi": "教室",
+  "pinyin": "jiào shì",
+  "definition": "classroom",
+  "level": 2
+ },
+ {
+  "hanzi": "公斤",
+  "pinyin": "gōng jīn",
+  "definition": "kilogram (kg)",
+  "level": 2
+ },
+ {
+  "hanzi": "结束",
+  "pinyin": "jié shù",
+  "definition": "termination",
+  "level": 3
+ },
+ {
+  "hanzi": "根据",
+  "pinyin": "gēn jù",
+  "definition": "according to",
+  "level": 3
+ },
+ {
+  "hanzi": "被",
+  "pinyin": "bèi",
+  "definition": "quilt",
+  "level": 3
+ },
+ {
+  "hanzi": "起床",
+  "pinyin": "qǐ chuáng",
+  "definition": "to get out of bed",
+  "level": 2
+ },
+ {
+  "hanzi": "经常",
+  "pinyin": "jīng cháng",
+  "definition": "frequently; constantly; regularly; often",
+  "level": 3
+ },
+ {
+  "hanzi": "超市",
+  "pinyin": "chāo shì",
+  "definition": "supermarket (abbr. for 超级市场)",
+  "level": 3
+ },
+ {
+  "hanzi": "生日",
+  "pinyin": "shēng rì",
+  "definition": "birthday",
+  "level": 2
+ },
+ {
+  "hanzi": "爬山",
+  "pinyin": "pá shān",
+  "definition": "to climb a mountain",
+  "level": 3
+ },
+ {
+  "hanzi": "动物",
+  "pinyin": "dòng wù",
+  "definition": "animal",
+  "level": 3
+ },
+ {
+  "hanzi": "看",
+  "pinyin": "kàn",
+  "definition": "to see; to look at",
+  "level": 1
+ },
+ {
+  "hanzi": "非常",
+  "pinyin": "fēi cháng",
+  "definition": "very; really",
+  "level": 2
+ },
+ {
+  "hanzi": "为",
+  "pinyin": "wéi",
+  "definition": "as (in the capacity of)",
+  "level": 2
+ },
+ {
+  "hanzi": "空调",
+  "pinyin": "kōng tiáo",
+  "definition": "air conditioning",
+  "level": 3
+ },
+ {
+  "hanzi": "决定",
+  "pinyin": "jué dìng",
+  "definition": "to decide (to do something)",
+  "level": 3
+ },
+ {
+  "hanzi": "因为",
+  "pinyin": "yīn wèi",
+  "definition": "because",
+  "level": 2
+ },
+ {
+  "hanzi": "结婚",
+  "pinyin": "jié hūn",
+  "definition": "to marry",
+  "level": 3
+ },
+ {
+  "hanzi": "班",
+  "pinyin": "bān",
+  "definition": "team; class; grade",
+  "level": 3
+ },
+ {
+  "hanzi": "照片",
+  "pinyin": "zhào piàn",
+  "definition": "photograph",
+  "level": 3
+ },
+ {
+  "hanzi": "腿",
+  "pinyin": "tuǐ",
+  "definition": "leg",
+  "level": 3
+ },
+ {
+  "hanzi": "欢迎",
+  "pinyin": "huān yíng",
+  "definition": "to welcome",
+  "level": 2
+ },
+ {
+  "hanzi": "年轻",
+  "pinyin": "nián qīng",
+  "definition": "young",
+  "level": 3
+ },
+ {
+  "hanzi": "真",
+  "pinyin": "zhēn",
+  "definition": "really",
+  "level": 2
+ },
+ {
+  "hanzi": "种",
+  "pinyin": "zhǒng",
+  "definition": "seed",
+  "level": 3
+ },
+ {
+  "hanzi": "离",
+  "pinyin": "lí",
+  "definition": "to leave",
+  "level": 2
+ },
+ {
+  "hanzi": "电影",
+  "pinyin": "diàn yǐng",
+  "definition": "movie; film",
+  "level": 1
+ },
+ {
+  "hanzi": "路",
+  "pinyin": "lù",
+  "definition": "road",
+  "level": 2
+ },
+ {
+  "hanzi": "米饭",
+  "pinyin": "mǐ fàn",
+  "definition": "(cooked) rice",
+  "level": 1
+ },
+ {
+  "hanzi": "放心",
+  "pinyin": "fàng xīn",
+  "definition": "to feel relieved",
+  "level": 3
+ },
+ {
+  "hanzi": "楼",
+  "pinyin": "lóu",
+  "definition": "house with more than 1 story",
+  "level": 3
+ },
+ {
+  "hanzi": "发现",
+  "pinyin": "fā xiàn",
+  "definition": "to notice; to become aware of",
+  "level": 3
+ },
+ {
+  "hanzi": "比",
+  "pinyin": "bǐ",
+  "definition": "to compare",
+  "level": 2
+ },
+ {
+  "hanzi": "脸",
+  "pinyin": "liǎn",
+  "definition": "face",
+  "level": 3
+ },
+ {
+  "hanzi": "使",
+  "pinyin": "shǐ",
+  "definition": "to make",
+  "level": 3
+ },
+ {
+  "hanzi": "搬",
+  "pinyin": "bān",
+  "definition": "to move (i.e. relocate oneself)",
+  "level": 3
+ },
+ {
+  "hanzi": "介绍",
+  "pinyin": "jiè shào",
+  "definition": "to introduce (sb to sb)",
+  "level": 2
+ },
+ {
+  "hanzi": "慢",
+  "pinyin": "màn",
+  "definition": "slow",
+  "level": 2
+ },
+ {
+  "hanzi": "叫",
+  "pinyin": "jiào",
+  "definition": "to shout",
+  "level": 1
+ },
+ {
+  "hanzi": "少",
+  "pinyin": "shǎo",
+  "definition": "few",
+  "level": 1
+ },
+ {
+  "hanzi": "羊肉",
+  "pinyin": "yáng ròu",
+  "definition": "mutton",
+  "level": 2
+ },
+ {
+  "hanzi": "爱",
+  "pinyin": "ài",
+  "definition": "to love; to be fond of; to like",
+  "level": 1
+ },
+ {
+  "hanzi": "一共",
+  "pinyin": "yī gòng",
+  "definition": "altogether",
+  "level": 3
+ },
+ {
+  "hanzi": "服务员",
+  "pinyin": "fú wù yuán",
+  "definition": "waiter",
+  "level": 2
+ },
+ {
+  "hanzi": "电梯",
+  "pinyin": "diàn tī",
+  "definition": "elevator",
+  "level": 3
+ },
+ {
+  "hanzi": "明白",
+  "pinyin": "míng bai",
+  "definition": "clear",
+  "level": 3
+ },
+ {
+  "hanzi": "给",
+  "pinyin": "gěi",
+  "definition": "to",
+  "level": 2
+ },
+ {
+  "hanzi": "以后",
+  "pinyin": "yǐ hòu",
+  "definition": "after",
+  "level": 3
+ },
+ {
+  "hanzi": "他",
+  "pinyin": "tā",
+  "definition": "he; him (used for either sex when the sex is unknown or unimportant)",
+  "level": 1
+ },
+ {
+  "hanzi": "半",
+  "pinyin": "bàn",
+  "definition": "half",
+  "level": 3
+ },
+ {
+  "hanzi": "哥哥",
+  "pinyin": "gē ge",
+  "definition": "older brother",
+  "level": 2
+ },
+ {
+  "hanzi": "这",
+  "pinyin": "zhè",
+  "definition": "(pronoun) this; these",
+  "level": 1
+ },
+ {
+  "hanzi": "表演",
+  "pinyin": "biǎo yǎn",
+  "definition": "play",
+  "level": 3
+ },
+ {
+  "hanzi": "孩子",
+  "pinyin": "hái zi",
+  "definition": "child",
+  "level": 2
+ },
+ {
+  "hanzi": "游戏",
+  "pinyin": "yóu xì",
+  "definition": "game",
+  "level": 3
+ },
+ {
+  "hanzi": "电脑",
+  "pinyin": "diàn nǎo",
+  "definition": "computer",
+  "level": 1
+ },
+ {
+  "hanzi": "糖",
+  "pinyin": "táng",
+  "definition": "sugar",
+  "level": 3
+ },
+ {
+  "hanzi": "热情",
+  "pinyin": "rè qíng",
+  "definition": "cordial",
+  "level": 3
+ },
+ {
+  "hanzi": "是",
+  "pinyin": "shì",
+  "definition": "to be (followed by substantives only)",
+  "level": 1
+ },
+ {
+  "hanzi": "复习",
+  "pinyin": "fù xí",
+  "definition": "to review",
+  "level": 3
+ },
+ {
+  "hanzi": "哪",
+  "pinyin": "nǎ",
+  "definition": "which",
+  "level": 1
+ },
+ {
+  "hanzi": "经理",
+  "pinyin": "jīng lǐ",
+  "definition": "manager",
+  "level": 3
+ },
+ {
+  "hanzi": "要",
+  "pinyin": "yào",
+  "definition": "to want; to need; to ask for",
+  "level": 2
+ },
+ {
+  "hanzi": "吧",
+  "pinyin": "ba",
+  "definition": "(modal particle indicating suggestion or surmise)",
+  "level": 2
+ },
+ {
+  "hanzi": "旧",
+  "pinyin": "jiù",
+  "definition": "old",
+  "level": 3
+ },
+ {
+  "hanzi": "老",
+  "pinyin": "lǎo",
+  "definition": "old (of people)",
+  "level": 3
+ },
+ {
+  "hanzi": "水果",
+  "pinyin": "shuǐ guǒ",
+  "definition": "fruit",
+  "level": 1
+ },
+ {
+  "hanzi": "双",
+  "pinyin": "shuāng",
+  "definition": "two",
+  "level": 3
+ },
+ {
+  "hanzi": "我们",
+  "pinyin": "wǒ men",
+  "definition": "we",
+  "level": 1
+ },
+ {
+  "hanzi": "辆",
+  "pinyin": "liàng",
+  "definition": "classifier for vehicles",
+  "level": 3
+ },
+ {
+  "hanzi": "故事",
+  "pinyin": "gù shi",
+  "definition": "story; tale",
+  "level": 3
+ },
+ {
+  "hanzi": "冬",
+  "pinyin": "dōng",
+  "definition": "winter",
+  "level": 3
+ },
+ {
+  "hanzi": "记得",
+  "pinyin": "jì de",
+  "definition": "to remember",
+  "level": 3
+ },
+ {
+  "hanzi": "注意",
+  "pinyin": "zhù yì",
+  "definition": "to take note of; to pay attention to",
+  "level": 3
+ },
+ {
+  "hanzi": "五",
+  "pinyin": "wǔ",
+  "definition": "five",
+  "level": 1
+ },
+ {
+  "hanzi": "其实",
+  "pinyin": "qí shí",
+  "definition": "actually; in fact; really",
+  "level": 3
+ },
+ {
+  "hanzi": "读",
+  "pinyin": "dú",
+  "definition": "to read out; to read aloud",
+  "level": 1
+ },
+ {
+  "hanzi": "昨天",
+  "pinyin": "zuó tiān",
+  "definition": "yesterday",
+  "level": 1
+ },
+ {
+  "hanzi": "汉语",
+  "pinyin": "Hàn yǔ",
+  "definition": "Chinese language",
+  "level": 1
+ },
+ {
+  "hanzi": "完",
+  "pinyin": "wán",
+  "definition": "to finish",
+  "level": 2
+ },
+ {
+  "hanzi": "没",
+  "pinyin": "méi",
+  "definition": "have not; not",
+  "level": 1
+ },
+ {
+  "hanzi": "觉得",
+  "pinyin": "jué de",
+  "definition": "to think that ...; to feel that ...",
+  "level": 2
+ },
+ {
+  "hanzi": "北京",
+  "pinyin": "Běi jīng",
+  "definition": "Beijing, capital of the People's Republic of China",
+  "level": 1
+ },
+ {
+  "hanzi": "先",
+  "pinyin": "xiān",
+  "definition": "early",
+  "level": 3
+ },
+ {
+  "hanzi": "句子",
+  "pinyin": "jù zi",
+  "definition": "sentence",
+  "level": 3
+ },
+ {
+  "hanzi": "打扫",
+  "pinyin": "dǎ sǎo",
+  "definition": "to clean",
+  "level": 3
+ },
+ {
+  "hanzi": "爱好",
+  "pinyin": "ài hào",
+  "definition": "to like; to be fond of; to take pleasure in; to be keen on",
+  "level": 3
+ },
+ {
+  "hanzi": "小",
+  "pinyin": "xiǎo",
+  "definition": "small",
+  "level": 1
+ },
+ {
+  "hanzi": "报纸",
+  "pinyin": "bào zhǐ",
+  "definition": "newspaper",
+  "level": 2
+ },
+ {
+  "hanzi": "小时",
+  "pinyin": "xiǎo shí",
+  "definition": "hour",
+  "level": 2
+ },
+ {
+  "hanzi": "可以",
+  "pinyin": "kě yǐ",
+  "definition": "can",
+  "level": 2
+ },
+ {
+  "hanzi": "重要",
+  "pinyin": "zhòng yào",
+  "definition": "important",
+  "level": 3
+ },
+ {
+  "hanzi": "树",
+  "pinyin": "shù",
+  "definition": "tree",
+  "level": 3
+ },
+ {
+  "hanzi": "从",
+  "pinyin": "cóng",
+  "definition": "from",
+  "level": 2
+ },
+ {
+  "hanzi": "回",
+  "pinyin": "huí",
+  "definition": "to circle",
+  "level": 1
+ },
+ {
+  "hanzi": "卖",
+  "pinyin": "mài",
+  "definition": "to sell",
+  "level": 2
+ },
+ {
+  "hanzi": "东西",
+  "pinyin": "dōng xi",
+  "definition": "thing",
+  "level": 1
+ },
+ {
+  "hanzi": "看见",
+  "pinyin": "kàn jiàn",
+  "definition": "to see",
+  "level": 1
+ },
+ {
+  "hanzi": "次",
+  "pinyin": "cì",
+  "definition": "next in sequence",
+  "level": 2
+ },
+ {
+  "hanzi": "哭",
+  "pinyin": "kū",
+  "definition": "to cry; to weep",
+  "level": 3
+ },
+ {
+  "hanzi": "大",
+  "pinyin": "dà",
+  "definition": "big; large; great",
+  "level": 1
+ },
+ {
+  "hanzi": "教",
+  "pinyin": "jiāo",
+  "definition": "to teach",
+  "level": 3
+ },
+ {
+  "hanzi": "工作",
+  "pinyin": "gōng zuò",
+  "definition": "to work",
+  "level": 1
+ },
+ {
+  "hanzi": "小姐",
+  "pinyin": "xiǎo jie",
+  "definition": "young lady",
+  "level": 1
+ },
+ {
+  "hanzi": "北方",
+  "pinyin": "běi fāng",
+  "definition": "north",
+  "level": 3
+ },
+ {
+  "hanzi": "突然",
+  "pinyin": "tū rán",
+  "definition": "sudden; abrupt; unexpected",
+  "level": 3
+ },
+ {
+  "hanzi": "谢谢",
+  "pinyin": "xiè xie",
+  "definition": "to thank",
+  "level": 1
+ },
+ {
+  "hanzi": "裤子",
+  "pinyin": "kù zi",
+  "definition": "trousers",
+  "level": 3
+ },
+ {
+  "hanzi": "元",
+  "pinyin": "yuán",
+  "definition": "currency unit (esp. Chinese yuan)",
+  "level": 2
+ },
+ {
+  "hanzi": "衣服",
+  "pinyin": "yī fu",
+  "definition": "clothes",
+  "level": 1
+ },
+ {
+  "hanzi": "特别",
+  "pinyin": "tè bié",
+  "definition": "unusual; special",
+  "level": 3
+ },
+ {
+  "hanzi": "没关系",
+  "pinyin": "méi guān xi",
+  "definition": "it doesn't matter",
+  "level": 1
+ },
+ {
+  "hanzi": "邻居",
+  "pinyin": "lín jū",
+  "definition": "neighbor",
+  "level": 3
+ },
+ {
+  "hanzi": "睡觉",
+  "pinyin": "shuì jiào",
+  "definition": "to go to bed",
+  "level": 1
+ },
+ {
+  "hanzi": "去年",
+  "pinyin": "qù nián",
+  "definition": "last year",
+  "level": 2
+ },
+ {
+  "hanzi": "丈夫",
+  "pinyin": "zhàng fu",
+  "definition": "husband",
+  "level": 2
+ },
+ {
+  "hanzi": "星期",
+  "pinyin": "xīng qī",
+  "definition": "week",
+  "level": 1
+ },
+ {
+  "hanzi": "黑板",
+  "pinyin": "hēi bǎn",
+  "definition": "blackboard",
+  "level": 3
+ },
+ {
+  "hanzi": "早上",
+  "pinyin": "zǎo shang",
+  "definition": "early morning",
+  "level": 2
+ },
+ {
+  "hanzi": "时候",
+  "pinyin": "shí hou",
+  "definition": "time",
+  "level": 1
+ },
+ {
+  "hanzi": "带",
+  "pinyin": "dài",
+  "definition": "band",
+  "level": 3
+ },
+ {
+  "hanzi": "花",
+  "pinyin": "huā",
+  "definition": "flower",
+  "level": 3
+ },
+ {
+  "hanzi": "下午",
+  "pinyin": "xià wǔ",
+  "definition": "afternoon",
+  "level": 1
+ },
+ {
+  "hanzi": "信",
+  "pinyin": "xìn",
+  "definition": "letter",
+  "level": 3
+ },
+ {
+  "hanzi": "所以",
+  "pinyin": "suǒ yǐ",
+  "definition": "therefore",
+  "level": 2
+ }
+]
