@@ -11,7 +11,9 @@ const NOW = "strftime('%Y-%m-%dT%H:%M:%fZ', 'now')";
 // orderBy:  SQL for the list order, or a function of the filters that returns it
 // filters:  { name: { true: 'SQL', false: 'SQL' } } for ?name=true|false
 // booleans: columns stored as 0/1 but sent as true/false
-export function createStore(db, { table, columns, orderBy = 'id', filters = {}, booleans = [] }) {
+// log:      the change record (server/changes.js); every write is recorded in it
+// sourced:  the table has a unique source column, so a create with a known source finds the existing row
+export function createStore(db, { table, columns, orderBy = 'id', filters = {}, booleans = [], log = null, sourced = false }) {
     const select = ['id', ...columns, 'created_at', 'updated_at'].join(', ');
     const fromDb = row => {
         if (!row) return null;
@@ -29,6 +31,10 @@ export function createStore(db, { table, columns, orderBy = 'id', filters = {}, 
 
     const getStatement = db.prepare(`SELECT ${select} FROM ${table} WHERE id = ?`);
     const removeStatement = db.prepare(`DELETE FROM ${table} WHERE id = ?`);
+    // the whole stored row, as the change record keeps it
+    const rawStatement = db.prepare(`SELECT * FROM ${table} WHERE id = ?`);
+    const bySourceStatement = sourced ? db.prepare(`SELECT ${select} FROM ${table} WHERE source = ?`) : null;
+    const record = (action, id, before, after) => log?.record({ resource: table, itemId: id, action, before, after });
 
     return {
         // filterValues: { done: false } etc.; undefined values are ignored
@@ -45,29 +51,46 @@ export function createStore(db, { table, columns, orderBy = 'id', filters = {}, 
             return fromDb(getStatement.get(id));
         },
 
-        create(values) {
+        raw: id => rawStatement.get(id) ?? null,
+
+        // the row with this source, or null (DESIGN §5.5)
+        findBySource(source) {
+            return bySourceStatement && source ? fromDb(bySourceStatement.get(source)) : null;
+        },
+
+        create: db.transaction(values => {
             const row = toDb(values);
             const names = Object.keys(row);
             const sql = names.length
                 ? `INSERT INTO ${table} (${names.join(', ')}) VALUES (${names.map(n => `@${n}`).join(', ')}) RETURNING ${select}`
                 : `INSERT INTO ${table} DEFAULT VALUES RETURNING ${select}`;
-            return fromDb(db.prepare(sql).get(row));
-        },
+            const created = db.prepare(sql).get(row);
+            record('create', created.id, null, rawStatement.get(created.id));
+            return fromDb(created);
+        }),
 
         // changes holds only the columns to change; null if there's no such row
-        update(id, changes) {
+        update: db.transaction((id, changes) => {
             const row = toDb(changes);
             const names = Object.keys(row);
-            if (names.length === 0) return this.get(id);
+            const before = rawStatement.get(id);
+            if (!before) return null;
+            if (names.length === 0) return fromDb(getStatement.get(id));
             const sets = names.map(n => `${n} = @${n}`).join(', ');
             const sql = `UPDATE ${table} SET ${sets}, updated_at = ${NOW} WHERE id = @id RETURNING ${select}`;
-            return fromDb(db.prepare(sql).get({ ...row, id }));
-        },
+            const updated = db.prepare(sql).get({ ...row, id });
+            record('update', id, before, rawStatement.get(id));
+            return fromDb(updated);
+        }),
 
         // true if a row was deleted
-        remove(id) {
-            return removeStatement.run(id).changes === 1;
-        },
+        remove: db.transaction(id => {
+            const before = rawStatement.get(id);
+            if (!before) return false;
+            removeStatement.run(id);
+            record('delete', id, before, null);
+            return true;
+        }),
     };
 }
 
@@ -88,6 +111,9 @@ export function crudRouter(store, { noun, create, update, query, extend, default
 
     router.post('/', (req, res) => {
         const values = validate(create, req.body);
+        // an item from a source already seen is returned, not created again (DESIGN §5.5)
+        const existing = store.findBySource?.(values.source);
+        if (existing) return res.status(200).json(existing);
         const filled = Object.fromEntries(Object.entries(defaults()).filter(([key]) => values[key] === undefined));
         res.status(201).json(store.create({ ...values, ...filled }));
     });

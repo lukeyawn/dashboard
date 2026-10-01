@@ -11,7 +11,7 @@ import WidgetShell from './components/WidgetShell';
 import Dock from './components/Dock';
 import CalendarWidget from './widgets/calendar/CalendarWidget';
 import CountdownWidget from './widgets/countdown/CountdownWidget';
-import DeadlinesWidget from './widgets/deadlines/DeadlinesWidget';
+import DueSoonWidget from './widgets/due/DueSoonWidget';
 import GoalsWidget from './widgets/goals/GoalsWidget';
 import HabitsWidget from './widgets/habits/HabitsWidget';
 import JobWidget from './widgets/job/JobWidget';
@@ -53,8 +53,8 @@ export default function App() {
                 <WidgetShell area="timeline">
                     <TimelineWidget />
                 </WidgetShell>
-                <WidgetShell area="deadlines">
-                    <DeadlinesWidget />
+                <WidgetShell area="due">
+                    <DueSoonWidget />
                 </WidgetShell>
                 <WidgetShell area="wotd">
                     <WordOfTheDayWidget />

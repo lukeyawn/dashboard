@@ -16,6 +16,8 @@ export function createClient({ baseUrl, token, fetch = globalThis.fetch }) {
                 method,
                 headers: {
                     authorization: `Bearer ${token}`,
+                    // the change record shows these writes as Claude's (DESIGN §5.5)
+                    'x-dashboard-client': 'claude',
                     ...(body === undefined ? {} : { 'content-type': 'application/json' }),
                 },
                 body: body === undefined ? undefined : JSON.stringify(body),

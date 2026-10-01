@@ -15,6 +15,10 @@ const optionalText = max => z.preprocess(
 
 const timestamp = z.iso.datetime({ message: 'Expected a UTC ISO-8601 timestamp' });
 
+// where an item came from, such as 'gmail:<message id>'; the server never
+// creates a second item with the same source (DESIGN §5.5)
+const source = z.string().trim().min(1).max(200);
+
 export const date = z.string().refine(isDateString, 'Expected a real date as YYYY-MM-DD').describe('A local date, YYYY-MM-DD');
 export const time = z.string().regex(/^([01]\d|2[0-3]):[0-5]\d$/, 'Expected a time as HH:MM').describe('A time of day, HH:MM (24-hour)');
 
@@ -26,28 +30,35 @@ const flag = z.enum(['true', 'false']).transform(value => value === 'true');
 const notEmpty = [object => Object.keys(object).length > 0, { message: 'Nothing to update' }];
 const partial = shape => z.strictObject(shape).partial().refine(...notEmpty);
 
-// tasks
+// tasks: one list for to-dos and deadlines; a task with a due date is a deadline (DESIGN §3)
+
+export const PRIORITIES = ['high', 'normal', 'low'];
+export const EFFORTS = ['quick', 'medium', 'big'];
 
 const task = {
     name: text(200),
     // set to complete it, null to restore it
     done_at: timestamp.nullable(),
+    due: date.nullable(),
+    priority: z.enum(PRIORITIES),
+    effort: z.enum(EFFORTS).nullable(),
+    area: optionalText(60),
+    notes: optionalText(5000),
+    link: optionalText(500),
+    source: source.nullable(),
 };
-export const taskCreate = z.strictObject({ name: task.name });
+export const taskCreate = z.strictObject({
+    name: task.name,
+    due: task.due.optional(),
+    priority: task.priority.default('normal'),
+    effort: task.effort.optional(),
+    area: task.area,
+    notes: task.notes,
+    link: task.link,
+    source: source.optional(),
+});
 export const taskUpdate = partial(task);
 export const taskQuery = z.strictObject({ done: flag.optional() });
-
-// deadlines
-
-const deadline = {
-    name: text(200),
-    due: date,
-    course: optionalText(60),
-    done_at: timestamp.nullable(),
-};
-export const deadlineCreate = z.strictObject({ name: deadline.name, due: deadline.due, course: deadline.course });
-export const deadlineUpdate = partial(deadline);
-export const deadlineQuery = z.strictObject({ done: flag.optional() });
 
 // countdowns
 
@@ -56,7 +67,7 @@ const countdown = {
     target_date: date,
     pinned: z.boolean(),
 };
-export const countdownCreate = z.strictObject({ ...countdown, pinned: countdown.pinned.optional() });
+export const countdownCreate = z.strictObject({ ...countdown, pinned: countdown.pinned.optional(), source: source.optional() });
 export const countdownUpdate = partial(countdown);
 export const countdownQuery = z.strictObject({});
 
@@ -106,6 +117,7 @@ export const applicationCreate = z.strictObject({
     status: application.status.default('applied'),
     // the server fills in today, by its own clock, when it's left out
     applied_on: application.applied_on.optional(),
+    source: source.optional(),
 });
 export const applicationUpdate = partial(application);
 export const applicationQuery = z.strictObject({ status: z.enum(STATUSES).optional() });
@@ -132,5 +144,13 @@ export const dateRange = z.strictObject({ from: date, to: date })
 
 export const login = z.strictObject({ token: z.string().min(1).max(512) });
 
+// the change record (DESIGN §5.5)
+export const ACTORS = ['owner', 'kiosk', 'claude', 'agent', 'system'];
+export const changesQuery = z.strictObject({
+    limit: z.coerce.number().int().min(1).max(200).default(50),
+    actor: z.enum(ACTORS).optional(),
+    resource: z.enum(['tasks', 'countdowns', 'goals', 'habits', 'habit_checks', 'applications', 'settings']).optional(),
+});
+
 // The fields of each resource, for building other schemas from (the MCP tools use them)
-export const shapes = { task, deadline, countdown, goal, habit, application };
+export const shapes = { task, countdown, goal, habit, application };

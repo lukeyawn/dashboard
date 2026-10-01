@@ -42,6 +42,25 @@ describe('TasksWidget states', () => {
     });
 });
 
+describe('order and marks', () => {
+    it('shows tasks not due soon, by priority, with marks for high priority and quick ones', async () => {
+        vi.useFakeTimers({ toFake: ['Date'] });
+        vi.setSystemTime(new Date(2026, 8, 30, 12));
+        setup([
+            { id: 1, name: 'Low', priority: 'low' },
+            { id: 2, name: 'Due tomorrow', due: '2026-10-01' },
+            { id: 3, name: 'Quick one', priority: 'normal', effort: 'quick' },
+            { id: 4, name: 'Urgent', priority: 'high' },
+            { id: 5, name: 'Later deadline', due: '2026-12-01' },
+        ]);
+        await screen.findByText('Urgent');
+        expect(screen.getAllByRole('listitem').map(li => li.querySelector('.task-name').textContent)).toEqual(['Urgent', 'Later deadline', 'Quick one', 'Low']);
+        expect(screen.getByLabelText('high priority').closest('li').textContent).toContain('Urgent');
+        expect(screen.getByText('quick').closest('li').textContent).toContain('Quick one');
+        expect(screen.getByText('Low').closest('li').className).toContain('low');
+    });
+});
+
 describe('clearing a task', () => {
     it('waits 5 seconds, then marks it done and removes it from view', async () => {
         const api = setup([{ id: 1, name: 'Do laundry' }]);

@@ -51,24 +51,26 @@ export function registerTools(server, call, now = () => new Date()) {
     };
 
     tool('get_today', 'read',
-        "A snapshot of today: today's events, birthdays this week, open tasks, deadlines due within 14 days (with overdue ones), goals, habits and whether each is done today, the nearest countdowns, application counts, the weather and night mode. Start here.",
+        "A snapshot of today: today's events, birthdays this week, tasks due within 14 days (with overdue ones) and the other open tasks, goals, habits and whether each is done today, the nearest countdowns, application counts, the weather and night mode. Start here.",
         {}, () => call('GET', '/today'));
 
+    const t = schemas.shapes.task;
     crud('tasks', 'task', 'tasks', {
         listInput: { done: z.boolean().optional().describe('false for open tasks only, true for completed ones') },
-        createInput: { name: schemas.shapes.task.name },
-        notes: ' Tasks are ongoing, not tied to a day.',
+        createInput: {
+            name: t.name,
+            due: t.due.optional().describe('The deadline, if it has one. A task with a due date is a deadline.'),
+            priority: t.priority.optional().describe('high, normal (the default) or low'),
+            effort: t.effort.optional().describe('quick (under 15 minutes), medium, or big (over an hour)'),
+            area: t.area.describe('A course code, "job search", "home" and so on'),
+            notes: t.notes,
+            link: t.link.describe('A link back to where it came from, such as the email'),
+            source: t.source.optional().describe('Where it came from, such as "gmail:<message id>". The same source never creates a second task.'),
+        },
+        notes: " One list for to-dos and deadlines; a task with a due date is a deadline. When adding one, fill in due, priority, effort and area whenever the request or its context makes them clear, and leave them out when it doesn't.",
     });
-    tool('complete_task', 'write', 'Mark a task done. It can be restored with update_task and done_at: null.', { id },
+    tool('complete_task', 'write', 'Mark a task (or deadline) done. It can be restored with update_task and done_at: null.', { id },
         ({ id: taskId }) => call('PATCH', `/tasks/${taskId}`, { done_at: now().toISOString() }));
-
-    crud('deadlines', 'deadline', 'deadlines', {
-        listInput: { done: z.boolean().optional().describe('false for open deadlines only') },
-        createInput: { name: schemas.shapes.deadline.name, due: schemas.shapes.deadline.due, course: schemas.shapes.deadline.course },
-        notes: ' A deadline has a due date and an optional course; overdue ones stay until completed.',
-    });
-    tool('complete_deadline', 'write', 'Mark a deadline done.', { id },
-        ({ id: deadlineId }) => call('PATCH', `/deadlines/${deadlineId}`, { done_at: now().toISOString() }));
 
     crud('countdowns', 'countdown', 'countdowns', {
         createInput: { label: schemas.shapes.countdown.label, target_date: schemas.shapes.countdown.target_date, pinned: schemas.shapes.countdown.pinned.optional() },
@@ -122,7 +124,7 @@ export function registerTools(server, call, now = () => new Date()) {
     tool('cancel_night', 'write', 'Cancel an early start of night mode.', {}, () => call('POST', '/night/cancel'));
 
     tool('delete_item', 'delete',
-        'Permanently delete an item. Always confirm with the user before calling this. Prefer complete_task, complete_deadline or archiving (archived_at) when the user only means "done" or "no longer active".',
-        { resource: z.enum(['tasks', 'deadlines', 'countdowns', 'goals', 'habits', 'applications']), id },
+        'Delete an item. Always confirm with the user before calling this. Prefer complete_task or archiving (archived_at) when the user only means "done" or "no longer active". Every change is recorded and can be undone from /manage.',
+        { resource: z.enum(['tasks', 'countdowns', 'goals', 'habits', 'applications']), id },
         ({ resource, id: itemId }) => call('DELETE', `/${resource}/${itemId}`));
 }

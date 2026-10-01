@@ -1,15 +1,17 @@
 import { NEXT_STATUS, STATUSES } from '../../shared/schemas.js';
 import { createStore } from '../crud.js';
 
-export function createApplicationStore(db) {
+export function createApplicationStore(db, { log } = {}) {
     const store = createStore(db, {
         table: 'applications',
-        columns: ['company', 'role', 'status', 'applied_on', 'url', 'notes'],
+        columns: ['company', 'role', 'status', 'applied_on', 'url', 'notes', 'source'],
         // the widget shows the most recently updated first
         orderBy: 'updated_at DESC, id DESC',
         filters: {
             status: Object.fromEntries(STATUSES.map(s => [s, `status = '${s}'`])),
         },
+        log,
+        sourced: true,
     });
 
     return {

@@ -4,7 +4,10 @@
 export const DEFAULTS = { night_start: '22:00', night_end: '06:30' };
 const USER_KEYS = Object.keys(DEFAULTS);
 
-export function createSettingsStore(db) {
+// Kept out of the change record: the kiosk reports it daily, so it's noise
+const UNRECORDED = new Set(['kiosk_location']);
+
+export function createSettingsStore(db, { log } = {}) {
     const getRow = db.prepare('SELECT value FROM settings WHERE key = ?');
     const setRow = db.prepare(`
         INSERT INTO settings (key, value) VALUES (?, ?)
@@ -16,20 +19,35 @@ export function createSettingsStore(db) {
         return row ? JSON.parse(row.value) : (DEFAULTS[key] ?? null);
     }
 
+    // a setting's stored value, or null when it isn't set (defaults aren't stored)
+    const stored = key => {
+        const row = getRow.get(key);
+        return row ? { value: JSON.parse(row.value) } : null;
+    };
+
+    const set = db.transaction((key, value) => {
+        const before = stored(key);
+        setRow.run(key, JSON.stringify(value));
+        if (!UNRECORDED.has(key)) log?.record({ resource: 'settings', itemId: key, action: before ? 'update' : 'create', before, after: { value } });
+    });
+
+    const clear = db.transaction(key => {
+        const before = stored(key);
+        if (!before) return;
+        deleteRow.run(key);
+        if (!UNRECORDED.has(key)) log?.record({ resource: 'settings', itemId: key, action: 'delete', before, after: null });
+    });
+
     return {
         get,
-        set(key, value) {
-            setRow.run(key, JSON.stringify(value));
-        },
-        clear(key) {
-            deleteRow.run(key);
-        },
+        set,
+        clear,
         // the settings a user can see and change
         user() {
             return Object.fromEntries(USER_KEYS.map(key => [key, get(key)]));
         },
         updateUser: db.transaction(changes => {
-            for (const [key, value] of Object.entries(changes)) setRow.run(key, JSON.stringify(value));
+            for (const [key, value] of Object.entries(changes)) set(key, value);
             return Object.fromEntries(USER_KEYS.map(key => [key, get(key)]));
         }),
     };

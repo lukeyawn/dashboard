@@ -20,15 +20,18 @@ export const TASKS = rows([
     'Clean desk',
     'Back up laptop',
     'Return Amazon package',
-].map(name => ({ name, done_at: null })));
-
-export const DEADLINES = rows([
-    { name: 'Reading response 3', due: '2026-09-28', course: 'RHE 306' },
-    { name: 'Linear Algebra problem set 4: eigenvalues and diagonalization', due: '2026-10-01', course: 'M 340L' },
-    { name: 'OS Shell project', due: '2026-10-02', course: 'CS 439' },
-    { name: 'Stripe online assessment', due: '2026-10-09', course: null },
-    { name: 'Algorithms midterm', due: '2026-10-14', course: 'CS 331' },
-].map(d => ({ ...d, done_at: null })));
+].map((name, i) => ({
+    name, done_at: null, due: null, effort: null, area: null, notes: null, link: null, source: null,
+    priority: i === 1 ? 'high' : i === 9 ? 'low' : 'normal',
+    ...(i === 3 && { effort: 'quick' }),
+})).concat([
+    // the Due soon tile's tasks: overdue, or due within 14 days of the fixed date
+    { name: 'Reading response 3', due: '2026-09-28', area: 'RHE 306' },
+    { name: 'Linear Algebra problem set 4: eigenvalues and diagonalization', due: '2026-10-01', area: 'M 340L', priority: 'high', effort: 'big' },
+    { name: 'OS Shell project', due: '2026-10-02', area: 'CS 439' },
+    { name: 'Stripe online assessment', due: '2026-10-09', area: 'job search' },
+    { name: 'Algorithms midterm', due: '2026-10-14', area: 'CS 331' },
+].map(t => ({ done_at: null, priority: 'normal', effort: null, notes: null, link: null, source: null, ...t }))));
 
 export const COUNTDOWNS = rows([
     { label: 'Thanksgiving break', target_date: '2026-11-25', pinned: true },
@@ -81,7 +84,6 @@ export const WEATHER = {
 
 const FIXTURES = {
     '/api/tasks': () => TASKS,
-    '/api/deadlines': () => DEADLINES,
     '/api/countdowns': () => COUNTDOWNS,
     '/api/goals': () => GOALS,
     '/api/habits': () => HABITS,
