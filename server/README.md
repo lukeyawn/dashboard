@@ -1,0 +1,45 @@
+# server/
+
+The Express server: the REST API under `/api`, the login flow, and, in production, the built frontend. It's one Node process on the VM, listening on `127.0.0.1:3000` behind `tailscale serve` (DESIGN §2, §11.1). It's the only program that opens the SQLite database.
+
+Every `x.test.js` tests the `x.js` beside it. The exceptions are noted below.
+
+## Start-up and wiring
+
+| File | Purpose |
+|---|---|
+| `index.js` | Entry point (`npm start`, `npm run dev:server`). Reads `.env`, refuses weak tokens, opens the database, starts the calendar feed, and listens. |
+| `app.js` | Builds the Express app without listening, so tests can run it on a random port. Mounts every route in order: health and login (no token), then `requireToken`, then the API, then the built frontend. |
+| `testing.js` | Test helper: runs the app on a random port with a fresh in-memory database. |
+| `app.test.js` | Tests health, the tokens, login, the tasks API, the frontend files and the session. |
+| `api.test.js` | Tests every other route. |
+
+## Cross-cutting
+
+| File | Purpose |
+|---|---|
+| `auth.js` | The two tokens, the login cookie, `requireToken`, and the global login rate limit (DESIGN §4, Access). |
+| `errors.js` | `HttpError`, `validate` (zod), and the handler that turns errors into `{ error: { message, details } }`. |
+| `db.js` | Opens SQLite and runs the numbered migrations in `migrations/` in order, tracked by `user_version`. |
+| `crud.js` | The four generic routes every resource gets (list, create, update, delete) and the SQL behind them. Stores build on it. |
+
+## Features
+
+| File | Purpose |
+|---|---|
+| `calendar.js` | Reads Google Calendar's private iCal feed every 10 minutes and expands repeating events into occurrences. Yearly all-day events become birthdays. Keeps the last good copy on disk. |
+| `weather.js` | Current weather and today's high and low from Open-Meteo, cached per location for 30 minutes. |
+| `night.js` | Whether night mode is in force, from the night hours and any early start (DESIGN §6.4). |
+| `today.js` | `GET /api/today`: one snapshot of the day, mainly for Claude. |
+| `status.js` | `GET /api/status`: the last nightly backup and the calendar feed, and any problem the dock should show. |
+| `backup.js` | The full JSON export (`/api/export`) and the nightly snapshot used by `scripts/backup.js`. |
+| `seed.js` | Development data (`npm run seed`). Only fills empty tables. **Never run it on the server.** |
+
+## Subdirectories
+
+| Directory | Purpose |
+|---|---|
+| `routes/` | Express routers. `resources.js` has each stored resource's routes and quick actions (complete, check, increment, advance). `system.js` has settings, night mode, weather, the kiosk's location, events and birthdays. |
+| `stores/` | One file per table: its columns, ordering, filters and any special behavior. Examples: the pinned countdown is unique, goals increment, and habits compute streaks and checks. `stores.test.js` covers them all, and `tasks.test.js` covers tasks in more depth. |
+| `migrations/` | Numbered SQL files, `001-tasks.sql` onward, applied once each in order. Numbers must have no gaps. A new table or column is a new file; an existing file never changes once deployed. |
+| `fixtures/` | `calendar.ics`, a test calendar with repeats, skipped dates, changed occurrences, all-day events and birthdays. The calendar tests read it instead of touching the network. |
