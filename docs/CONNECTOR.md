@@ -408,3 +408,109 @@ Each PR is cut from `main` once the previous one has merged (no stacking). The o
 3. **Suggestions and the agent connector.** The `suggestions` table and API, `/mcp/agent`, the review chip and modal, the agent switch, and the setup steps for the second connector.
 
 **Until then:** you can build the agent's email and calendar reading in claude.ai now, with Gmail and Calendar only (send, draft and delete blocked), and have it write what it would suggest into the chat. That's how to judge its judgment before it touches anything. When the agent connector is ready, add it and change "write it in the chat" to "suggest it on the dashboard".
+
+---
+
+## 15. Files
+
+These are exactly the files each PR adds or changes, based on `main` once #18 is merged. If a PR turns out to need a file that isn't listed, this list is updated in that PR and the reason goes in DECISIONS.md.
+
+**No new dependencies.**
+- MCP's Streamable HTTP transport is already in `@modelcontextprotocol/sdk`.
+- OAuth here is a few hundred lines on `node:crypto`: one client, no registration, no discovery of other servers. A library would bring far more than that.
+- The rate limiter extends the one `auth.js` already has.
+
+### PR 1: the door and the chat connector
+
+**New:**
+
+| File | What it holds |
+|---|---|
+| `server/migrations/010-oauth.sql` | `oauth_connections` (connector, created and last-used times, revoked time and reason, the current and previous refresh-token hashes with their expiry and grace window) and `oauth_access_tokens` (hash, connection, expiry) |
+| `server/migrations/011-change-connection.sql` | `ALTER TABLE changes ADD COLUMN connection_id` (§6) |
+| `server/stores/connections.js` + `.test.js` | Connections and tokens in SQLite: issue, verify, refresh with the grace window, revoke one or all for a connector, list, and the reason a connection ended |
+| `server/oauth.js` + `.test.js` | The protocol: both metadata documents, `GET /oauth/authorize` (check, remember, redirect, set the connect cookie), `POST /oauth/token`, and the pending sign-ins and single-use codes, kept in memory |
+| `server/access.js` + `.test.js` | The connector allow-lists (§5), the actor and connection that come with a credential, and the chat connector's daily write cap, counted from the change record |
+| `server/limits.js` + `.test.js` | The split rate limits (§4): buckets by connection, by visitor address, and per kind of traffic |
+| `server/clean.js` + `.test.js` | Text cleaning and the `https`-only link rule, applied to every connector write (§7) |
+| `server/mcp.js` + `.test.js` | The Streamable HTTP handler. It builds a fresh MCP server per request, with `mcp/tools.js` minus `delete_item`, over a loopback client carrying the caller's own token. The test signs in for real and drives it with the SDK's client. |
+| `server/public.js` + `.test.js` | The public Express app on port 3002: token-first `/mcp`, the `Origin` check, the OAuth routes, logging, and 404 for everything else. The test sends every private route through it. |
+| `server/routes/connections.js` | Tailnet-only: `GET /api/connections`, `POST /api/connections/:id/revoke`, the two connector switches, and `GET` and `POST /api/connect/:id` behind the approval page |
+| `src/connect/Connect.jsx` + `.css` + `.test.jsx` | The approval page at `/connect/:id` |
+| `src/manage/Claude.jsx` + `.test.jsx` | The "Claude" section: switches, connections with Revoke, today's write count |
+| `src/manage/ClaudeChanges.jsx` + `.test.jsx` | Claude's changes: the list, Undo, Undo everything since…, the claude.ai / Claude Code filter |
+| `src/components/ClaudeMark.jsx` + `.css` + `.test.jsx` | The ✦ mark and its card with Undo |
+
+**Changed:**
+
+| File | Change |
+|---|---|
+| `server/auth.js` | `requireToken` also recognizes connector access tokens, through the connections store. The login limiter is untouched. |
+| `server/changes.js` | `actorOf` and the recorded `connection_id` come from the credential; the header only matters for `API_TOKEN`. `list` filters by several actors, by `via` and by `since`. `countSince` serves the write cap. |
+| `server/undo.js` | `undoSince`: newest first, in one transaction, skipping and reporting items edited since |
+| `server/routes/changes.js` | The new list filters and `POST /api/changes/undo-since` |
+| `server/crud.js` | List and get add `claude_change` (`{ id, at, via }`) to rows Claude created, for the ✦ mark |
+| `server/stores/settings.js` | The keys `connector_chat_enabled` and `connector_agent_enabled` |
+| `server/status.js` | The "claude.ai disconnected" problem |
+| `server/app.js` | Wires the connections store, the access check (after `requireToken`), connector text cleaning, the new routes, and `/connect/:id` serving the page |
+| `server/index.js` | Starts the public listener when `PUBLIC_URL` is set, and checks the OAuth settings are present |
+| `shared/schemas.js` | The changes query (actors, via, since), `undoSince`, the connector switch, the OAuth request parameters |
+| `mcp/tools.js` | An option to leave out `delete_item`. Write tools' descriptions say the owner can see and undo every change. |
+| `src/Root.jsx` | Routes `/connect/:id` |
+| `src/manage/Manage.jsx` | Adds the "Claude" section |
+| `src/manage/describeChange.js` + `.test.js` | Says where a change came from: Claude Code, claude.ai or an accepted suggestion |
+| `src/widgets/tasks/TasksWidget.jsx`, `due/DueSoonWidget.jsx`, `countdown/CountdownWidget.jsx`, `job/JobWidget.jsx` | Show `ClaudeMark` on rows with `claude_change`. Each widget's existing test gets a case. |
+| `e2e/fixtures/api.js` | A row with `claude_change`, so the layout check covers the mark |
+| `.env.example` | `PUBLIC_URL`, `PUBLIC_PORT`, `OAUTH_CLIENT_ID`, `OAUTH_CLIENT_SECRET` |
+| `docs/DECISIONS.md` | Choices made while building |
+
+### PR 2: go-live for chats
+
+**New:**
+
+| File | What it holds |
+|---|---|
+| `vm/oauth-client.sh` + `vm/oauth-client.test.js` | Adds `OAUTH_CLIENT_ID` and `OAUTH_CLIENT_SECRET` to `.env` if they're missing, and never changes existing ones. The test runs it twice on a scratch file and checks the file mode. |
+| `vm/CONNECTOR.md` | Your setup (§10), the checks, how to revoke, and the bigger hammer |
+
+**Changed:**
+
+| File | Change |
+|---|---|
+| `vm/setup.sh` | New installs get the OAuth client through `oauth-client.sh` |
+| `vm/SETUP.md` | A pointer to `vm/CONNECTOR.md` |
+| `docs/DECISIONS.md` | What the first real connection taught, including whether Funnel passes `X-Forwarded-For` |
+
+### PR 3: suggestions and the agent connector
+
+**New:**
+
+| File | What it holds |
+|---|---|
+| `server/migrations/012-suggestions.sql` | The `suggestions` table (§7) |
+| `server/stores/suggestions.js` + `.test.js` | Create with the limits and the repeat check, accept through the other stores (as `agent`), dismiss, expire, list |
+| `server/routes/suggestions.js` | `GET` and `POST /api/suggestions`, `POST /api/suggestions/:id/accept` and `…/dismiss` |
+| `mcp/agentTools.js` + `.test.js` | The agent connector's read and suggest tools (§11) |
+| `src/suggestions/ReviewModal.jsx` + `.test.jsx` | The review modal |
+| `src/suggestions/SuggestionCard.jsx` | One card: what it does, the item, the reason, where it came from, Accept, Edit, Dismiss |
+| `src/suggestions/describeSuggestion.js` + `.test.js` | A suggestion in words: *Add task*, *Change due date*, *Move to interview* |
+| `src/suggestions/Suggestions.css` | Their styles |
+
+**Changed:**
+
+| File | Change |
+|---|---|
+| `shared/schemas.js` | The suggestion kinds, their payloads and limits |
+| `server/access.js` | The agent connector's allow-list |
+| `server/oauth.js` | The `/mcp/agent` resource and its metadata |
+| `server/mcp.js` | The `/mcp/agent` handler, with `mcp/agentTools.js` |
+| `server/public.js` | Mounts `/mcp/agent` |
+| `server/status.js` | "Today's suggestion limit is used up" |
+| `server/app.js` | Wires the suggestions store and routes |
+| `mcp/tools.js` | `list_suggestions` for the chat connector |
+| `src/components/Dock.jsx` + `.css` + `.test.jsx` | The ✦ *n* chip, which opens the review modal |
+| `src/manage/Claude.jsx` + `.test.jsx` | The agent switch, today's suggestion count, the last 30 days of suggestions |
+| `e2e/fixtures/api.js` | Pending suggestions |
+| `e2e/layout.spec.js` | Opens the review modal at every resolution |
+| `vm/CONNECTOR.md` | Adding the second connector |
+| `docs/DECISIONS.md` | Choices made while building |
