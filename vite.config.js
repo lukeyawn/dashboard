@@ -16,8 +16,8 @@ export default defineConfig({
         setupFiles: ['src/testing/setup.js'],
         coverage: {
             provider: 'v8',
-            include: ['server/**/*.js', 'shared/**/*.js', 'src/lib/**/*.js', 'src/hooks/**/*.js'],
-            exclude: ['**/*.test.{js,jsx}', 'server/index.js', 'server/seed.js'],
+            include: ['server/**/*.js', 'shared/**/*.js', 'mcp/**/*.js', 'src/lib/**/*.js', 'src/hooks/**/*.js'],
+            exclude: ['**/*.test.{js,jsx}', 'server/index.js', 'server/seed.js', 'mcp/index.js'],
             // DESIGN §13: CI fails below these
             thresholds: { lines: 90, branches: 85 },
         },

@@ -15,6 +15,7 @@ import { createGoalStore } from './stores/goals.js';
 import { createHabitStore } from './stores/habits.js';
 import { createSettingsStore } from './stores/settings.js';
 import { createTaskStore } from './stores/tasks.js';
+import { todaySnapshot } from './today.js';
 
 const NO_CALENDAR = { between: () => ({ events: [], birthdays: [] }) };
 
@@ -61,17 +62,28 @@ export function createApp({ db, apiToken, kioskToken, build = 'dev', distDir = n
 
     app.use('/api', auth.requireToken);
     const settings = createSettingsStore(db);
+    const stores = {
+        tasks: createTaskStore(db),
+        deadlines: createDeadlineStore(db),
+        countdowns: createCountdownStore(db),
+        goals: createGoalStore(db),
+        habits: createHabitStore(db, { now: () => new Date(now()) }),
+        applications: createApplicationStore(db),
+    };
     const { events, birthdays } = calendarRouters(calendar);
-    app.use('/api/tasks', tasksRouter(createTaskStore(db)));
-    app.use('/api/deadlines', deadlinesRouter(createDeadlineStore(db)));
-    app.use('/api/countdowns', countdownsRouter(createCountdownStore(db)));
-    app.use('/api/goals', goalsRouter(createGoalStore(db)));
-    app.use('/api/habits', habitsRouter(createHabitStore(db, { now: () => new Date(now()) })));
-    app.use('/api/applications', applicationsRouter(createApplicationStore(db), now));
+    app.use('/api/tasks', tasksRouter(stores.tasks));
+    app.use('/api/deadlines', deadlinesRouter(stores.deadlines));
+    app.use('/api/countdowns', countdownsRouter(stores.countdowns));
+    app.use('/api/goals', goalsRouter(stores.goals));
+    app.use('/api/habits', habitsRouter(stores.habits));
+    app.use('/api/applications', applicationsRouter(stores.applications, now));
     app.use('/api/settings', settingsRouter(settings));
     app.use('/api/night', nightRouter(settings, now));
     app.use('/api/location', locationRouter(settings, now));
     if (weatherAt) app.use('/api/weather', weatherRouter(settings, weatherAt, now));
+    app.get('/api/today', async (req, res) => {
+        res.json(await todaySnapshot({ stores, settings, calendar, weatherAt, now: new Date(now()) }));
+    });
     app.use('/api/events', events);
     // every table as one JSON document (DESIGN §2)
     app.get('/api/export', (req, res) => {
