@@ -66,7 +66,7 @@ export function createApp({ db, apiToken, kioskToken, build = 'dev', distDir = n
     app.use('/api/countdowns', countdownsRouter(createCountdownStore(db)));
     app.use('/api/goals', goalsRouter(createGoalStore(db)));
     app.use('/api/habits', habitsRouter(createHabitStore(db, { now: () => new Date(now()) })));
-    app.use('/api/applications', applicationsRouter(createApplicationStore(db)));
+    app.use('/api/applications', applicationsRouter(createApplicationStore(db), now));
     app.use('/api/settings', settingsRouter(settings));
     app.use('/api/night', nightRouter(settings, now));
     app.use('/api/location', locationRouter(settings, now));
