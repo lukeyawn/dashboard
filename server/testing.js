@@ -9,8 +9,8 @@ export const KIOSK_TOKEN = 'test-kiosk-token-0123456789abcdefghijklmn';
 // the claude.ai connector's settings in tests (docs/CONNECTOR.md); the public
 // and tailnet addresses are only names here, since the tests call the
 // listeners on their random ports
-export const PUBLIC_URL = 'https://dashboard.test:8443';
-export const TAILNET_URL = 'https://dashboard.test';
+export const PUBLIC_URL = 'https://dashboard.test';
+export const TAILNET_URL = 'https://dashboard.test:8443';
 export const CLIENTS = {
     chat: { id: 'test-chat-client-0123456789abcdefghij', secret: 'test-chat-secret-0123456789abcdefghij' },
     agent: { id: 'test-agent-client-0123456789abcdefghi', secret: 'test-agent-secret-0123456789abcdefghi' },

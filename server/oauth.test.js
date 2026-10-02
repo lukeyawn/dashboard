@@ -320,7 +320,8 @@ describe('token', () => {
 describe('connectorConfig', () => {
     const strong = 'x'.repeat(32);
     const env = {
-        PUBLIC_URL: 'https://dashboard.tail.ts.net:8443',
+        PUBLIC_URL: 'https://dashboard.tail.ts.net',
+        TAILNET_URL: 'https://dashboard.tail.ts.net:8443',
         OAUTH_CHAT_CLIENT_ID: `chat${strong}`, OAUTH_CHAT_CLIENT_SECRET: strong, OAUTH_REFRESH_KEY: strong,
     };
 
@@ -328,22 +329,28 @@ describe('connectorConfig', () => {
         expect(connectorConfig({})).toBeNull();
     });
 
-    it('reads the settings and works out the tailnet address', () => {
+    it('reads the settings', () => {
         expect(connectorConfig(env)).toEqual({
-            publicUrl: 'https://dashboard.tail.ts.net:8443',
-            tailnetUrl: 'https://dashboard.tail.ts.net',
+            publicUrl: 'https://dashboard.tail.ts.net',
+            tailnetUrl: 'https://dashboard.tail.ts.net:8443',
             clients: { chat: { id: `chat${strong}`, secret: strong } },
             refreshKey: strong,
         });
-        expect(connectorConfig({ ...env, TAILNET_URL: 'https://other.ts.net/' }).tailnetUrl).toBe('https://other.ts.net');
+        expect(connectorConfig({ ...env, PUBLIC_URL: 'https://dashboard.tail.ts.net:443/' }).publicUrl).toBe('https://dashboard.tail.ts.net');
         const withAgent = connectorConfig({ ...env, OAUTH_AGENT_CLIENT_ID: `agent${strong}`, OAUTH_AGENT_CLIENT_SECRET: strong });
         expect(withAgent.clients.agent.id).toBe(`agent${strong}`);
     });
 
     it('refuses a bad address, weak secrets or a shared client id', () => {
         expect(() => connectorConfig({ ...env, PUBLIC_URL: 'not a url' })).toThrow(/full address/);
-        expect(() => connectorConfig({ ...env, PUBLIC_URL: 'http://dashboard.tail.ts.net:8443' })).toThrow(/https/);
-        expect(() => connectorConfig({ ...env, PUBLIC_URL: 'https://dashboard.tail.ts.net:8443/mcp' })).toThrow(/no path/);
+        expect(() => connectorConfig({ ...env, PUBLIC_URL: 'http://dashboard.tail.ts.net' })).toThrow(/https/);
+        expect(() => connectorConfig({ ...env, PUBLIC_URL: 'https://dashboard.tail.ts.net/mcp' })).toThrow(/no path/);
+        // claude.ai can't reach any other port
+        expect(() => connectorConfig({ ...env, PUBLIC_URL: 'https://dashboard.tail.ts.net:8443' })).toThrow(/no port/);
+        expect(() => connectorConfig({ ...env, TAILNET_URL: undefined })).toThrow(/TAILNET_URL must be set/);
+        // elsewhere, the approval page would never get the connect cookie
+        expect(() => connectorConfig({ ...env, TAILNET_URL: 'https://other.tail.ts.net:8443' })).toThrow(/same host/);
+        expect(() => connectorConfig({ ...env, TAILNET_URL: 'https://dashboard.tail.ts.net' })).toThrow(/another port/);
         expect(() => connectorConfig({ ...env, OAUTH_CHAT_CLIENT_SECRET: 'short' })).toThrow(/OAUTH_CHAT_CLIENT_SECRET/);
         expect(() => connectorConfig({ ...env, OAUTH_REFRESH_KEY: undefined })).toThrow(/OAUTH_REFRESH_KEY/);
         expect(() => connectorConfig({ ...env, OAUTH_AGENT_CLIENT_ID: `chat${strong}`, OAUTH_AGENT_CLIENT_SECRET: strong })).toThrow(/different/);

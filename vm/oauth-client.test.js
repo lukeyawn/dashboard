@@ -24,14 +24,15 @@ const run = (file, ...args) => promisify(execFile)('bash', [SCRIPT, ...args], { 
 const parse = file => Object.fromEntries(fs.readFileSync(file, 'utf8').trim().split('\n').map(line => line.split(/=(.*)/s).slice(0, 2)));
 
 describe('oauth-client.sh', () => {
-    it('adds long random credentials and PUBLIC_URL, readable only by the owner, and the server accepts them', async () => {
+    it('adds long random credentials and the addresses, readable only by the owner, and the server accepts them', async () => {
         const file = scratch('API_TOKEN=abc');
-        const { code, stdout } = await run(file, 'https://dashboard.tail.ts.net:8443');
+        const { code, stdout } = await run(file, 'https://dashboard.tail.ts.net');
         expect(code).toBe(0);
         expect(stdout).toContain('Added to');
         const env = parse(file);
         expect(env.API_TOKEN).toBe('abc');
-        expect(env.PUBLIC_URL).toBe('https://dashboard.tail.ts.net:8443');
+        expect(env.PUBLIC_URL).toBe('https://dashboard.tail.ts.net');
+        expect(env.TAILNET_URL).toBe('https://dashboard.tail.ts.net:8443');
         for (const key of ['OAUTH_CHAT_CLIENT_ID', 'OAUTH_CHAT_CLIENT_SECRET', 'OAUTH_REFRESH_KEY']) {
             expect(env[key]).toMatch(/^[\w-]{40,}$/);
         }
@@ -40,18 +41,27 @@ describe('oauth-client.sh', () => {
     });
 
     it('never changes what is already there', async () => {
-        const file = scratch('PUBLIC_URL=https://first.ts.net:8443\n');
+        const file = scratch('PUBLIC_URL=https://first.ts.net\nTAILNET_URL=https://first.ts.net:8443\n');
         await run(file);
         const first = fs.readFileSync(file, 'utf8');
-        const again = await run(file, 'https://second.ts.net:8443');
+        const again = await run(file, 'https://first.ts.net');
         expect(again.stdout).toContain('Nothing to add');
         expect(fs.readFileSync(file, 'utf8')).toBe(first);
-        expect(parse(file).PUBLIC_URL).toBe('https://first.ts.net:8443');
     });
 
-    it('refuses a PUBLIC_URL that is not the Funnel port, and a missing .env', async () => {
+    it('refuses to change PUBLIC_URL, rather than silently keeping the old one', async () => {
+        const file = scratch('PUBLIC_URL=https://first.ts.net:8443\n');
+        const changed = await run(file, 'https://second.ts.net');
+        expect(changed.code).toBe(1);
+        expect(changed.stderr).toMatch(/delete the PUBLIC_URL and TAILNET_URL lines/);
+        expect(fs.readFileSync(file, 'utf8')).toBe('PUBLIC_URL=https://first.ts.net:8443\n');
+    });
+
+    it('refuses a PUBLIC_URL with a port or a path, and a missing .env', async () => {
         const file = scratch('');
-        expect((await run(file, 'https://dashboard.tail.ts.net')).code).toBe(1);
+        for (const url of ['https://dashboard.tail.ts.net:8443', 'https://dashboard.tail.ts.net/', 'http://dashboard.tail.ts.net']) {
+            expect((await run(file, url)).code).toBe(1);
+        }
         expect(fs.readFileSync(file, 'utf8')).toBe('');
         expect((await run(path.join(dir, 'missing')).then(r => r.code))).toBe(1);
     });

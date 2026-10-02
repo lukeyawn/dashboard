@@ -1,9 +1,10 @@
 #!/usr/bin/env bash
 # Adds what the claude.ai connector needs to .env (docs/CONNECTOR.md §10):
 # the chat client's ID and secret and the refresh-token key, each long and
-# random, and PUBLIC_URL when it's given. Never changes a value that's
-# already there, so it's safe to run again. Run on the VM:
-#   sudo bash /opt/dashboard/vm/oauth-client.sh https://dashboard.<tailnet>.ts.net:8443
+# random, and PUBLIC_URL and TAILNET_URL when the public address is given.
+# Never changes a value that's already there, so it's safe to run again. Run
+# on the VM:
+#   sudo bash /opt/dashboard/vm/oauth-client.sh https://dashboard.<tailnet>.ts.net
 # ENV_FILE overrides which file (for tests). Restart the dashboard afterwards.
 set -euo pipefail
 
@@ -28,11 +29,24 @@ add() {
 }
 
 if [ -n "$PUBLIC_URL" ]; then
+    # no port: claude.ai only connects to 443 (docs/CONNECTOR.md §3)
     case "$PUBLIC_URL" in
-        https://*:8443) ;;
-        *) echo "PUBLIC_URL should look like https://dashboard.<tailnet>.ts.net:8443" >&2; exit 1 ;;
+        https://*:* | https://*/* | https://) bad=1 ;;
+        https://*) bad= ;;
+        *) bad=1 ;;
     esac
+    if [ -n "$bad" ]; then
+        echo "PUBLIC_URL should look like https://dashboard.<tailnet>.ts.net, with no port or path: claude.ai only connects to port 443" >&2
+        exit 1
+    fi
+    existing=$(sed -n 's/^PUBLIC_URL=//p' "$ENV_FILE")
+    if [ -n "$existing" ] && [ "$existing" != "$PUBLIC_URL" ]; then
+        echo "$ENV_FILE already has PUBLIC_URL=$existing. To change it, delete the PUBLIC_URL and TAILNET_URL lines, then run this again." >&2
+        exit 1
+    fi
     add PUBLIC_URL "$PUBLIC_URL"
+    # the dashboard itself, tailnet-only on 8443
+    add TAILNET_URL "$PUBLIC_URL:8443"
 fi
 add OAUTH_CHAT_CLIENT_ID "chat-$(token)"
 add OAUTH_CHAT_CLIENT_SECRET "$(token)"

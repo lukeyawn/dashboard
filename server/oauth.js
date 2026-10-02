@@ -40,8 +40,9 @@ function withParams(base, params) {
 }
 
 // connections:  the store (server/stores/connections.js)
-// publicUrl:    the public listener's origin, e.g. https://dashboard.<tailnet>.ts.net:8443
-// tailnetUrl:   the dashboard's own origin, where the approval page is
+// publicUrl:    the public listener's origin, e.g. https://dashboard.<tailnet>.ts.net
+// tailnetUrl:   the dashboard's own origin, where the approval page is, e.g.
+//               https://dashboard.<tailnet>.ts.net:8443
 // clients:      { chat: { id, secret }, agent?: { id, secret } }
 // isEnabled:    connector => whether its kill switch is on
 export function createOAuth({ connections, publicUrl, tailnetUrl, clients, isEnabled = () => true, now = Date.now }) {
@@ -280,14 +281,26 @@ export function createOAuth({ connections, publicUrl, tailnetUrl, clients, isEna
 // set (the public listener stays off). Throws a message for anything missing.
 export function connectorConfig(env) {
     if (!env.PUBLIC_URL) return null;
-    let url;
-    try {
-        url = new URL(env.PUBLIC_URL);
-    } catch {
-        throw new Error('PUBLIC_URL must be a full address, such as https://dashboard.<tailnet>.ts.net:8443');
-    }
-    if (url.protocol !== 'https:' || url.pathname !== '/' || url.search || url.hash) {
-        throw new Error('PUBLIC_URL must be an https origin with no path, such as https://dashboard.<tailnet>.ts.net:8443');
+    const origin = (name, example) => {
+        if (!env[name]) throw new Error(`${name} must be set, such as ${example}`);
+        let url;
+        try {
+            url = new URL(env[name]);
+        } catch {
+            throw new Error(`${name} must be a full address, such as ${example}`);
+        }
+        if (url.protocol !== 'https:' || url.pathname !== '/' || url.search || url.hash) {
+            throw new Error(`${name} must be an https origin with no path, such as ${example}`);
+        }
+        return url;
+    };
+    const publicUrl = origin('PUBLIC_URL', 'https://dashboard.<tailnet>.ts.net');
+    // claude.ai's servers only connect to port 443 (docs/CONNECTOR.md §3)
+    if (publicUrl.port) throw new Error('PUBLIC_URL must have no port, because claude.ai only connects to port 443');
+    const tailnetUrl = origin('TAILNET_URL', `https://${publicUrl.hostname}:8443`);
+    // the connect cookie only reaches the approval page on the same host
+    if (tailnetUrl.hostname !== publicUrl.hostname || tailnetUrl.origin === publicUrl.origin) {
+        throw new Error(`TAILNET_URL must be the dashboard's own address: the same host as PUBLIC_URL on another port, such as https://${publicUrl.hostname}:8443`);
     }
     const strong = (name, value) => {
         if (typeof value !== 'string' || value.length < 32) throw new Error(`${name} must be set to at least 32 random characters (vm/oauth-client.sh makes them)`);
@@ -300,13 +313,9 @@ export function connectorConfig(env) {
         clients.agent = { id: strong('OAUTH_AGENT_CLIENT_ID', env.OAUTH_AGENT_CLIENT_ID), secret: strong('OAUTH_AGENT_CLIENT_SECRET', env.OAUTH_AGENT_CLIENT_SECRET) };
         if (clients.agent.id === clients.chat.id) throw new Error('The chat and agent clients need different IDs');
     }
-    const publicUrl = url.origin;
-    // the dashboard itself: the same host on the default HTTPS port
-    const tailnet = new URL(publicUrl);
-    tailnet.port = '';
     return {
-        publicUrl,
-        tailnetUrl: env.TAILNET_URL ? new URL(env.TAILNET_URL).origin : tailnet.origin,
+        publicUrl: publicUrl.origin,
+        tailnetUrl: tailnetUrl.origin,
         clients,
         refreshKey: strong('OAUTH_REFRESH_KEY', env.OAUTH_REFRESH_KEY),
     };

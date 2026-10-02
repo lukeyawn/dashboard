@@ -1,7 +1,7 @@
 #!/usr/bin/env node
 // The dashboard's MCP server for Claude Desktop and Claude Code (DESIGN §5).
 // Runs over stdio on the laptop and talks to the dashboard's API:
-//   DASHBOARD_URL=https://dashboard.<tailnet>.ts.net DASHBOARD_TOKEN=<API_TOKEN> node mcp/index.js
+//   DASHBOARD_URL=https://dashboard.<tailnet>.ts.net:8443 DASHBOARD_TOKEN=<API_TOKEN> node mcp/index.js
 // See mcp/README.md for adding it to Claude.
 import { McpServer } from '@modelcontextprotocol/sdk/server/mcp.js';
 import { StdioServerTransport } from '@modelcontextprotocol/sdk/server/stdio.js';

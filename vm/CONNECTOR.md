@@ -2,7 +2,9 @@
 
 Written for: Luke, doing this once, after the connector PR is merged. About 15 minutes. The design is in [docs/CONNECTOR.md](../docs/CONNECTOR.md).
 
-This opens one public door, port 8443, with only the claude.ai connector behind it, and connects claude.ai chats to it. The dashboard itself, on the usual address, stays reachable only on your tailnet. The agent's suggest-only connector comes later, with its own steps.
+This opens one public door, port 443, with only the claude.ai connector behind it, and connects claude.ai chats to it. The dashboard itself moves to port 8443, `https://dashboard.tail354c76.ts.net:8443`, which stays reachable only on your tailnet. It has to be this way round, because claude.ai's servers only connect to port 443 (docs/CONNECTOR.md §3). The agent's suggest-only connector comes later, with its own steps.
+
+**Already set up on port 8443?** Follow [Moving the door to port 443](#moving-the-door-to-port-443) instead, then steps 6 and 7.
 
 ## 1. Deploy
 
@@ -18,29 +20,33 @@ It runs the two new migrations (the sign-in tables, and a column in the change r
 
 ```sh
 ssh dashboard
-sudo bash /opt/dashboard/vm/oauth-client.sh https://dashboard.tail354c76.ts.net:8443
+sudo bash /opt/dashboard/vm/oauth-client.sh https://dashboard.tail354c76.ts.net
 sudo systemctl restart dashboard
 sudo journalctl -u dashboard -n 5
 ```
 
-- **The script** adds `PUBLIC_URL`, the client ID and secret, and the refresh-token key to `/opt/dashboard/.env`. It never changes anything already there, so running it twice is harmless.
-- **The journal** should end with `claude.ai connector on http://127.0.0.1:3002, public as https://dashboard.tail354c76.ts.net:8443`.
+- **The script** adds `PUBLIC_URL`, `TAILNET_URL` (the same address on `:8443`), the client ID and secret, and the refresh-token key to `/opt/dashboard/.env`. It never changes anything already there, so running it twice is harmless.
+- **The journal** should end with `claude.ai connector on http://127.0.0.1:3002, public as https://dashboard.tail354c76.ts.net`.
 
-## 3. Open port 8443 with Tailscale Funnel
+## 3. Move the dashboard to 8443, and open 443 with Tailscale Funnel
 
-Still on the VM:
+Still on the VM. The order matters: port 443 must never be public while it still leads to the dashboard.
 
 ```sh
-sudo tailscale funnel --bg --https=8443 http://127.0.0.1:3002
+sudo tailscale serve --https=443 off
+sudo tailscale serve --bg --https=8443 http://127.0.0.1:3000
+sudo tailscale funnel --bg --https=443 http://127.0.0.1:3002
 tailscale funnel status
 ```
 
-- **If it says Funnel isn't enabled** for this tailnet or machine, it prints a link. Open it, approve, and run the command again. That adds the `funnel` attribute to your tailnet policy.
+- **If it says Funnel isn't enabled** for this tailnet or machine, it prints a link. Open it, approve, and run the last command again. That adds the `funnel` attribute to your tailnet policy.
 - **`tailscale funnel status`** should show two entries:
-  - `https://dashboard.tail354c76.ts.net:8443 (Funnel on)`, proxying to `http://127.0.0.1:3002`;
-  - `https://dashboard.tail354c76.ts.net (tailnet only)`, the dashboard as before.
+  - `https://dashboard.tail354c76.ts.net (Funnel on)`, proxying to `http://127.0.0.1:3002`;
+  - `https://dashboard.tail354c76.ts.net:8443 (tailnet only)`, proxying to `http://127.0.0.1:3000`, the dashboard.
 
-  If port 443 ever says Funnel on, turn it off at once: `sudo tailscale funnel --https=443 off`.
+  If port 8443 ever says Funnel on, turn it off at once: `sudo tailscale funnel --https=8443 off`.
+
+Then change the dashboard's address everywhere you use it (see [Your devices](#your-devices)).
 
 ## 4. Check the door from outside
 
@@ -48,11 +54,11 @@ On your phone, with **Wi-Fi off and Tailscale disconnected**:
 
 | Open | You should see |
 |---|---|
-| `https://dashboard.tail354c76.ts.net:8443/api/health` | `{"error":{"message":"Not found",…}}`. The API isn't there. |
-| `https://dashboard.tail354c76.ts.net:8443/.well-known/oauth-authorization-server` | A short JSON description of the sign-in |
-| `https://dashboard.tail354c76.ts.net` | Nothing loads. The dashboard is tailnet-only. |
+| `https://dashboard.tail354c76.ts.net/api/health` | `{"error":{"message":"Not found",…}}`. The API isn't there. |
+| `https://dashboard.tail354c76.ts.net/.well-known/oauth-authorization-server` | A short JSON description of the sign-in |
+| `https://dashboard.tail354c76.ts.net:8443` | Nothing loads. The dashboard is tailnet-only. |
 
-Then reconnect Tailscale. On the VM, `sudo journalctl -u dashboard -n 20 | grep public` shows those requests. If they say `from=` followed by your phone's carrier address, rather than `from=unknown`, Funnel passes visitors' addresses on and the per-visitor limits work. Note which, for DECISIONS.md.
+Then reconnect Tailscale. On the VM, `sudo journalctl -u dashboard -n 20 | grep public` shows those requests, with `from=` followed by your phone's carrier address.
 
 ## 5. Add the connector in claude.ai
 
@@ -61,9 +67,9 @@ Do this on the **laptop**, in the browser where you're logged in to the dashboar
 1. On the VM, show the client ID and secret: `sudo grep '^OAUTH_CHAT_CLIENT' /opt/dashboard/.env`. Treat the secret like your tokens: paste it only into claude.ai.
 2. In claude.ai: **Customize → Connectors → Add custom connector**.
    - Name: `Dashboard`
-   - URL: `https://dashboard.tail354c76.ts.net:8443/mcp`
+   - URL: `https://dashboard.tail354c76.ts.net/mcp`, with no port
    - **Advanced settings** (or "Use your own OAuth client"): the client ID and the client secret.
-3. Click **Add**, then **Connect**. Your browser goes to the dashboard's **Connect claude.ai** page. Check that it says *Dashboard* and *can't delete anything*, then tap **Approve**. You land back in claude.ai, connected.
+3. Click **Add**, then **Connect**. Your browser goes to the dashboard's **Connect claude.ai** page, on `:8443`. Check that it says *Dashboard* and *can't delete anything*, then tap **Approve**. You land back in claude.ai, connected.
 
 ## 6. Set the connector's permissions in claude.ai
 
@@ -89,11 +95,52 @@ In a new claude.ai chat with the Dashboard connector on:
 
 **If you're testing the agent's email reading** as a scheduled task: it can reach this connector too, and could write to the dashboard directly. Run the trial as chats you start yourself for now, or check Claude's changes after its runs (docs/CONNECTOR.md §14).
 
+## Your devices
+
+The dashboard's address is now `https://dashboard.tail354c76.ts.net:8443`. You stay logged in, because cookies don't depend on the port. Update:
+
+- **Bookmarks, and the phone's home-screen icon.** Remove the icon and add it again from the new address.
+- **Claude Code's dashboard MCP server.** In WSL, from the repo, with your `API_TOKEN`:
+  ```sh
+  claude mcp remove dashboard --scope user
+  claude mcp add dashboard --scope user \
+    --env DASHBOARD_URL=https://dashboard.tail354c76.ts.net:8443 \
+    --env DASHBOARD_TOKEN=<API_TOKEN> \
+    -- node "$(pwd)/mcp/index.js"
+  ```
+- **The kiosk,** once it's set up: `kiosk/SETUP.md` already uses `:8443`.
+
+## Moving the door to port 443
+
+For a server where the door was set up on port 8443. claude.ai never reached it there. From the laptop, on `main` with this change pulled:
+
+1. **Change the addresses in `.env` first.** The new server refuses to start with a port in `PUBLIC_URL`, so this comes before the deploy. It runs the new `oauth-client.sh` from your laptop's copy:
+   ```sh
+   ssh dashboard "sudo sed -i '/^PUBLIC_URL=/d' /opt/dashboard/.env"
+   ssh dashboard sudo bash -s -- https://dashboard.tail354c76.ts.net < vm/oauth-client.sh
+   ```
+   It should say `Added to /opt/dashboard/.env: PUBLIC_URL TAILNET_URL`. The client ID, secret and refresh key stay as they were.
+2. **Deploy:** `vm/deploy.sh`. Then `ssh dashboard sudo journalctl -u dashboard -n 5` should end with `public as https://dashboard.tail354c76.ts.net`.
+3. **Swap the ports,** on the VM. Again, 443 is never public while it leads to the dashboard:
+   ```sh
+   ssh dashboard
+   sudo tailscale funnel --https=8443 off
+   sudo tailscale serve --https=443 off
+   sudo tailscale serve --bg --https=8443 http://127.0.0.1:3000
+   sudo tailscale funnel --bg --https=443 http://127.0.0.1:3002
+   tailscale funnel status
+   ```
+   Check the status as in step 3, and the door from outside as in step 4.
+4. **Update [your devices](#your-devices).**
+5. **In claude.ai,** remove the Dashboard connector and add it again with `https://dashboard.tail354c76.ts.net/mcp` and the same client ID and secret, as in step 5. Then steps 6 and 7.
+
 ## If something goes wrong
 
 | Symptom | Likely cause |
 |---|---|
-| claude.ai says it couldn't connect | Funnel isn't on (step 3), or the service didn't pick up `.env` (step 2's journal line). `sudo journalctl -u dashboard -n 30 \| grep public` shows whether claude.ai's requests arrive. |
+| claude.ai says it couldn't connect | Funnel isn't on for 443 (step 3), the connector's URL has a port, or the service didn't pick up `.env` (step 2's journal line). `sudo journalctl -u dashboard -n 30 \| grep public` shows whether claude.ai's requests arrive. |
+| The service won't start after a deploy | `sudo journalctl -u dashboard -n 5` says which setting is wrong. A `PUBLIC_URL` with a port, or a missing `TAILNET_URL`, means [Moving the door to port 443](#moving-the-door-to-port-443), step 1. |
+| The dashboard shows `{"error":{"message":"Not found"…` | That's the public door. The dashboard is on `:8443`. |
 | The Connect page doesn't load | This device isn't on the tailnet. |
 | "Started in a different browser" | The Connect click and the approval happened in different browsers. Start again from claude.ai in the browser where you're logged in to the dashboard. |
 | "This sign-in has expired" | More than 5 minutes passed. Click Connect again. |
@@ -106,5 +153,5 @@ In a new claude.ai chat with the Dashboard connector on:
 |---|---|
 | One connection | `/manage` → **Claude** → **Revoke** |
 | Every chat connection, at once | `/manage` → **Claude** → **Switch off** (on the kiosk too). Turn it back on and reconnect from claude.ai. |
-| The door itself | On the VM: `sudo tailscale funnel --https=8443 off`. Nothing from the internet reaches the server any more. |
+| The door itself | On the VM: `sudo tailscale funnel --https=443 off`. Nothing from the internet reaches the server any more. The dashboard on 8443 is unaffected. |
 | A new client secret | Delete the `OAUTH_CHAT_CLIENT_SECRET` line from `/opt/dashboard/.env`, run `oauth-client.sh` again, restart, then remove and re-add the connector in claude.ai with the new secret. |

@@ -14,7 +14,7 @@ function setup({ configured = true } = {}) {
     ];
     const api = fakeServer({
         'GET /api/connectors': () => [
-            { name: 'chat', configured, enabled, url: configured ? 'https://dashboard.test:8443/mcp' : null, writes_today: 34, write_cap: 100 },
+            { name: 'chat', configured, enabled, url: configured ? 'https://dashboard.test/mcp' : null, writes_today: 34, write_cap: 100 },
             { name: 'agent', configured: false, enabled: true, url: null },
         ],
         'PUT /api/connectors/:name': ({ body }) => {
@@ -35,7 +35,7 @@ describe('Claude on /manage', () => {
     it("shows each set-up connector with its address and today's count, and the connections", async () => {
         setup();
         expect(await screen.findByText('claude.ai chats: on')).toBeTruthy();
-        expect(screen.getByText(/https:\/\/dashboard\.test:8443\/mcp · 34 of 100 changes today/)).toBeTruthy();
+        expect(screen.getByText(/https:\/\/dashboard\.test\/mcp · 34 of 100 changes today/)).toBeTruthy();
         expect(screen.queryByText(/The agent/)).toBeNull();
         expect(await screen.findByText(/^Connected Oct 1/)).toBeTruthy();
         expect(screen.getByText('Unused for 30 days')).toBeTruthy();

@@ -60,12 +60,12 @@ MCP server (mcp/) ─────┐       ┌───────────�
                        │       │ Google Cloud VM (free-tier e2-micro)        │
 Kiosk: Pi 5 + Chromium ┼ HTTPS ► Express (server/) ──► SQLite (data/)       │
                        │ over  │   serves /api and the built frontend        │
-Phone / laptop browser ┘ Tailscale                                           │
+Phone / laptop browser ┘ Tailscale, port 8443                                │
                                └──────────────┬──────────────────────────────┘
                                               ├─ Litestream, continuous ────► Cloud Storage bucket
                                               └─ nightly snapshot + export ─► Google Drive folder
 
-claude.ai (chats, agent) ── HTTPS, Funnel port 8443 ──► /mcp and /mcp/agent only, on their own listener (phase 8, CONNECTOR.md)
+claude.ai (chats, agent) ── HTTPS, Funnel port 443 ──► /mcp and /mcp/agent only, on their own listener (phase 8, CONNECTOR.md)
 ```
 
 **Stack:**
@@ -259,10 +259,10 @@ The dashboard must be reachable from the kiosk, the phone and the laptop, from a
 
 **There are two locks.** Tailscale decides who can reach the server at all. The token decides who can read or change the data, among whatever does reach it. With either one alone, a single mistake would expose everything: a firewall slip, a forgotten device on the tailnet, or opening the MCP endpoint to claude.ai later.
 
-**Network: Tailscale.** The VM, the Pi, the phone and the laptop join one private Tailscale network. `tailscale serve` on the VM gives the dashboard an HTTPS address (`https://dashboard.<tailnet>.ts.net`) that only your own devices can reach.
+**Network: Tailscale.** The VM, the Pi, the phone and the laptop join one private Tailscale network. `tailscale serve` on the VM gives the dashboard an HTTPS address (`https://dashboard.<tailnet>.ts.net:8443`) that only your own devices can reach. It's on port 8443 because claude.ai's connector needs 443 (phase 8).
 - The VM's firewall allows no inbound connections at all. Tailscale connects outward, and SSH goes through Tailscale SSH.
 - **Why not a public URL** (a Cloudflare tunnel or an open port): with Tailscale the server is never visible on the internet, so a leaked or guessed token alone isn't enough to get in.
-- **The one exception (phase 8):** claude.ai has to reach remote MCP endpoints, so Tailscale Funnel exposes a separate listener, on port 8443, that serves only those endpoints and their sign-in. Port 443, the dashboard and `/api` stay tailnet-only. Approving a sign-in still happens on the tailnet (§5.3).
+- **The one exception (phase 8):** claude.ai has to reach remote MCP endpoints, so Tailscale Funnel exposes a separate listener, on port 443, that serves only those endpoints and their sign-in. claude.ai only connects to port 443. The dashboard and `/api`, on port 8443, stay tailnet-only. Approving a sign-in still happens on the tailnet (§5.3).
 
 **Tokens:** two long random tokens in `.env`: `API_TOKEN` for you (browsers and Claude) and `KIOSK_TOKEN` for the Pi.
 - Both give full access. They're separate so the server can tell the kiosk apart, for its location reports, and so a lost or stolen Pi can be locked out by changing only its token.
@@ -274,7 +274,7 @@ The dashboard must be reachable from the kiosk, the phone and the laptop, from a
 | Client | How it sends the token |
 |---|---|
 | Phone or laptop browser (`/manage`, dashboard) | Any `/api` request without a valid cookie gets 401, and the page shows the login screen. You paste `API_TOKEN` once. `POST /api/login` checks it and sets an `HttpOnly`, `Secure`, `SameSite=Strict` cookie that lasts a year. Page scripts can't read it. |
-| Kiosk | The autostart opens `https://dashboard.<tailnet>.ts.net/login?token=…` with `KIOSK_TOKEN`, read from a file on the Pi that only the kiosk user can read. The server sets the same kind of cookie and redirects to `/`, which removes the token from the address bar. This repeats every boot, so there's nothing to type on the touchscreen. |
+| Kiosk | The autostart opens `https://dashboard.<tailnet>.ts.net:8443/login?token=…` with `KIOSK_TOKEN`, read from a file on the Pi that only the kiosk user can read. The server sets the same kind of cookie and redirects to `/`, which removes the token from the address bar. This repeats every boot, so there's nothing to type on the touchscreen. |
 | MCP server | `Authorization: Bearer <API_TOKEN>`, from the MCP server's own config on the laptop. |
 | Night-mode script on the Pi | `Authorization: Bearer <KIOSK_TOKEN>`. |
 
@@ -358,9 +358,9 @@ The full design is in [CONNECTOR.md](CONNECTOR.md). In short:
 - **Two connectors.**
   - **`/mcp`, for claude.ai chats,** adds and changes things directly, with no deleting.
   - **`/mcp/agent`, for the scheduled agent,** reads and suggests.
-  - Both are remote MCP endpoints (Streamable HTTP) at `https://dashboard.<tailnet>.ts.net:8443`. Claude Code keeps full access through the stdio server.
+  - Both are remote MCP endpoints (Streamable HTTP) at `https://dashboard.<tailnet>.ts.net`, on port 443. Claude Code keeps full access through the stdio server.
   - **The owner's call:** direct adding from chats is worth more than a guarantee that the agent only suggests, given that everything Claude does can be found and undone, plus the backups (§5.2, point 1).
-- **Tailscale Funnel, on port 8443 only,** to a separate listener that mounts just the two endpoints, the sign-in endpoints and their metadata. Funnel works per port, not per path, so port 443 (the dashboard and `/api`) stays tailnet-only.
+- **Tailscale Funnel, on port 443 only,** to a separate listener that mounts just the two endpoints, the sign-in endpoints and their metadata. claude.ai only connects to port 443. Funnel works per port, not per path, so the dashboard and `/api` moved to port 8443, which stays tailnet-only.
 - **Sign-in is OAuth 2.1** per the MCP authorization spec, with one pre-registered client per connector, whose ID and secret are entered in claude.ai. The client a token was issued to decides what it can do.
   - The public sign-in endpoint shows no page and asks for no secret. It redirects to an approval page on the tailnet, which needs your login and the browser that started the request.
   - Access tokens last an hour; refresh tokens are replaced on every use.
@@ -831,7 +831,7 @@ The rule is **one complete vertical slice before any breadth**: a few real widge
 | **5. Touch and editing** | The touch rules (§6.1), pending actions for deadlines and jobs, the inline add row, shared editors, the `/manage` page, and the dashboard modal with ✎ buttons. |
 | **6. Kiosk** | Everything in §11.2: Chromium flags and startup, kiosk login, squeekboard, night mode with the moon button, and the reload rules (§6.4). |
 | **7. Agent-ready data** | Deadlines merged into tasks, with priority, effort, area, notes, link and source; the Due soon and Tasks tiles; the change record with History and Undo; sources and no duplicates; the status line. (§5.5) |
-| **8. The public door** | Three PRs ([CONNECTOR.md §14](CONNECTOR.md#14-how-its-built-three-pull-requests-one-after-another)): the credential allow-lists, OAuth with approval on the tailnet, the public listener and the chat connector, Claude's changes with Undo everything since; then go-live on Funnel port 8443; then suggestions, the agent connector and the review modal. (§5.2–5.4) |
+| **8. The public door** | Three PRs ([CONNECTOR.md §14](CONNECTOR.md#14-how-its-built-three-pull-requests-one-after-another)): the credential allow-lists, OAuth with approval on the tailnet, the public listener and the chat connector, Claude's changes with Undo everything since; then go-live on Funnel port 443, with the dashboard moved to 8443; then suggestions, the agent connector and the review modal. (§5.2–5.4) |
 | **9. The agent** | Its standing instructions and schedule, with its Gmail and Calendar connectors read-only; run reports in the status line, including a warning for any direct write through the chat connector during a run; the daily briefing. (§5.1, [CONNECTOR.md §2](CONNECTOR.md#2-two-connectors-and-what-the-second-one-doesnt-guarantee)) |
 | **Later** | Click-to-focus with container-query condensing; a daily background photo from Unsplash (below); an assistant widget on the dashboard; sunrise gradient; an idle photo-album mode; a wins log; recurring tasks. |
 
@@ -986,6 +986,7 @@ Each of these caused a real bug or near-miss, or is a known trap. Keep them in m
 | 2026-10-01 | No command palette: everything is already on the screen |
 | 2026-10-01 | Two claude.ai connectors: chats add and change directly (no deleting), the agent suggests. Because connectors are account-wide, the agent can reach both; the owner accepts that, with Claude's changes and Undo everything since as the safety net. |
 | 2026-10-01 | The public door is Funnel on port 8443 to a separate listener with only the MCP and sign-in routes. Sign-ins are approved on the tailnet. |
+| 2026-10-01 | The public door moves to port 443 and the dashboard to tailnet-only 8443: claude.ai only connects to port 443. |
 | 2026-10-01 | Links from connectors must be `https` and are shown with their domain. Text from connectors is cleaned of characters that disguise it. |
 | 2026-10-01 | One OAuth client per connector; the client, not the `resource` parameter, decides a token's access. Refresh replacements are derived from the old token, so a repeat in the grace window gets the same one. *Undo everything since* defaults to claude.ai only. |
 | 2026-10-01 | Public rate limits are split by connection, visitor and kind, so strangers can't use up claude.ai's share or trigger the dashboard's login lockout. A replaced refresh token keeps working until its replacement is used, so a lost reply doesn't look like theft. A lost connection shows in the status line. |
