@@ -39,7 +39,7 @@ export const TASKS = rows([
 export const COUNTDOWNS = rows([
     { label: 'Thanksgiving break', target_date: '2026-11-25', pinned: true },
     { label: 'Finals', target_date: '2026-12-10', pinned: false },
-]);
+].map(c => ({ target_time: null, detail: 'days', ...c })));
 
 export const BIRTHDAYS = [{ id: 'mom@example.com/2026-10-03', title: "Mom's birthday", date: '2026-10-03' }];
 

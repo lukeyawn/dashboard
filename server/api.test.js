@@ -67,6 +67,51 @@ describe('countdowns', () => {
         const res = await request('/api/countdowns', { method: 'POST', body: { label: 'x', target_date: '2026-12-10', pinned: 1 } });
         expect(res.status).toBe(400);
     });
+
+    // docs/BLOCKS.md §4
+    const post = (request, body) => request('/api/countdowns', { method: 'POST', body });
+
+    it('refuse a date or time that has passed, saying so, and allow today', async () => {
+        const { request } = await start();
+        const refused = await post(request, { label: 'New Years!', target_date: '2026-01-01' });
+        expect(refused.status).toBe(400);
+        expect(refused.body.error.message).toBe('That date has passed (Jan 1, 2026). Did you mean 2027?');
+        expect((await post(request, { label: 'Lunch', target_date: '2026-09-30', target_time: '11:30' })).body.error.message).toBe('That time has passed (11:30 AM today).');
+        expect((await post(request, { label: 'Dinner', target_date: '2026-09-30', target_time: '19:00' })).status).toBe(201);
+        expect((await post(request, { label: 'Today', target_date: '2026-09-30' })).status).toBe(201);
+    });
+
+    it('need a time for hours and live, on a new countdown and an edit', async () => {
+        const { request } = await start();
+        expect((await post(request, { label: 'Flight', target_date: '2026-10-02', detail: 'live' })).status).toBe(400);
+        const flight = (await post(request, { label: 'Flight', target_date: '2026-10-02', target_time: '14:00', detail: 'live' })).body;
+        expect(flight).toMatchObject({ target_time: '14:00', detail: 'live' });
+        const cleared = await request(`/api/countdowns/${flight.id}`, { method: 'PATCH', body: { target_time: null } });
+        expect(cleared.body.error.message).toBe('Hours and live need a time.');
+        expect((await post(request, { label: 'Finals', target_date: '2026-12-10' })).body.detail).toBe('days');
+    });
+
+    it('list only current ones, past ones with past=true, and let a past one be renamed but not moved to the past', async () => {
+        let time = NOW;
+        server = await startServer({ now: () => time });
+        const { request } = server;
+        const today = (await post(request, { label: 'Today', target_date: '2026-09-30', target_time: '13:00' })).body;
+        await post(request, { label: 'Tomorrow', target_date: '2026-10-01' });
+        const names = async query => (await request(`/api/countdowns${query}`)).body.map(c => c.label);
+        // still current after its time, through the end of its day
+        time = new Date(2026, 8, 30, 23, 59).getTime();
+        expect(await names('')).toEqual(['Today', 'Tomorrow']);
+        time = new Date(2026, 9, 1, 0, 0).getTime();
+        expect(await names('')).toEqual(['Tomorrow']);
+        expect(await names('?past=true')).toEqual(['Today']);
+
+        expect((await request(`/api/countdowns/${today.id}`, { method: 'PATCH', body: { label: 'Yesterday' } })).status).toBe(200);
+        const moved = await request(`/api/countdowns/${today.id}`, { method: 'PATCH', body: { target_date: '2026-09-29' } });
+        expect(moved.status).toBe(400);
+        expect(moved.body.error.message).toMatch(/^That date has passed \(Sep 29, 2026\)/);
+        expect((await request(`/api/countdowns/${today.id}`, { method: 'PATCH', body: { target_date: '2026-10-05' } })).status).toBe(200);
+        expect((await request('/api/countdowns/999', { method: 'PATCH', body: { target_date: '2026-01-01' } })).status).toBe(404);
+    });
 });
 
 describe('goals', () => {
@@ -250,6 +295,8 @@ describe('today', () => {
         await request('/api/tasks', { method: 'POST', body: { name: 'Soon', due: '2026-10-05' } });
         await request('/api/tasks', { method: 'POST', body: { name: 'Far off', due: '2026-12-01', priority: 'high' } });
         await request('/api/countdowns', { method: 'POST', body: { label: 'Break', target_date: '2026-11-25' } });
+        await request('/api/countdowns', { method: 'POST', body: { label: 'Flight', target_date: '2026-10-02', target_time: '14:00', detail: 'hours' } });
+        await request('/api/countdowns', { method: 'POST', body: { label: 'Out of class', target_date: '2026-10-02' } });
         const habit = (await request('/api/habits', { method: 'POST', body: { name: 'Read' } })).body;
         await request(`/api/habits/${habit.id}/checks/2026-09-30`, { method: 'PUT' });
         await request('/api/applications', { method: 'POST', body: { company: 'Stripe', role: 'Intern' } });
@@ -261,7 +308,9 @@ describe('today', () => {
         expect(body.due_soon.map(t => [t.name, t.days_left])).toEqual([['Overdue', -1], ['Soon', 5]]);
         expect(body.tasks.map(t => t.name)).toEqual(['Far off', 'Do laundry']);
         expect(body.habits).toEqual([expect.objectContaining({ name: 'Read', done_today: true, streak: 1 })]);
-        expect(body.countdowns[0]).toMatchObject({ label: 'Break', days_left: 56 });
+        // nearest first, one without a time before one with a time on the same day
+        expect(body.countdowns.map(c => [c.label, c.days_left])).toEqual([['Out of class', 2], ['Flight', 2], ['Break', 56]]);
+        expect(body.countdowns[1]).toMatchObject({ target_time: '14:00', detail: 'hours' });
         expect(body.applications.counts).toEqual({ applied: 1, interview: 0, offer: 0, rejected: 0 });
         expect(body.weather).toMatchObject({ temperature: 82, location: { source: 'default' } });
         expect(body.night.active).toBe(false);

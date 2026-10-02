@@ -1,9 +1,12 @@
 // The editor for each resource, configuring ResourceEditor (DESIGN §6.3).
+import { useState } from 'react';
+import { DETAILS, countdownProblems, formatClock } from '../../shared/countdowns';
 import * as schemas from '../../shared/schemas';
 import { parseDate } from '../../shared/dates';
 import { compareTasks } from '../../shared/tasks';
 import { formatNumber } from '../lib/format';
 import { streakText } from '../widgets/habits/habitText';
+import { Choice } from './EditorForm';
 import ResourceEditor from './ResourceEditor';
 
 const now = () => new Date().toISOString();
@@ -59,22 +62,40 @@ export function TasksEditor() {
     );
 }
 
+const DETAIL_LABELS = { days: 'Days', hours: 'Hours', live: 'Live' };
+
+// Current countdowns, or the past ones to review and delete. A date that has
+// passed is refused with the server's own message, beside the field (docs/BLOCKS.md §4).
 export function CountdownsEditor() {
+    const [past, setPast] = useState(false);
     return (
-        <ResourceEditor
-            resource="countdowns"
-            noun="countdown"
-            fields={[
-                { key: 'label', label: 'Counting down to' },
-                { key: 'target_date', label: 'Date', type: 'date' },
-                { key: 'pinned', label: 'Pinned (shown unless a birthday is within a week)', type: 'checkbox' },
-            ]}
-            createSchema={schemas.countdownCreate}
-            updateSchema={schemas.countdownUpdate}
-            sections={rows => [{ title: null, rows }]}
-            describe={c => ({ title: `${c.pinned ? '📌 ' : ''}${c.label}`, detail: shortDate(c.target_date) })}
-            actions={c => [c.pinned ? { label: 'Unpin', changes: { pinned: false } } : { label: 'Pin', changes: { pinned: true } }]}
-        />
+        <>
+            <div className="editor">
+                <Choice options={['current', 'past']} labels={{ current: 'Current', past: 'Past' }} value={past ? 'past' : 'current'} onChange={v => setPast(v === 'past')} />
+            </div>
+            <ResourceEditor
+                key={past ? 'past' : 'current'}
+                resource="countdowns"
+                noun="countdown"
+                params={past ? { past: true } : undefined}
+                fields={[
+                    { key: 'label', label: 'Counting down to' },
+                    { key: 'target_date', label: 'Date', type: 'date' },
+                    { key: 'target_time', label: 'Time', type: 'time', optional: true },
+                    { key: 'detail', label: 'Show', type: 'choice', options: DETAILS, labels: DETAIL_LABELS, default: 'days' },
+                    { key: 'pinned', label: 'Pinned (shown unless a birthday is within a week)', type: 'checkbox' },
+                ]}
+                createSchema={schemas.countdownCreate}
+                updateSchema={schemas.countdownUpdate}
+                check={(values, before) => countdownProblems(values, new Date(), before)}
+                sections={rows => [{ title: null, rows }]}
+                describe={c => ({
+                    title: `${c.pinned ? '📌 ' : ''}${c.label}`,
+                    detail: [shortDate(c.target_date), c.target_time && formatClock(c.target_time), c.detail !== 'days' && DETAIL_LABELS[c.detail].toLowerCase()].filter(Boolean).join(' · '),
+                })}
+                actions={c => [c.pinned ? { label: 'Unpin', changes: { pinned: false } } : { label: 'Pin', changes: { pinned: true } }]}
+            />
+        </>
     );
 }
 

@@ -196,6 +196,38 @@ describe('the migration to weekly habit targets (docs/BLOCKS.md §2)', () => {
     });
 });
 
+describe('the migration to countdown times (docs/BLOCKS.md §4)', () => {
+    it('adds the time and detail, and rewrites older changes so they can still be undone', () => {
+        const db = new Database(':memory:');
+        const migrations = loadMigrations();
+        migrate(db, migrations.slice(0, 12));
+        const log = createChangeLog(db);
+        const raw = id => db.prepare('SELECT * FROM countdowns WHERE id = ?').get(id);
+        const { id } = db.prepare("INSERT INTO countdowns (label, target_date) VALUES ('Finals', '2026-12-10') RETURNING id").get();
+        log.record({ resource: 'countdowns', itemId: id, action: 'create', after: raw(id) });
+        const before = raw(id);
+        db.prepare("UPDATE countdowns SET pinned = 1, updated_at = '2026-09-30T12:00:00.000Z' WHERE id = ?").run(id);
+        log.record({ resource: 'countdowns', itemId: id, action: 'update', before, after: raw(id) });
+
+        migrate(db, migrations);
+        expect(raw(id)).toMatchObject({ target_time: null, detail: 'days' });
+        const [updated, created] = log.list();
+        expect(Object.keys(updated.after).slice(-2)).toEqual(['target_time', 'detail']);
+
+        const undo = createUndo(db, log);
+        expect(undo(updated.id).pinned).toBe(0);
+        expect(undo(created.id)).toBeNull();
+        expect(raw(id)).toBeUndefined();
+    });
+
+    it('refuses hours or live without a time', () => {
+        const db = new Database(':memory:');
+        migrate(db);
+        expect(() => db.prepare("INSERT INTO countdowns (label, target_date, detail) VALUES ('x', '2026-12-10', 'live')").run()).toThrow(/CHECK/);
+        expect(() => db.prepare("INSERT INTO countdowns (label, target_date, target_time, detail) VALUES ('x', '2026-12-10', '09:00', 'live')").run()).not.toThrow();
+    });
+});
+
 describe('createChangeLog', () => {
     it('records outside a request as the system, and keeps entries over a year old (docs/BLOCKS.md §7)', () => {
         const db = new Database(':memory:');

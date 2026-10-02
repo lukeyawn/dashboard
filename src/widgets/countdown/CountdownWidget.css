@@ -31,3 +31,15 @@
     -webkit-box-orient: vertical;
     overflow: hidden;
 }
+
+/* a live countdown's last day: H:MM:SS, as wide as the tile allows (docs/BLOCKS.md §4) */
+.countdown-number.clock {
+    font-size: 19cqmin;
+    font-variant-numeric: tabular-nums;
+}
+
+/* the last minute: the seconds alone fill the tile */
+.countdown-number.seconds {
+    font-size: 60cqmin;
+    font-variant-numeric: tabular-nums;
+}

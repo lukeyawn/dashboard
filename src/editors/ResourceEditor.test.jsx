@@ -2,7 +2,7 @@
 import { act, fireEvent, render, screen, waitFor, within } from '@testing-library/react';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import { fakeServer } from '../testing/fakeApi';
-import { ApplicationsEditor, GoalsEditor, TasksEditor } from './editors';
+import { ApplicationsEditor, CountdownsEditor, GoalsEditor, TasksEditor } from './editors';
 
 let rows;
 let nextId;
@@ -180,4 +180,49 @@ it('says when saving failed', async () => {
     fireEvent.click(screen.getByText('Add task'));
     expect((await screen.findByRole('status')).textContent).toContain('Failed with 500');
     expect(field(addForm(), 'Task').value).toBe('x');
+});
+
+describe('countdowns (docs/BLOCKS.md §4)', () => {
+    beforeEach(() => {
+        vi.useFakeTimers({ toFake: ['Date'] });
+        vi.setSystemTime(new Date(2026, 8, 30, 12, 0));
+    });
+
+    const countdown = (id, fields) => ({ id, label: `countdown ${id}`, target_date: '2026-12-10', target_time: null, detail: 'days', pinned: false, ...fields });
+
+    it('says beside the date that it has passed, and sends nothing', async () => {
+        const api = serve('countdowns', []);
+        render(<CountdownsEditor />);
+        await screen.findByText('Nothing here yet.');
+        fireEvent.change(field(addForm(), 'Counting down to'), { target: { value: 'New Years!' } });
+        fireEvent.change(field(addForm(), 'Date'), { target: { value: '2026-01-01' } });
+        fireEvent.click(screen.getByText('Add countdown'));
+        expect(await within(addForm()).findByText('That date has passed (Jan 1, 2026). Did you mean 2027?')).toBeTruthy();
+        expect(api.writes()).toEqual([]);
+    });
+
+    it('adds a live countdown with a time, chosen from three buttons', async () => {
+        const api = serve('countdowns', []);
+        render(<CountdownsEditor />);
+        await screen.findByText('Nothing here yet.');
+        fireEvent.change(field(addForm(), 'Counting down to'), { target: { value: 'Flight' } });
+        fireEvent.change(field(addForm(), 'Date'), { target: { value: '2026-10-02' } });
+        fireEvent.click(within(addForm()).getByText('Live'));
+        fireEvent.click(screen.getByText('Add countdown'));
+        expect(await within(addForm()).findByText('Hours and live need a time.')).toBeTruthy();
+        fireEvent.change(field(addForm(), 'Time'), { target: { value: '14:00' } });
+        fireEvent.click(screen.getByText('Add countdown'));
+        await screen.findByText('Flight');
+        expect(api.writes()[0].body).toEqual({ label: 'Flight', target_date: '2026-10-02', target_time: '14:00', detail: 'live', pinned: false });
+        expect(screen.getByText('Fri, Oct 2, 2026 · 2:00 PM · live')).toBeTruthy();
+    });
+
+    it('asks the server for the past ones under Past', async () => {
+        const api = serve('countdowns', [countdown(1, { label: 'Finals' })]);
+        render(<CountdownsEditor />);
+        await screen.findByText('Finals');
+        fireEvent.click(screen.getByText('Past'));
+        await act(async () => {});
+        expect(api.requests.map(r => r.url)).toContain('/api/countdowns?past=true');
+    });
 });
