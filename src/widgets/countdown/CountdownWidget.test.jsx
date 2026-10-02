@@ -2,7 +2,7 @@
 import { act, render, screen } from '@testing-library/react';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import { fakeServer } from '../../testing/fakeApi';
-import { chooseCountdown, countdownDisplay, countdownNumber, needsSeconds } from './countdown';
+import { chooseCountdown, clockEms, clockParts, countdownDisplay, countdownNumber, needsSeconds } from './countdown';
 import CountdownWidget from './CountdownWidget';
 
 const todayDate = '2026-09-30';
@@ -73,8 +73,11 @@ describe('countdownDisplay (docs/BLOCKS.md §4)', () => {
         expect(countdownDisplay(newYear, new Date(2026, 11, 30, 0, 1))).toEqual({ number: '47', unit: 'hours' });
         expect(countdownDisplay(newYear, new Date(2026, 11, 30, 23, 0))).toEqual({ number: '25', unit: 'hours' });
         expect(countdownDisplay(newYear, dec31(0, 0))).toEqual({ number: '24:00:00', unit: null, kind: 'clock' });
-        expect(countdownDisplay(newYear, dec31(23, 58, 59, 500))).toEqual({ number: '0:01:01', unit: null, kind: 'clock' });
-        expect(countdownDisplay(newYear, dec31(23, 59, 0, 500))).toEqual({ number: '0:01:00', unit: null, kind: 'clock' });
+        expect(countdownDisplay(newYear, dec31(22, 59, 59))).toEqual({ number: '1:00:01', unit: null, kind: 'clock' });
+        expect(countdownDisplay(newYear, dec31(23, 0, 0))).toEqual({ number: '1:00:00', unit: null, kind: 'clock' });
+        expect(countdownDisplay(newYear, dec31(23, 0, 1))).toEqual({ number: '59:59', unit: null, kind: 'clock' });
+        expect(countdownDisplay(newYear, dec31(23, 58, 59, 500))).toEqual({ number: '1:01', unit: null, kind: 'clock' });
+        expect(countdownDisplay(newYear, dec31(23, 59, 0, 500))).toEqual({ number: '1:00', unit: null, kind: 'clock' });
         expect(countdownDisplay(newYear, dec31(23, 59, 1))).toEqual({ number: '59', unit: null, kind: 'seconds' });
         expect(countdownDisplay(newYear, dec31(23, 59, 50))).toEqual({ number: '10', unit: null, kind: 'seconds' });
         expect(countdownDisplay(newYear, new Date(2027, 0, 1, 0, 0))).toEqual({ number: 'Today', unit: null });
@@ -84,6 +87,13 @@ describe('countdownDisplay (docs/BLOCKS.md §4)', () => {
         // Nov 1, 2026 is 25 hours long: from midnight to 9 AM is 10 hours
         const c = { date: '2026-11-01', time: '09:00', detail: 'hours' };
         expect(countdownDisplay(c, new Date(2026, 10, 1, 0, 0))).toEqual({ number: '10', unit: 'hours' });
+    });
+
+    it('splits the clock: small seconds beside H:MM, then M:SS all large', () => {
+        expect(clockParts('10:24:00')).toEqual({ main: '10:24', seconds: '00' });
+        expect(clockParts('45:00')).toEqual({ main: '45:00', seconds: null });
+        expect(clockEms('10:24:00')).toBeLessThan(clockEms('45:00') + 1);
+        expect(clockEms('9:59')).toBeLessThan(clockEms('45:00'));
     });
 
     it('ticks every second only in a live countdown\'s last day', () => {
@@ -143,7 +153,8 @@ describe('CountdownWidget', () => {
     it('shows the live clock in the last day', async () => {
         vi.setSystemTime(new Date(2026, 11, 31, 21, 30));
         setup({ countdowns: [{ id: 1, label: "New Year's!", target_date: '2027-01-01', target_time: '00:00', detail: 'live', pinned: false }] });
-        expect(await screen.findByText('2:30:00')).toBeTruthy();
+        expect((await screen.findByLabelText('2:30:00')).textContent).toBe('2:3000');
+        expect(document.querySelector('.countdown-clock-seconds').textContent).toBe('00');
         expect(screen.getByText("until New Year's!")).toBeTruthy();
     });
 

@@ -32,10 +32,22 @@
     overflow: hidden;
 }
 
-/* a live countdown's last day: H:MM:SS, as wide as the tile allows (docs/BLOCKS.md §4) */
+/* a live countdown's last day: H:MM with small seconds, then M:SS, filling
+   the tile's width (docs/BLOCKS.md §4). --ems is the clock's width in ems,
+   from the widget. The cap keeps a short clock clear of the ✎ in the corner. */
 .countdown-number.clock {
-    font-size: 19cqmin;
+    font-size: min(36cqmin, calc(88cqw / var(--ems)));
     font-variant-numeric: tabular-nums;
+    white-space: nowrap;
+}
+
+/* as on the dock: 40% of the clock (SMALL in countdown.js) and muted, level
+   with the tops of the digits (Inter's digits are 0.727em tall) */
+.countdown-clock-seconds {
+    margin-left: 0.2em;
+    font-size: 0.4em;
+    color: var(--text-muted);
+    vertical-align: calc((1 - 0.4) * 0.727em / 0.4);
 }
 
 /* the last minute: the seconds alone fill the tile */
