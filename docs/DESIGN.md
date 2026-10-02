@@ -688,7 +688,6 @@ Replaced the month calendar, which repeated the dock's date and other tiles' dea
   - Timed events: the start time, and the title clamped to 2 lines, both at `--fs-small`. A timed event shows on the day it starts, so one still going from today is Today's.
   - **Overflow:** when a day's events don't fit, the last ones fold into "+N".
 - **Empty days are dimmed boxes,** not collapsed, so the row shows time as it passes.
-- **A thin line where the week starts** (`week_start`), as in Habits; none before the first box.
 - **Only events and birthdays,** without classes (the `routine` calendar, §4). Tasks are in their own tiles, and countdowns in Countdown.
 - **Source:** Google Calendar (§4), read-only. No tap actions and no ✎, like Today.
 
