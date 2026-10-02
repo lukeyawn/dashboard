@@ -198,7 +198,7 @@ Everything lives on the VM, except events, which are Google's.
 | `habit_checks` | `habit_id`, `date` | Primary key is `(habit_id, date)`. A row exists means the habit was done that day. Deleting a habit deletes its checks. |
 | `applications` | `company`, `role`, `status`, `applied_on`, `url?`, `notes?`, `source?` | `status` is one of `applied`, `interview`, `offer`, `rejected`. |
 | `changes` | `at`, `actor`, `resource`, `item_id`, `action`, `before?`, `after?` | Every write, from anyone, in the same transaction as the write itself (§5.5). `action` is `create`, `update` or `delete`; `before` and `after` are the whole row as JSON. Kept for good, for a year in review ([BLOCKS.md §7](BLOCKS.md#7-the-change-record-kept-for-good)). |
-| `settings` | `key`, `value` (JSON) | Keys you can change: `night_start` (default `"22:00"`), `night_end` (default `"06:30"`), and `week_start` (`"sunday"`, the default, or `"monday"`), the day weeks start on for habits. Keys the system sets: `night_early_until` (§6.4) and `kiosk_location`, `{ lat, lon, name, reported_at }` (§10, Dock). |
+| `settings` | `key`, `value` (JSON) | Keys you can change: `night_start` (default `"22:00"`), `night_end` (default `"06:30"`), `week_start` (`"sunday"`, the default, or `"monday"`), the day weeks start on for habits, and `assignments_area`, the id of the area the Assignments tile shows (School's, stored by migration 015; read as `null` once that area is deleted; an unknown id is refused). Keys the system sets: `night_early_until` (§6.4) and `kiosk_location`, `{ lat, lon, name, reported_at }` (§10, Dock). |
 
 **Not in the database:**
 - **Events and birthdays** come from Google Calendar (§4). There's no events table.
@@ -245,7 +245,7 @@ The resources are `tasks`, `countdowns`, `goals`, `habits` and `applications`.
 | `POST /api/night/start` / `POST /api/night/cancel` | Start night mode early, or cancel an early start (§6.4). |
 | `GET /api/weather?lat&lon` | Current weather and today's high and low: `{ location: { lat, lon, name, source }, temperature, condition, high, low }`. `source` is `device`, `kiosk` or `default` (§10, Dock). |
 | `PUT /api/location/kiosk` | The kiosk reports its location. Accepted only with the kiosk token. |
-| `GET /api/today` | A snapshot of today: today's events, open tasks (with those due within 14 days, or overdue, listed separately), goals, each habit's status today and count this week, the nearest countdowns, application counts, and the weather at the kiosk. This is mainly for the agent. |
+| `GET /api/today` | A snapshot of today: today's events, open tasks split as the tiles show them (`assignments`, nearest first, and `tasks`), goals, each habit's status today and count this week, the nearest countdowns, application counts, and the weather at the kiosk. This is mainly for the agent. |
 | `GET /api/export` | A full JSON dump of every table. |
 | `POST /api/login` `{ token }` | Checks a token and sets the login cookie (see Access). |
 | `GET /api/health` | `200` with no body. Needs no token and reveals nothing; the kiosk uses it to check the server is reachable before loading or reloading. |
@@ -374,7 +374,7 @@ Each can be revoked on its own: the tokens by changing them in `.env`, and each 
 
 **Widgets own their data.** A widget calls `useResource('tasks')` itself and gets back `{ data, loading, error, stale, create, update, remove, refresh }`. `App` only arranges the layout. This settles the conflict between the two earlier docs: widgets fetch their own data, as DESIGN2 wanted, and they do it through one reusable hook per data kind, as DESIGN.md wanted. Widgets never call `fetch` directly; all HTTP goes through `src/lib/api.js`.
 
-**Derived display values are computed in the widget.** `daysUntil(target_date)` lives in the countdown widget, and the deadline labels in the deadlines widget. A parent that derived these would need to know why it was doing so, and the values would go stale overnight. Streaks are the exception: the server computes them (§4), because the agent needs them too, and the widget displays them.
+**Derived display values are computed in the widget.** `daysUntil(target_date)` lives in the countdown widget, and the due-date labels in `assignments/daysLabel.js`. A parent that derived these would need to know why it was doing so, and the values would go stale overnight. Streaks are the exception: the server computes them (§4), because the agent needs them too, and the widget displays them.
 
 **Time comes from `useNow(intervalMs)`.** The dock ticks every 1 second. Every other widget uses 60 seconds, so date-based values roll over within a minute of midnight.
 
@@ -399,7 +399,7 @@ The kiosk is a touchscreen, and it's used standing at a wall.
 | Widget | Tap target |
 |---|---|
 | Tasks | The whole row |
-| Deadlines | The whole row |
+| Assignments | The whole row |
 | Habits | Each day cell: at least `0.92 × --hit` wide (the tile is too narrow for seven full-width cells) and the full row height. Habit names truncate to make room. |
 | Goals | The **+1** button, `--hit` |
 | Job | The status pill, with its tap area enlarged to `--hit` |
@@ -493,8 +493,8 @@ The page is a CSS grid with two rows: the **dashboard grid** (`minmax(0, 1fr)`) 
 ```
 "upcoming upcoming upcoming  upcoming  job   job   job   job   goals goals goals"
 "upcoming upcoming upcoming  upcoming  job   job   job   job   goals goals goals"
-"timeline timeline deadlines deadlines tasks tasks tasks tasks habit habit habit"
-"timeline timeline deadlines deadlines tasks tasks tasks tasks habit habit habit"
+"timeline timeline assignments assignments tasks tasks tasks tasks habit habit habit"
+"timeline timeline assignments assignments tasks tasks tasks tasks habit habit habit"
 "timeline timeline wotd      countdown tasks tasks tasks tasks habit habit habit"
 ```
 
@@ -546,14 +546,15 @@ The panel is very low opacity with **no hue**, so the photo shows through almost
 | `--hairline` | `hsla(0,0%,100%,.15)` | Dividers between list rows |
 | `--track` | `hsla(0,0%,100%,.12)` | Progress-bar track, pending-action timer |
 | `--accent` / `--accent-glow` | `hsl(195,90%,70%)` / 30% alpha | Today, the current item, progress, completed |
-| `--urgent` | `hsl(0,85%,72%)` | Deadlines due within 2 days, or overdue |
+| `--urgent` | `hsl(0,85%,72%)` | Due dates within 2 days, or overdue; the now marker |
+| `--quick`, `--long` | `hsl(140,60%,62%)`, `hsl(270,75%,80%)` | A task's time chip: 15 minutes or less, and over an hour |
 | `--applied` / `--interview` / `--offer` / `--rejected` | blue / amber / green / gray | Job stages |
 
 ### Widget titles
 
 A widget gets a title only if the content would be ambiguous without it. Titles are small, uppercase, muted and top-left, and never compete with the data.
 
-- **Titled:** Tasks, Goals, Habits, Deadlines, Job search, Today (the timeline), Upcoming.
+- **Titled:** Tasks, Goals, Habits, Assignments, Job search, Today (the timeline), Upcoming.
 - **Untitled:** countdown, word of the day, dock.
 
 A title hides when its tile gets too small. That's a container query, not a media query.
@@ -723,21 +724,36 @@ Replaced the month calendar, which repeated the dock's date and other tiles' dea
 - **Overflow:** if the events don't fit, the earliest past events collapse into "N earlier" at the top.
 - **Empty state:** "Nothing scheduled today."
 
-### Due soon (2×2)
-> **Redesign planned:** becomes Assignments, the school area's tasks with a due date ([BLOCKS.md §3](BLOCKS.md#3-tasks-and-assignments)).
+### Assignments (2×2)
+Replaced Due soon ([BLOCKS.md §3](BLOCKS.md#3-tasks-and-assignments)). Tasks live in one place; this tile shows the school deadlines that need watching.
 
-- **Shows:** open tasks that are overdue or due within 14 days, by due date, labeled "overdue", "today", "tomorrow" or "N days". Those due within 2 days, and overdue ones, turn `--urgent`. The area is shown when set.
+- **Shows:** open tasks with a due date in the `assignments_area` setting's area (School by default), nearest first, labeled "overdue", "today", "tomorrow" or "N days". Those due within 2 days, and overdue ones, turn `--urgent`.
+- **No cutoff:** with only assignments in it, the tile won't flood, and next month's paper is worth seeing early. When they don't fit, the last ones fold into "+N more".
+- **The area is kept by id,** so renaming it changes nothing. If it's deleted, the tile says "Pick an area for Assignments in Settings", where the setting is a dropdown of the areas.
 - **Quick action:** tapping a row completes the task, through the 5-second pending action.
-- It replaced the Deadlines tile when deadlines became tasks with a due date (§17).
 
 ### Tasks (4×3)
-> **Redesign planned:** the new row, sort and filter on the tile, and Assignments replacing Due soon ([BLOCKS.md §3](BLOCKS.md#3-tasks-and-assignments)). The data is built: areas, now/soon/someday, time estimates and recurrence.
+Every open task that isn't an assignment, including deadlines that aren't school ("Pay rent, due Thu"), so no task is on two tiles ([BLOCKS.md §3](BLOCKS.md#3-tasks-and-assignments)).
 
-- **Shows:** open tasks that aren't in Due soon, sorted now → soon → someday, then due date, then shortest first, then age, each with a round checkbox. A "!" marks `now` tasks, someday ones are muted, and a chip shows the time estimate ("15m", "1h", "1h+"). Each task appears in exactly one of the two tiles. It's a `<ul>`, not a table: a table is for data where every column means the same thing in every row.
-- **Quick action:** tapping a row clears the task, through the 5-second pending action (§6.2). Cleared tasks are still in the database and can be restored in the editor.
-- **Adding:** an inline "+ Add task" row at the bottom (§6.3).
+- **The default order:** now → soon → someday, then due date, then shortest first, then oldest first. It's a `<ul>`, not a table: a table is for data where every column means the same thing in every row.
+- **The row, left to right:**
+  1. a round checkbox;
+  2. a bold "!" in `--urgent` for `now`: a styled character, not an emoji (Inter has none, the Pi may have no color emoji font). Its column stays when empty, so names line up;
+  3. the name, on one line, cut off with "…";
+  4. ↻, muted, on a recurring task;
+  5. the due date: "overdue", "today", "tomorrow", a weekday within 6 days, otherwise "Oct 14", in `--urgent` within 2 days or overdue;
+  6. the time chip ("15m", "1h", "1h+"): `--quick` at 15 minutes or less, neutral up to an hour, `--long` above. Its slot is there even when empty, so the due dates line up;
+  7. ✦ on items Claude created.
+- **Someday tasks are shown, muted,** not hidden, which would turn them into never-tasks. In the default order a small "Someday" divider in the title style comes before them.
+- **Overflow:** when the tile is full, the last rows fold into "+N more", so someday tasks are the first to drop off.
+- **Sort ▾ and Filter ▾** in the header, beside ✎, each opening the shared menu (`src/components/Menu.jsx`), sized for touch and drawn over the page so the tile can't clip it. They're not on the title, which click-to-focus reserves (§12).
+  - Sort: priority (the default), due date, shortest first, newest.
+  - Filter: one area or all, and "15 min or less". The header names the filter ("Tasks · School · ≤ 15 min"), so a filtered list isn't mistaken for the whole one. Filtering by the assignments area shows its tasks without a due date.
+  - The choice is kept in the browser. On the kiosk it goes back to the default after 5 minutes without a touch, so the wall can't stay filtered for days unnoticed. A filter on a deleted area shows every area.
+- **Quick action:** tapping a row completes the task, through the 5-second pending action (§6.2). A recurring task moves to its next due date instead. Completed tasks are still in the database and can be restored in the editor.
+- **Adding:** an inline "+ Add task" row at the bottom (§6.3), name only; the rest is set in the editor.
 - **Markup:** a controlled checkbox (`checked` plus `onChange`) paired with a `<label htmlFor>` that fills the row, so tapping anywhere on the row toggles it.
-- **Empty state:** "No tasks! Time to relax!"
+- **Empty state:** "No tasks! Time to relax!", or "Nothing here with this filter."
 
 ### Word of the day (1×1) — untitled
 - **Shows:** pinyin on top, the hanzi as the large anchor, and the definition below, centered.

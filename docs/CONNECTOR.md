@@ -205,7 +205,7 @@ Everything Claude does lands in one place you can review and reverse. It's built
 - A filter for *claude.ai only* or *Claude Code only*.
 
 **On the dashboard:**
-- Items Claude created carry a small ✦ mark in the Tasks, Due soon, Countdown and Job search tiles. The mark is worked out from the change record (the item's `create` change was by `claude` or `agent`), so it needs no new column.
+- Items Claude created carry a small ✦ mark in the Tasks, Assignments (formerly Due soon), Countdown and Job search tiles. The mark is worked out from the change record (the item's `create` change was by `claude` or `agent`), so it needs no new column.
 - **The mark lasts a year** from the item's creation. After that, the mark and its Undo leave the item, though the change record keeps the change for good ([BLOCKS.md §7](BLOCKS.md#7-the-change-record-kept-for-good)). Undoing a year-old addition isn't needed.
 - **Tapping the mark** opens a small card: *"Added by Claude (claude.ai), Oct 1, 9:14"*, with **Undo**. That way a wrong task can go from the wall without opening `/manage`.
 

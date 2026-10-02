@@ -186,7 +186,7 @@ describe('habits', () => {
 describe('settings', () => {
     it('fall back to defaults, and store JSON values', () => {
         const settings = createSettingsStore(db);
-        expect(settings.user()).toEqual(DEFAULTS);
+        expect(settings.user()).toEqual({ ...DEFAULTS, assignments_area: 1 });
         expect(settings.get('kiosk_location')).toBeNull();
         settings.set('kiosk_location', { lat: 1, lon: 2 });
         expect(settings.get('kiosk_location')).toEqual({ lat: 1, lon: 2 });
@@ -196,7 +196,19 @@ describe('settings', () => {
 
     it('update user settings together', () => {
         const settings = createSettingsStore(db);
-        expect(settings.updateUser({ night_start: '23:00' })).toEqual({ night_start: '23:00', night_end: '06:30', week_start: 'sunday' });
-        expect(settings.updateUser({ night_start: '21:30', night_end: '07:00', week_start: 'monday' })).toEqual({ night_start: '21:30', night_end: '07:00', week_start: 'monday' });
+        expect(settings.updateUser({ night_start: '23:00' })).toEqual({ night_start: '23:00', night_end: '06:30', week_start: 'sunday', assignments_area: 1 });
+        expect(settings.updateUser({ night_start: '21:30', night_end: '07:00', week_start: 'monday' })).toEqual({ night_start: '21:30', night_end: '07:00', week_start: 'monday', assignments_area: 1 });
+    });
+
+    it('keep the assignments area by id: School to start, none once deleted, refusing an unknown one', () => {
+        const settings = createSettingsStore(db);
+        db.prepare("UPDATE areas SET name = 'University' WHERE id = 1").run();
+        expect(settings.get('assignments_area')).toBe(1);
+        expect(settings.updateUser({ assignments_area: 2 }).assignments_area).toBe(2);
+        db.prepare("UPDATE areas SET name = 'Jobs' WHERE id = 2").run();
+        expect(settings.get('assignments_area')).toBe(2);
+        expect(() => settings.updateUser({ assignments_area: 99 })).toThrow("There's no area 99.");
+        db.prepare('DELETE FROM areas WHERE id = 2').run();
+        expect(settings.get('assignments_area')).toBeNull();
     });
 });

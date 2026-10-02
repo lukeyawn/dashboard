@@ -37,6 +37,7 @@ describe('describeChange', () => {
         expect(describeChange(change('settings', 'create', null, { value: 'x' }, 'night_early_until'))).toBe('Started night mode early');
         expect(describeChange(change('settings', 'delete', { value: 'x' }, null, 'night_early_until'))).toBe('Cancelled early night mode');
         expect(describeChange(change('settings', 'delete', { value: '23:00' }, null, 'night_start'))).toBe('Reset night start');
+        expect(describeChange(change('settings', 'create', null, { value: 4 }, 'assignments_area'))).toBe('Changed the Assignments area');
     });
     it('reads the connector switches', () => {
         expect(describeChange(change('settings', 'create', null, { value: false }, 'connector_chat_enabled'))).toBe('Switched the claude.ai connector off');

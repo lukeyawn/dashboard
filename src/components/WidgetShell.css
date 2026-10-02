@@ -90,6 +90,13 @@
     min-width: 0;
 }
 
+/* buttons beside ✎ in the title row, such as Tasks' Sort and Filter menus */
+.widget-actions {
+    flex-shrink: 0;
+    display: flex;
+    align-items: center;
+}
+
 /* an untitled widget's ✎ sits in its top-right corner */
 .widget-corner {
     position: absolute;

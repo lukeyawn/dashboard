@@ -1,0 +1,80 @@
+/* in a widget's header, beside ✎: muted text, a full --hit tall */
+.menu-button {
+    flex-shrink: 0;
+    min-height: var(--hit);
+    margin: calc(var(--pad) * -1) 0;
+    padding: 0 calc(var(--cell) * 0.05);
+    border: none;
+    background: none;
+    color: var(--text-muted);
+    font: inherit;
+    font-size: var(--fs-small);
+    white-space: nowrap;
+}
+
+.menu-button[aria-expanded="true"], .menu-button:active {
+    color: var(--text);
+}
+
+/* catches the tap that closes the menu */
+.menu-backdrop {
+    position: fixed;
+    inset: 0;
+    z-index: 10;
+}
+
+/* outside every tile, so sized like the page in --px (DESIGN §9), as the modal is */
+.menu {
+    position: fixed;
+    display: flex;
+    flex-direction: column;
+    min-width: calc(220 * var(--px));
+    max-height: calc(100dvh - var(--page-inset) - var(--top, 0px));
+    overflow-y: auto;
+    padding: calc(8 * var(--px)) 0;
+    border: 1px solid hsla(0, 0%, 70%, 0.3);
+    border-radius: calc(16 * var(--px));
+    background-color: hsla(235, 35%, 14%, 0.95);
+    backdrop-filter: blur(calc(15 * var(--px)));
+    box-shadow: 0 calc(10 * var(--px)) calc(40 * var(--px)) hsla(0, 0%, 0%, 0.5);
+    font-size: calc(20 * var(--px));
+}
+
+.menu-section + .menu-section {
+    margin-top: calc(6 * var(--px));
+    padding-top: calc(6 * var(--px));
+    border-top: 1px solid var(--hairline);
+}
+
+.menu-title {
+    margin: 0;
+    padding: calc(4 * var(--px)) calc(20 * var(--px));
+    font-size: 0.75em;
+    font-weight: 600;
+    letter-spacing: 0.08em;
+    text-transform: uppercase;
+    color: var(--text-muted);
+}
+
+.menu-item {
+    display: flex;
+    align-items: center;
+    gap: calc(8 * var(--px));
+    min-height: var(--hit);
+    padding: 0 calc(24 * var(--px)) 0 calc(12 * var(--px));
+    border: none;
+    background: none;
+    color: var(--text);
+    font: inherit;
+    text-align: left;
+    white-space: nowrap;
+}
+
+.menu-item:active {
+    background-color: hsla(0, 0%, 100%, 0.1);
+}
+
+.menu-check {
+    width: 1em;
+    color: var(--accent);
+}

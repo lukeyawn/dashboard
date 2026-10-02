@@ -2,7 +2,7 @@
 // (DESIGN §4). Built from the same stores the widgets read.
 import { addDays, daysBetween, today as todayOf } from '../shared/dates.js';
 import { STATUSES } from '../shared/schemas.js';
-import { compareDue, compareTasks, isDueSoon } from '../shared/tasks.js';
+import { splitTasks } from '../shared/tasks.js';
 import { nightState } from './night.js';
 import { chooseLocation } from './weather.js';
 
@@ -18,16 +18,16 @@ export async function todaySnapshot({ stores, settings, calendar, weatherAt, now
     }
 
     const applications = stores.applications.list();
-    const openTasks = stores.tasks.list({ done: false });
+    const { assignments, tasks } = splitTasks(stores.tasks.list({ done: false }), settings.get('assignments_area'));
     return {
         date,
         now: now.toISOString(),
         events,
         birthdays_this_week: birthdays,
-        // as the two tiles show them: overdue or due within 14 days, then the rest
-        due_soon: openTasks.filter(t => isDueSoon(t, date)).sort(compareDue)
-            .map(t => ({ ...t, days_left: daysBetween(date, t.due) })),
-        tasks: openTasks.filter(t => !isDueSoon(t, date)).sort(compareTasks),
+        // as the two tiles show them (docs/BLOCKS.md §3): the assignments area's
+        // tasks with a due date, nearest first, then every other open task
+        assignments: assignments.map(t => ({ ...t, days_left: daysBetween(date, t.due) })),
+        tasks,
         goals: stores.goals.list({ archived: false }),
         habits: stores.habits.list({ days: 7, archived: false }).map(h => ({
             id: h.id, name: h.name, per_week: h.per_week, done_today: h.checks.includes(date), week_count: h.week_count, streak: h.streak, checks: h.checks,

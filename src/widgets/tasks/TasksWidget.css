@@ -1,11 +1,16 @@
-/* the list scrolls inside the tile when it's long; the add row stays at the bottom */
+/* a filtered title ("Tasks · School") gives way to the menus */
+.tasks-widget .widget-title {
+    min-width: 0;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+}
+
+/* what doesn't fit folds into "+N more"; the add row stays at the bottom */
 .tasks-list {
     flex: 1;
     min-height: 0;
-    overflow-y: auto;
-    scrollbar-width: none;
-    /* fades the bottom edge, so a row cut off by the tile reads as "more below" */
-    mask-image: linear-gradient(to bottom, black calc(100% - var(--hit) / 2), transparent);
+    overflow: hidden;
 }
 
 .task {
@@ -28,10 +33,13 @@
     filter: brightness(1.3);
 }
 
+/* one line, cut off with "…" */
 .task-name {
     flex: 1;
     min-width: 0;
-    overflow-wrap: anywhere;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
 }
 
 /* a round checkbox, like the habit dots: an outline that fills with a tick */
@@ -62,22 +70,84 @@
     transform: rotate(45deg);
 }
 
-/* high priority: a small mark before the name; low: muted (DESIGN §10) */
-.task-high {
+/* now: a bold "!", a styled character rather than an emoji, which Inter and
+   the Pi may not have; its column stays when empty, so names line up */
+.task-now {
     flex-shrink: 0;
+    width: 0.5em;
+    margin-right: calc(var(--row-gap) * -0.5);
+    text-align: center;
     color: var(--urgent);
     font-weight: 700;
 }
 
-.task.low .task-name {
+/* someday: shown, but muted */
+.task.someday .task-name {
     color: var(--text-muted);
 }
 
-.task-tag {
+.task-repeat {
     flex-shrink: 0;
-    padding: 0 calc(var(--cell) * 0.04);
+    color: var(--text-muted);
+}
+
+.task-due {
+    flex-shrink: 0;
+    font-size: var(--fs-small);
+    color: var(--text-muted);
+    white-space: nowrap;
+}
+
+.task-due.urgent {
+    color: var(--urgent);
+}
+
+/* a fixed width, and there even when empty, so the due dates line up */
+.task-chip {
+    flex-shrink: 0;
+    width: 2.9em;
     border: 1px solid hsla(0, 0%, 100%, 0.25);
     border-radius: 999px;
+    font-size: var(--fs-small);
+    text-align: center;
+    color: var(--text-muted);
+}
+
+.task-chip:empty {
+    border-color: transparent;
+}
+
+.task-chip.quick {
+    border-color: var(--quick);
+    color: var(--quick);
+}
+
+.task-chip.long {
+    border-color: var(--long);
+    color: var(--long);
+}
+
+/* before the someday tasks, in the default order: small, in the title style */
+.task-divider {
+    display: flex;
+    align-items: center;
+    gap: var(--row-gap);
+    padding-top: var(--row-gap);
+    font-size: var(--fs-title);
+    font-weight: 600;
+    letter-spacing: 0.08em;
+    text-transform: uppercase;
+    color: var(--text-muted);
+}
+
+.task-divider::after {
+    content: '';
+    flex: 1;
+    border-top: 1px solid var(--hairline);
+}
+
+.task-more {
+    padding-top: var(--row-gap);
     font-size: var(--fs-small);
     color: var(--text-muted);
 }

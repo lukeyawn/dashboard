@@ -1,7 +1,10 @@
 // Settings are key → JSON value rows (DESIGN §3). Users change night_start,
-// night_end and week_start; the system keeps night_early_until and kiosk_location.
+// night_end, week_start and assignments_area; the system keeps
+// night_early_until and kiosk_location.
+import { HttpError } from '../errors.js';
 
-export const DEFAULTS = { night_start: '22:00', night_end: '06:30', week_start: 'sunday' };
+// assignments_area starts as School's id, stored by migration 015
+export const DEFAULTS = { night_start: '22:00', night_end: '06:30', week_start: 'sunday', assignments_area: null };
 const USER_KEYS = Object.keys(DEFAULTS);
 
 // Kept out of the change record: the kiosk reports it daily, so it's noise
@@ -13,10 +16,20 @@ export function createSettingsStore(db, { log } = {}) {
         INSERT INTO settings (key, value) VALUES (?, ?)
         ON CONFLICT (key) DO UPDATE SET value = excluded.value, updated_at = strftime('%Y-%m-%dT%H:%M:%fZ', 'now')`);
     const deleteRow = db.prepare('DELETE FROM settings WHERE key = ?');
+    const areaExists = db.prepare('SELECT 1 FROM areas WHERE id = ?');
 
     function get(key) {
         const row = getRow.get(key);
+        if (key === 'assignments_area') return assignmentsArea(row);
         return row ? JSON.parse(row.value) : (DEFAULTS[key] ?? null);
+    }
+
+    // The Assignments tile's area, by id so renaming it changes nothing
+    // (docs/BLOCKS.md §3). Once that area is deleted it reads as null, so the
+    // tile asks for another; undoing the delete brings the same id back.
+    function assignmentsArea(row) {
+        const id = row ? JSON.parse(row.value) : null;
+        return id !== null && areaExists.get(id) ? id : null;
     }
 
     // a setting's stored value, or null when it isn't set (defaults aren't stored)
@@ -47,6 +60,9 @@ export function createSettingsStore(db, { log } = {}) {
             return Object.fromEntries(USER_KEYS.map(key => [key, get(key)]));
         },
         updateUser: db.transaction(changes => {
+            if (changes.assignments_area !== undefined && !areaExists.get(changes.assignments_area)) {
+                throw new HttpError(400, `There's no area ${changes.assignments_area}.`);
+            }
             for (const [key, value] of Object.entries(changes)) set(key, value);
             return Object.fromEntries(USER_KEYS.map(key => [key, get(key)]));
         }),

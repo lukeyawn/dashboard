@@ -1,5 +1,7 @@
 // A fake of the API for frontend tests: install() replaces fetch with an
-// in-memory tasks API and records every request.
+// in-memory tasks API and records every request. It also answers what the
+// Tasks tile reads beside its tasks: the areas, the settings (School, area 1,
+// is the assignments area) and the session (a browser, or the kiosk).
 import { vi } from 'vitest';
 
 export function json(status, body) {
@@ -9,7 +11,7 @@ export function json(status, body) {
     });
 }
 
-export function fakeTasksApi(initial = []) {
+export function fakeTasksApi(initial = [], { areas = [{ id: 1, name: 'School' }, { id: 4, name: 'Home' }], assignmentsArea = 1, client = 'api' } = {}) {
     let tasks = initial.map(t => ({ done_at: null, ...t }));
     let nextId = Math.max(0, ...tasks.map(t => t.id)) + 1;
     const requests = [];
@@ -26,6 +28,9 @@ export function fakeTasksApi(initial = []) {
         if (failure) return json(failure, { error: { message: `Failed with ${failure}`, details: [] } });
 
         const [path, search] = url.split('?');
+        if (method === 'GET' && path === '/api/areas') return json(200, areas);
+        if (method === 'GET' && path === '/api/settings') return json(200, { night_start: '22:00', night_end: '06:30', week_start: 'sunday', assignments_area: assignmentsArea });
+        if (method === 'GET' && path === '/api/session') return json(200, { client });
         const id = Number(path.split('/')[3]);
         if (method === 'GET' && path === '/api/tasks') {
             const done = new URLSearchParams(search).get('done');

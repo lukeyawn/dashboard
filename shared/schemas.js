@@ -165,8 +165,9 @@ export const applicationQuery = z.strictObject({ status: z.enum(STATUSES).option
 
 // settings, night mode, location
 
-// the night hours, and the day weeks start on for habits and Upcoming
-export const settingsUpdate = partial({ night_start: time, night_end: time, week_start: z.enum(WEEK_STARTS) });
+// the night hours, the day weeks start on (for habits), and the area
+// the Assignments tile shows (an area id)
+export const settingsUpdate = partial({ night_start: time, night_end: time, week_start: z.enum(WEEK_STARTS), assignments_area: z.number().int().positive() });
 
 export const kioskLocation = z.strictObject({
     lat: z.number().min(-90).max(90),

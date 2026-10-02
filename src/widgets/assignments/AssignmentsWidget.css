@@ -1,24 +1,23 @@
-.due-list {
+.assignment-list {
     flex: 1;
     min-height: 0;
     display: flex;
     flex-direction: column;
-    overflow-y: auto;
-    scrollbar-width: none;
-    mask-image: linear-gradient(to bottom, black calc(100% - var(--hit) / 2), transparent);
+    /* what doesn't fit folds into "+N more" */
+    overflow: hidden;
 }
 
-.due {
+.assignment {
     position: relative;
     display: flex;
     border-bottom: 1px solid var(--hairline);
 }
 
-.due:last-child {
+.assignment:last-child {
     border-bottom: none;
 }
 
-.due button:not(.claude-mark) {
+.assignment button:not(.claude-mark) {
     all: unset;
     box-sizing: border-box;
     display: flex;
@@ -32,23 +31,23 @@
     padding: calc(var(--cell) * 0.04) 0;
 }
 
-.due button:not(.claude-mark):active {
+.assignment button:not(.claude-mark):active {
     filter: brightness(1.3);
 }
 
-.due-info {
+.assignment-info {
     display: flex;
     flex-direction: column;
     min-width: 0;
 }
 
-.due-name {
+.assignment-name {
     white-space: nowrap;
     overflow: hidden;
     text-overflow: ellipsis;
 }
 
-.due-date {
+.assignment-date {
     font-size: var(--fs-small);
     color: var(--text-muted);
     white-space: nowrap;
@@ -56,7 +55,7 @@
     text-overflow: ellipsis;
 }
 
-.due-days {
+.assignment-days {
     flex-shrink: 0;
     padding: calc(var(--cell) * 0.02) calc(var(--cell) * 0.065);
     border-radius: 999px;
@@ -66,18 +65,18 @@
     white-space: nowrap;
 }
 
-.due.urgent .due-days {
+.assignment.urgent .assignment-days {
     background-color: hsla(0, 85%, 65%, 0.2);
     color: var(--urgent);
 }
 
 /* pending: crossed out, with the shrinking timer line (DESIGN §6.2) */
-.due.pending .due-name {
+.assignment.pending .assignment-name {
     text-decoration: line-through;
     color: var(--text-muted);
 }
 
-.due.pending::after {
+.assignment.pending::after {
     content: '';
     position: absolute;
     left: 0;
@@ -87,4 +86,10 @@
     background-color: var(--accent);
     transform-origin: left;
     animation: pending-timer var(--pending-ms) linear forwards;
+}
+
+.assignment-more {
+    padding-top: calc(var(--cell) * 0.04);
+    font-size: var(--fs-small);
+    color: var(--text-muted);
 }

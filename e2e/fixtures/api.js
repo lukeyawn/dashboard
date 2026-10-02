@@ -26,10 +26,12 @@ export const TASKS = rows([
     name, done_at: null, due: null, area_id: null, area: null, minutes: null, repeat: null, last_done_at: null, notes: null, link: null, source: null,
     priority: i === 1 ? 'now' : i === 9 ? 'someday' : 'soon',
     ...(i === 3 && { minutes: 15 }),
-    ...(i === 0 && { minutes: 120 }),
+    // a weekly chore (↻), and a deadline due tomorrow, in --urgent
+    ...(i === 0 && { minutes: 120, due: '2026-10-04', repeat: { every: 1, unit: 'week' } }),
+    ...(i === 3 && { due: '2026-10-01' }),
     ...(i === 2 && { claude_change }),
 })).concat([
-    // the Due soon tile's tasks: overdue, or due within 14 days of the fixed date
+    // tasks with a due date: School's are the Assignments tile's (SETTINGS)
     { name: 'Reading response 3', due: '2026-09-28', area_id: 1, area: 'School' },
     { name: 'Linear Algebra problem set 4: eigenvalues and diagonalization', due: '2026-10-01', area_id: 1, area: 'School', priority: 'now', minutes: 120, claude_change },
     { name: 'OS Shell project', due: '2026-10-02', area_id: 1, area: 'School' },
@@ -90,7 +92,7 @@ export const HABITS = rows([
     { name: 'No phone in bed', checks: pick('x..xxxx'), streak: 4 },
 ].map((h, i) => ({ per_week: 7, week_count: h.checks.filter(d => d >= '2026-09-27').length, position: i, archived_at: null, ...h })));
 
-export const SETTINGS = { night_start: '22:00', night_end: '06:30', week_start: 'sunday' };
+export const SETTINGS = { night_start: '22:00', night_end: '06:30', week_start: 'sunday', assignments_area: 1 };
 
 export const APPLICATIONS = rows([
     { company: 'Google', role: 'Software Engineering Intern, Summer 2027', status: 'interview', updated_at: '2026-09-29T15:00:00.000Z', claude_change },
