@@ -42,11 +42,14 @@ Compute Engine → VM instances → **Create instance**:
 | VM provisioning model | **Standard**, not Spot | the free tier needs a non-preemptible VM |
 | Boot disk | Debian 13, **Standard persistent disk**, 30 GB | "Balanced" (10 GB) is the default and isn't free |
 | Disk snapshots / backup schedule | **None** | snapshots aren't free, and Litestream already backs up the data |
+| Network service tier (under Networking → nic0) | **Standard** | Premium is the default and costs more for outbound data. Tailscale works the same on Standard. |
 | Service account | `dashboard-vm` | |
 | Access scopes | Allow full access to all Cloud APIs | the account's own permissions are what limit it |
 | Firewall | leave HTTP and HTTPS **unchecked** | nothing should reach it from the internet |
 
 **The page's monthly estimate (about $7) is expected.** It always shows full price; the free tier is taken off the bill itself, as "Other savings" in Billing → Reports. A day after creating the VM, check that report: every cost should have a matching saving. The $1 budget alert from step 1 catches anything that doesn't.
+
+**Check the snapshot schedule after creating the VM.** The first setup ended up with a default schedule on the boot disk anyway, and it was the only charge. Under Compute Engine → Storage → Disks → the `dashboard` disk, remove any snapshot schedule, then delete anything under Storage → Snapshots. Removing a schedule doesn't delete the snapshots it already took, and those keep billing. A persistent-disk line with no matching saving in the report usually means this.
 
 Then open it with the **SSH** button in the console and run the commands below. They fetch `setup.sh` from `main`, so phase 3 must be merged first.
 
