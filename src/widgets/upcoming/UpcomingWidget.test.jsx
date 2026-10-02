@@ -19,11 +19,10 @@ afterEach(() => {
     vi.restoreAllMocks();
 });
 
-function setup({ events = [], birthdays = [], weekStart = 'sunday' } = {}) {
+function setup({ events = [], birthdays = [] } = {}) {
     const api = fakeServer({
         'GET /api/events': () => events,
         'GET /api/birthdays': () => birthdays,
-        'GET /api/settings': () => ({ week_start: weekStart }),
     });
     api.install();
     render(<UpcomingWidget />);
@@ -80,19 +79,9 @@ describe('UpcomingWidget', () => {
         expect(texts(day('2026-11-02'), '.upcoming-title')).toEqual(['Event at 9', 'Event at 10', 'Event at 11']);
     });
 
-    it('marks where the week starts, by the week_start setting', async () => {
-        setup({ weekStart: 'sunday' });
-        await waitFor(() => expect(document.querySelector('.week-start')?.dataset.date).toBe('2026-11-01'));
-    });
-
-    it('marks a Monday week start, and none before the first day', async () => {
-        setup({ weekStart: 'monday' });
-        await waitFor(() => expect(document.querySelector('.week-start')?.dataset.date).toBe('2026-11-02'));
-        expect(document.querySelectorAll('.week-start')).toHaveLength(1);
-    });
 
     it('says when the events could not load', async () => {
-        const api = fakeServer({ 'GET /api/settings': () => ({}) });
+        const api = fakeServer({});
         api.install();
         render(<UpcomingWidget />);
         expect(await screen.findByText("Couldn't load upcoming events.")).toBeTruthy();

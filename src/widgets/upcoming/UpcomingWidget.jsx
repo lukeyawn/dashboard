@@ -1,5 +1,5 @@
 import { useRef } from 'react';
-import { addDays, parseDate, startOfWeek, today } from '../../../shared/dates';
+import { addDays, parseDate, today } from '../../../shared/dates';
 import { useHiddenCount } from '../../hooks/useHiddenCount';
 import { useNow } from '../../hooks/useNow';
 import { useResource } from '../../hooks/useResource';
@@ -18,7 +18,6 @@ export default function UpcomingWidget() {
     const range = { from: days[0], to: days[DAYS - 1] };
     const events = useResource('events', { params: range });
     const birthdays = useResource('birthdays', { params: range });
-    const settings = useResource('settings');
 
     let content;
     if (events.loading) content = <p className="widget-message">Loading…</p>;
@@ -27,15 +26,7 @@ export default function UpcomingWidget() {
         const shown = events.data.filter(e => !e.routine);
         content = (
             <div className="upcoming-days">
-                {days.map((date, i) => (
-                    <Day
-                        key={date}
-                        date={date}
-                        // a line where the week starts, as in Habits; none before the first day
-                        weekStart={i > 0 && date === startOfWeek(date, settings.data?.week_start)}
-                        {...itemsOn(date, shown, birthdays.data ?? [])}
-                    />
-                ))}
+                {days.map(date => <Day key={date} date={date} {...itemsOn(date, shown, birthdays.data ?? [])} />)}
             </div>
         );
     }
@@ -60,11 +51,11 @@ function itemsOn(date, events, birthdays) {
 
 // One day's box. When its events don't all fit, the last ones fold into "+N".
 // An empty day is dimmed, not collapsed, so the boxes show time as it passes.
-function Day({ date, weekStart, chips, timed }) {
+function Day({ date, chips, timed }) {
     const bodyRef = useRef(null);
     const hidden = useHiddenCount(bodyRef, [...chips, ...timed].map(item => item.id).join(','), timed.length);
     const day = parseDate(date);
-    const classes = ['upcoming-day', chips.length + timed.length === 0 && 'empty', weekStart && 'week-start'].filter(Boolean).join(' ');
+    const classes = chips.length + timed.length === 0 ? 'upcoming-day empty' : 'upcoming-day';
 
     return (
         <section className={classes} data-date={date}>

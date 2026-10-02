@@ -42,7 +42,7 @@ Its only unique part was the month grid, which is rarely needed. Meanwhile nothi
   - Birthdays and all-day events: chips at the top.
   - Events: the start time, and the title clamped to 2 lines (about 16 characters a line), both at `--fs-small`. "+N" when the column is full, at about 4–5 events.
 - **Empty days are dimmed boxes,** not collapsed: they show time as it really passes.
-- A divider at the start of the week, the same as in Habits (`week_start`, §2).
+- No week divider: it's there in Habits for weekly streaks, and four days don't need one (dropped in review, PR 6).
 - **Only events and birthdays.** Tasks live in Tasks and Assignments (§3), and countdowns in the Countdown tile.
 - Titled "Upcoming". No tap actions and no ✎, like Today.
 
@@ -75,8 +75,7 @@ Its only unique part was the month grid, which is rarely needed. Meanwhile nothi
 - the 4 days start tomorrow, across a month end;
 - classes are on Today and in `list_events`, not on Upcoming;
 - no `GCAL_ROUTINE_ICS_URL`, and a routine feed that fails while the main one works;
-- "+N" when a column is full;
-- the week divider with each `week_start`.
+- "+N" when a column is full.
 
 ---
 
@@ -548,7 +547,7 @@ Each step is its own PR off `main`, never stacked. They go in three rounds: a PR
 | 4 | Countdown: the time, `detail`, past dates (§4) | Medium | |
 | 5 | Tasks data: areas, priorities, minutes, recurrence (§3) | Large | |
 | | **Round 2** | | |
-| 6 | Upcoming, and the routine calendar feed (§1) | Medium | 3, for `week_start` |
+| 6 | Upcoming, and the routine calendar feed (§1) | Medium | |
 | 7 | The Tasks and Assignments tiles: the row, sort and filter, and the shared menu (§3) | Medium | 5, for the data |
 | 8 | Goals (§5) | Medium | 3, for `week_start` |
 | | **Round 3** | | |
