@@ -12,6 +12,7 @@ Being built in phases ([DESIGN §12](docs/DESIGN.md#12-build-plan)).
 - **Built, waiting for hardware:** the kiosk, with night mode, the reload rules and the Pi's setup ([kiosk/SETUP.md](kiosk/SETUP.md)).
 - **Phase 7 (data an agent can work with):** the status line, richer tasks with deadlines merged in, and a change record with History and Undo on `/manage`.
 - **Phase 8, in progress:** the claude.ai connector for chats is built: a public door on port 443 with only the MCP endpoint and its sign-in (the dashboard itself is on tailnet-only 8443), and Claude's changes with Undo on `/manage` ([docs/CONNECTOR.md](docs/CONNECTOR.md), [vm/CONNECTOR.md](vm/CONNECTOR.md)). Next: suggestions and the agent's connector, then phase 9, the scheduled agent.
+- **Designed, not built:** a redesign of the blocks after using the live dashboard ([docs/BLOCKS.md](docs/BLOCKS.md)).
 
 ## Development
 

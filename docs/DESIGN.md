@@ -4,7 +4,7 @@ Sep 30, 2026 (revised the same day: cloud hosting, any screen size, testing and 
 
 This replaces `DESIGN.md` and `DESIGN2.md` at the repo root. Everything here is decided unless it's listed under [Open questions](#16-open-questions). Where a decision has a reason, the reason is what counts: use it to judge cases the rule doesn't cover. Where this doc changes something in the earlier ones, [§17](#17-what-changed-from-the-earlier-docs) says what changed and why.
 
-Choices made while building, where this doc left room, are logged in [DECISIONS.md](DECISIONS.md). Phase 8's detailed design, the claude.ai connectors, is in [CONNECTOR.md](CONNECTOR.md).
+Choices made while building, where this doc left room, are logged in [DECISIONS.md](DECISIONS.md). Phase 8's detailed design, the claude.ai connectors, is in [CONNECTOR.md](CONNECTOR.md). The redesign of the blocks (Oct 2) is in [BLOCKS.md](BLOCKS.md); until each part is built, it's newer than §10 here.
 
 **How the work is split:** Luke decides the design and reviews the code, and Claude writes it. The original plan was for Luke to hand-write the code with AI help, but there's no longer time for that.
 
@@ -699,6 +699,8 @@ v1 has the nine widgets already in the grid plus the dock.
 **Quick action** means a single tap on the dashboard (§6.1–6.2). Everything else happens in the editor, opened with ✎ or on `/manage`.
 
 ### Calendar (4×2) — untitled
+> **Redesign planned:** becomes Upcoming, the next 4 days of events ([BLOCKS.md §1](BLOCKS.md#1-upcoming-replacing-the-calendar)).
+
 - **Left side:** today's weekday in accent, the day number huge, and the month.
 - **Right side:** the month grid, with today's date filled in accent.
 - **Dots:** Days that have a task due, a countdown or a birthday get a small dot. Regular Google Calendar events are not dotted, because weekly classes would dot every weekday.
@@ -706,15 +708,21 @@ v1 has the nine widgets already in the grid plus the dock.
 - **Data:** tasks with a due date, countdowns and birthdays.
 
 ### Job search (4×2)
+> **Redesign planned:** a list of what's next with a notes panel, an OA stage, and no stage counts ([BLOCKS.md §6](BLOCKS.md#6-job-search)).
+
 - **Shows:** a count for each of the four stages, and the 3 most **recently updated** applications, each with a status pill.
 - **Quick action:** tapping the pill advances the application (applied → interview → offer), through the 5-second pending action. **Rejected is set only in the editor or by the agent,** so a stray tap can't reject an application.
 
 ### Goals (3×2)
+> **Redesign planned:** deadlines with pace, a step size, milestones and dreams ([BLOCKS.md §5](BLOCKS.md#5-goals)).
+
 - **Shows:** each active goal with name, `current / target unit`, and a progress bar. Up to 4 fit; anything beyond shows as "+N more".
 - **Quick action:** a **+1** button (`--hit`) on each goal, sent immediately, with a 5-second "undo".
 - **Finished goals:** the bar is full and a ✓ appears. The goal stays until it's archived in the editor.
 
 ### Habits (3×3)
+> **Redesign planned:** a target number of days per week, and a `week_start` setting ([BLOCKS.md §2](BLOCKS.md#2-habits-a-weekly-target)).
+
 - **Shows:** one row per habit, with dots for the last 7 days (today on the right, its weekday label in accent) and the current streak.
 - **Quick action:** tap any of the 7 day cells to toggle that day, so a forgotten day can be filled in. Each cell is a full-height tap target (§6.1).
 - **Streak:** consecutive done days ending today, or ending yesterday if today isn't done yet. That way the streak doesn't read 0 every morning. Computed by the server (§4).
@@ -728,11 +736,15 @@ v1 has the nine widgets already in the grid plus the dock.
 - **Empty state:** "Nothing scheduled today."
 
 ### Due soon (2×2)
+> **Redesign planned:** becomes Assignments, the school area's tasks with a due date ([BLOCKS.md §3](BLOCKS.md#3-tasks-and-assignments)).
+
 - **Shows:** open tasks that are overdue or due within 14 days, by due date, labeled "overdue", "today", "tomorrow" or "N days". Those due within 2 days, and overdue ones, turn `--urgent`. The area is shown when set.
 - **Quick action:** tapping a row completes the task, through the 5-second pending action.
 - It replaced the Deadlines tile when deadlines became tasks with a due date (§17).
 
 ### Tasks (4×3)
+> **Redesign planned:** editable areas, now/soon/someday, time estimates, recurrence, and sort and filter on the tile ([BLOCKS.md §3](BLOCKS.md#3-tasks-and-assignments)).
+
 - **Shows:** open tasks that aren't in Due soon, sorted by priority, then due date, then effort, then age, each with a round checkbox. A small marker shows high priority, and another shows quick ones. Each task appears in exactly one of the two tiles. It's a `<ul>`, not a table: a table is for data where every column means the same thing in every row.
 - **Quick action:** tapping a row clears the task, through the 5-second pending action (§6.2). Cleared tasks are still in the database and can be restored in the editor.
 - **Adding:** an inline "+ Add task" row at the bottom (§6.3).
@@ -746,6 +758,8 @@ v1 has the nine widgets already in the grid plus the dock.
 - **Must test:** single-character words and long definitions. The definition clamps to 2 lines.
 
 ### Countdown (1×1) — untitled
+> **Redesign planned:** an optional time, finer units or a live clock, and past dates refused ([BLOCKS.md §4](BLOCKS.md#4-countdown)).
+
 - **Which countdown:**
   1. A birthday **within the next 7 days**, if there is one. It reads, for example, "3 days · Mom's birthday".
   2. Otherwise, the `pinned` countdown if there is one.
@@ -756,6 +770,8 @@ v1 has the nine widgets already in the grid plus the dock.
 - **Date math:** compare local calendar dates, never raw timestamps (see §14).
 
 ### Dock
+> **Redesign planned:** seconds on the clock, smaller and muted ([BLOCKS.md §8](BLOCKS.md#8-the-dock-clock-seconds)).
+
 - **Left:** a large live clock (1-second tick, `tabular-nums`, §8 glanceable sizes) and the date.
 - **Right:** the weather: current temperature, condition, and the day's high and low. The page asks the server (`GET /api/weather`) every 30 minutes. The server fetches from Open-Meteo, which needs no API key, and caches each location's answer for 30 minutes.
 - **Weather location,** in this order:
@@ -833,7 +849,8 @@ The rule is **one complete vertical slice before any breadth**: a few real widge
 | **7. Agent-ready data** | Deadlines merged into tasks, with priority, effort, area, notes, link and source; the Due soon and Tasks tiles; the change record with History and Undo; sources and no duplicates; the status line. (§5.5) |
 | **8. The public door** | Three PRs ([CONNECTOR.md §14](CONNECTOR.md#14-how-its-built-three-pull-requests-one-after-another)): the credential allow-lists, OAuth with approval on the tailnet, the public listener and the chat connector, Claude's changes with Undo everything since; then go-live on Funnel port 443, with the dashboard moved to 8443; then suggestions, the agent connector and the review modal. (§5.2–5.4) |
 | **9. The agent** | Its standing instructions and schedule, with its Gmail and Calendar connectors read-only; run reports in the status line, including a warning for any direct write through the chat connector during a run; the daily briefing. (§5.1, [CONNECTOR.md §2](CONNECTOR.md#2-two-connectors-and-what-the-second-one-doesnt-guarantee)) |
-| **Later** | Click-to-focus with container-query condensing; a daily background photo from Unsplash (below); an assistant widget on the dashboard; sunrise gradient; an idle photo-album mode; a wins log; recurring tasks. |
+| **Block redesign** | Nine independent PRs, in the order in [BLOCKS.md §11](BLOCKS.md#11-build-order): dock seconds; the change record kept for good; Upcoming; weekly habit targets; countdown times; the task data; the Tasks and Assignments tiles; goals; job search. They can go before or alongside phase 9. |
+| **Later** | Click-to-focus with container-query condensing; a daily background photo from Unsplash (below); an assistant widget on the dashboard; sunrise gradient; an idle photo-album mode; a wins log; a stats or "wrapped" page for a year in review. (Recurring tasks are now designed, in [BLOCKS.md §3](BLOCKS.md#3-tasks-and-assignments).) |
 
 ### Later: a daily background photo from Unsplash
 
@@ -990,6 +1007,7 @@ Each of these caused a real bug or near-miss, or is a known trap. Keep them in m
 | 2026-10-01 | Links from connectors must be `https` and are shown with their domain. Text from connectors is cleaned of characters that disguise it. |
 | 2026-10-01 | One OAuth client per connector; the client, not the `resource` parameter, decides a token's access. Refresh replacements are derived from the old token, so a repeat in the grace window gets the same one. *Undo everything since* defaults to claude.ai only. |
 | 2026-10-01 | Public rate limits are split by connection, visitor and kind, so strangers can't use up claude.ai's share or trigger the dashboard's login lockout. A replaced refresh token keeps working until its replacement is used, so a lost reply doesn't look like theft. A lost connection shows in the status line. |
+| 2026-10-02 | The block redesign, after using the live dashboard: Upcoming replaces the calendar, weekly habit targets, editable task areas, now/soon/someday, time estimates and recurrence, Assignments replaces Due soon, countdown times and a live clock, goal deadlines, milestones and dreams, a job search list with a notes panel, and the change record kept for good. Every decision and its reasons are in [BLOCKS.md](BLOCKS.md). |
 
 ---
 
