@@ -779,7 +779,7 @@ v1 has the nine widgets already in the grid plus the dock.
   |---|---|
   | `days` (default) | Weeks above 60 days, then days, then "Today" all through the target day. |
   | `hours` | As `days`, then hours under 48 hours and minutes under 1 hour. |
-  | `live` | As `hours`, then a ticking H:MM:SS in the last 24 hours. In the last minute, the seconds alone fill the tile. |
+  | `live` | As `hours`, then a ticking clock in the last 24 hours: H:MM large with the seconds small and muted beside it, as on the dock, then M:SS all large in the last hour. In the last minute, the seconds alone fill the tile. The clock fills the tile's width, so it grows as the moment gets closer. |
 
   `hours` and `live` need a time. Once a timed countdown's time has come, the tile reads "Today" with the label for the rest of that day. With `days`, the time decides when the countdown is refused as passed, and orders two countdowns on the same day; the tile reads "Today" all day either way.
 - **Ticking:** every second only during a live countdown's last day, every minute otherwise.

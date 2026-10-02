@@ -1,6 +1,6 @@
 import { useState } from 'react';
 import { addDays, today } from '../../../shared/dates';
-import { chooseCountdown, countdownDisplay, needsSeconds } from './countdown';
+import { chooseCountdown, clockEms, clockParts, countdownDisplay, needsSeconds } from './countdown';
 import { useNow } from '../../hooks/useNow';
 import ClaudeMark from '../../components/ClaudeMark';
 import EditButton from '../../components/EditButton';
@@ -46,12 +46,24 @@ export default function CountdownWidget() {
             </div>
         );
     }
-    const className = kind === 'clock' ? 'countdown-number clock' : unit ? 'countdown-number' : 'countdown-number today';
+    if (kind === 'clock') {
+        const { main, seconds } = clockParts(number);
+        return (
+            <div className="countdown-widget">
+                {edit}
+                <p className="countdown-number clock" style={{ '--ems': clockEms(number) }} aria-label={number}>
+                    {main}{seconds && <span className="countdown-clock-seconds">{seconds}</span>}
+                </p>
+                <p className="countdown-label">until {chosen.label}</p>
+            </div>
+        );
+    }
+    const className = unit ? 'countdown-number' : 'countdown-number today';
     return (
         <div className="countdown-widget">
             {edit}
             <p className={className}>{number}</p>
-            <p className="countdown-label">{kind === 'clock' ? `until ${chosen.label}` : unit ? `${unit} until ${chosen.label}` : chosen.label}</p>
+            <p className="countdown-label">{unit ? `${unit} until ${chosen.label}` : chosen.label}</p>
         </div>
     );
 }

@@ -48,12 +48,34 @@ export function countdownDisplay({ date, time, detail }, now) {
     if (detail === 'live' && left <= 24 * HOUR) {
         const seconds = Math.ceil(left / 1000);
         if (seconds < 60) return { number: String(seconds), unit: null, kind: 'seconds' };
-        const clock = `${Math.floor(seconds / 3600)}:${String(Math.floor(seconds / 60) % 60).padStart(2, '0')}:${String(seconds % 60).padStart(2, '0')}`;
+        // H:MM:SS, and M:SS in the last hour, so the clock grows as it gets close
+        const hours = Math.floor(seconds / 3600);
+        const minutes = Math.floor(seconds / 60) % 60;
+        const ss = String(seconds % 60).padStart(2, '0');
+        const clock = hours ? `${hours}:${String(minutes).padStart(2, '0')}:${ss}` : `${minutes}:${ss}`;
         return { number: clock, unit: null, kind: 'clock' };
     }
     if (left <= 59 * MINUTE) return plural(Math.ceil(left / MINUTE), 'minute');
     if (left < 48 * HOUR) return plural(Math.max(1, Math.floor(left / HOUR)), 'hour');
     return shown;
+}
+
+// The live clock's parts: with hours left, H:MM large and the seconds small
+// beside it, as on the dock; in the last hour, M:SS all large
+export function clockParts(clock) {
+    const [hours, minutes, seconds] = clock.split(':');
+    return seconds === undefined ? { main: clock, seconds: null } : { main: `${hours}:${minutes}`, seconds };
+}
+
+// SMALL is the seconds' size beside H:MM, as a share of the clock's
+const SMALL = 0.4;
+const ems = text => [...text].reduce((sum, c) => sum + (c === ':' ? 0.29 : 0.64), 0);
+
+// How wide the clock is, in ems of Inter's tabular digits (0.64em) and colons
+// (0.29em), so the tile can size it to fill its width
+export function clockEms(clock) {
+    const { main, seconds } = clockParts(clock);
+    return ems(main) + (seconds ? 0.08 + SMALL * ems(seconds) : 0);
 }
 
 // The tile ticks every second only during a live countdown's last day
