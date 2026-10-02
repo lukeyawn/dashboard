@@ -4,7 +4,7 @@ Oct 1, 2026 · Luke (owner, design and review) · Claude (implementation)
 
 This is the detailed design for phase 8, the door through which claude.ai reaches the dashboard. It's what claude.ai chats and the scheduled agent (phase 9) connect to. [DESIGN §5](DESIGN.md#5-claude-agent-access) has the reasoning (the threat, the rule, the credentials). This doc covers how it works. Where the two differ, this doc is newer, and DESIGN.md is updated to match in the same PR.
 
-Nothing here is built yet.
+The chat connector (§14's PRs 1 and 2) is built; the *As built* notes say where it differs. Suggestions and the agent's connector aren't built yet.
 
 ---
 
@@ -13,8 +13,8 @@ Nothing here is built yet.
 Once phase 8 is deployed, connecting is a one-time setup (§10 has the exact steps):
 
 1. In claude.ai: **Customize → Connectors → Add custom connector**, twice:
-   - **Dashboard**, at `https://dashboard.tail354c76.ts.net:8443/mcp`, for chats. Claude adds and changes things directly.
-   - **Dashboard (suggest only)**, at `https://dashboard.tail354c76.ts.net:8443/mcp/agent`, for the agent. Claude can only suggest.
+   - **Dashboard**, at `https://dashboard.tail354c76.ts.net/mcp`, for chats. Claude adds and changes things directly.
+   - **Dashboard (suggest only)**, at `https://dashboard.tail354c76.ts.net/mcp/agent`, for the agent. Claude can only suggest.
 
    Each connector has its own client ID and secret in the server's `.env`. Paste each pair under **Advanced settings** for its own connector.
 2. Click **Connect** on each. Your browser goes to your dashboard (on the tailnet) and shows what's asking and what it will be able to do. Tap **Approve**, and you're sent back to claude.ai, connected.
@@ -61,18 +61,22 @@ So DESIGN §5.2's rule changes. It was *"a fooled agent can't change anything wi
 ## 3. The door itself
 
 ```
-claude.ai (Anthropic's servers) ── HTTPS ──► Tailscale Funnel, port 8443 ──► 127.0.0.1:3002  public listener
+claude.ai (Anthropic's servers) ── HTTPS ──► Tailscale Funnel, port 443 ───► 127.0.0.1:3002  public listener
                                                                               │   /mcp, /mcp/agent, /oauth/*, /.well-known/*
                                                                               │   nothing else
                                                                               ▼ loopback, with the caller's own token
-Your devices ── tailnet, port 443 (unchanged) ──────────────────────────────► 127.0.0.1:3000  the dashboard and /api
+Your devices ── tailnet only, port 8443 ─────────────────────────────────────► 127.0.0.1:3000  the dashboard and /api
 ```
 
-- **Funnel on port 8443, not 443.** Funnel is switched on per port, not per path, so funneling 443 would make the whole dashboard public. Port 443 stays tailnet-only, exactly as now; Funnel allows only 443, 8443 and 10000.
+- **The public door is on port 443, and the dashboard moves to 8443.**
+  - **claude.ai's servers only connect to port 443.** The door first went live on 8443: claude.ai said "Couldn't reach Dashboard", and no request arrived. With the same listener on 443, claude.ai's requests arrived at once (tested Oct 1, 2026; DECISIONS.md, phase 8).
+  - **Funnel works per port, not per path,** so the door has port 443 to itself. The dashboard and `/api` are served on port 8443, tailnet-only. Funnel allows only 443, 8443 and 10000.
+  - **The dashboard's address is now `https://dashboard.tail354c76.ts.net:8443`.** The address without a port is the public door, which answers everything but its own routes with 404.
+  - **Not chosen:** a second Tailscale machine for the door, which would have kept the dashboard's address. It means a second Tailscale to run, and the connect cookie (§4) only works when the door and the dashboard share a host name.
 - **A separate listener with only the public routes.** The same Node process runs a second Express app on `127.0.0.1:3002` that mounts the two MCP endpoints, the sign-in endpoints and their metadata, and nothing else. There's no `/api`, no pages and no static files on it, so a mistake in routing can't expose them. A test requests every route the private app has, through the public app, and expects 404.
 - **The MCP endpoints are thin clients of `/api`,** like the stdio server. They call `http://127.0.0.1:3000/api` with the caller's own access token, and the API enforces what that token may do (§5). There's one enforcement point, not two.
-- **Same origin for everything public.** Both endpoints, the sign-in endpoints and their metadata are all on `https://dashboard.tail354c76.ts.net:8443`. claude.ai fails silently when the endpoint and the sign-in server differ in domain or port ([claude-ai-mcp#1047](https://github.com/anthropics/claude-ai-mcp/issues/1047)).
-- **Off unless configured.** The public listener starts only when `PUBLIC_URL` is set in `.env`. It listens on `127.0.0.1` at `PUBLIC_PORT`, 3002 unless set, which is where Funnel points. Development, tests and CI don't open it unless a test asks.
+- **Same origin for everything public.** Both endpoints, the sign-in endpoints and their metadata are all on `https://dashboard.tail354c76.ts.net`. claude.ai fails silently when the endpoint and the sign-in server differ in domain or port ([claude-ai-mcp#1047](https://github.com/anthropics/claude-ai-mcp/issues/1047)).
+- **Off unless configured.** The public listener starts only when `PUBLIC_URL` is set in `.env`. It listens on `127.0.0.1` at `PUBLIC_PORT`, 3002 unless set, which is where Funnel points. `PUBLIC_URL` has no port, and `TAILNET_URL` names the dashboard's own address (the same host, on 8443), where the approval page is. The server refuses to start with a port in `PUBLIC_URL`, or with a `TAILNET_URL` on a different host. Development, tests and CI don't open it unless a test asks.
 - **Every public request is logged** to the journal: method, path, status, the connection's id and the tool name, but never bodies or tokens.
 
 **Transport:** MCP Streamable HTTP in stateless mode, with JSON responses and no streams. Each `POST` is handled on its own; `GET` and `DELETE` return 405. Requests that carry an `Origin` header are refused, since claude.ai's servers don't send one and a browser page would.
@@ -102,7 +106,7 @@ This follows the MCP authorization spec. The server is both the protected resour
 
 **Approval happens on the tailnet. This is the key decision.**
 1. claude.ai sends your browser to the public `GET /oauth/authorize`. The server checks every parameter: client, exact redirect URI, PKCE challenge, and `resource`. It stores the request for 5 minutes under a random id.
-2. It **redirects** the browser to `https://dashboard.tail354c76.ts.net/connect/<id>`, the tailnet address. It also sets a short-lived, HttpOnly *connect* cookie holding a random value tied to that request.
+2. It **redirects** the browser to `https://dashboard.tail354c76.ts.net:8443/connect/<id>`, the tailnet address. It also sets a short-lived, HttpOnly *connect* cookie holding a random value tied to that request.
 3. That page loads only on a device on your tailnet, and only if you're logged in to the dashboard.
    - It shows what's asking (claude.ai) and which access: *"add and change your dashboard (no deleting)"* or *"read and suggest only"*.
    - It has **Approve** and **Deny**.
@@ -112,7 +116,7 @@ This follows the MCP authorization spec. The server is both the protected resour
 **Why this matters:**
 - **The public door shows no pages and asks for no secret.** `/oauth/authorize` only checks and redirects, so there's nothing to brute-force, phish or inject into. Your `API_TOKEN` is never typed on a public page.
 - **Both locks still hold** (DESIGN §4): approving needs your tailnet *and* your login.
-- **The connect cookie stops consent phishing.** Someone could start their own sign-in in their own claude.ai account and send you the approve link. Your browser wouldn't have their cookie, so the page refuses with "this request was started in a different browser". (Cookies are shared between ports on one host, which is what lets the 8443 response set a cookie that the 443 page can read.)
+- **The connect cookie stops consent phishing.** Someone could start their own sign-in in their own claude.ai account and send you the approve link. Your browser wouldn't have their cookie, so the page refuses with "this request was started in a different browser". (Cookies are shared between ports on one host, which is what lets the door's response on 443 set a cookie that the approval page on 8443 can read.)
 
 **Tokens:**
 - **Access tokens:** random, opaque, and valid for **1 hour**.
@@ -140,12 +144,12 @@ This follows the MCP authorization spec. The server is both the protected resour
 
 \* **The visitor's address** is the one Tailscale Funnel passes on in `X-Forwarded-For`, read only on the public listener.
 - **Only the last entry counts.** A proxy adds its own entry after whatever the client sent, so earlier entries are whatever a visitor chose to send.
-- Whether Funnel sends the header, and that it appends rather than replaces, are checked on the VM in the door PR (§12).
+- **Funnel sends it.** From outside, the journal showed the phone's carrier address and claude.ai's own, not `unknown`. Whether it appends to a header the visitor sent, rather than replacing it, is still to check (§12).
 - If it doesn't send it, these limits fall back to one bucket per kind, which still keeps strangers away from the valid-token limits.
 
 These limits keep strangers from using up claude.ai's share. They don't stop a determined flood, which could still overload a free e2-micro; the answer to that is the kill switch, or turning Funnel off (§9).
 
-**Expect visitors.** The HTTPS certificate for `dashboard.tail354c76.ts.net` is in the public certificate logs, so scanners will find port 8443 the day Funnel opens. They get 401s and 404s. Each is logged (§3), and nothing else happens.
+**Expect visitors.** The HTTPS certificate for `dashboard.tail354c76.ts.net` is in the public certificate logs, so scanners will find port 443 the day Funnel opens. They get 401s and 404s. Each is logged (§3), and nothing else happens.
 
 ---
 
@@ -321,7 +325,7 @@ The settings `connector_chat_enabled` and `connector_agent_enabled` are on by de
 
 Turning one back on only allows new sign-ins. You then reconnect in claude.ai with **Connect**.
 
-**The bigger hammer** closes the door itself: `ssh dashboard sudo tailscale funnel --https=8443 off`. `vm/CONNECTOR.md`, from the go-live PR, lists it next to the setup steps.
+**The bigger hammer** closes the door itself: `ssh dashboard sudo tailscale funnel --https=443 off`. `vm/CONNECTOR.md`, from the go-live PR, lists it next to the setup steps.
 
 ---
 
@@ -331,9 +335,10 @@ These go into `vm/CONNECTOR.md` with the go-live PR.
 
 1. **Allow Funnel for the VM.** In the Tailscale admin console, under **Access controls**, give the `dashboard` machine the `funnel` attribute. The console offers to add it the first time.
 2. **On the VM:**
-   - Add `PUBLIC_URL=https://dashboard.tail354c76.ts.net:8443` to `.env`. The client IDs, secrets and refresh key are generated by a script in the go-live PR.
-   - Restart the service, then run `sudo tailscale funnel --bg --https=8443 http://127.0.0.1:3002`.
-   - **Check:** `tailscale funnel status` shows 8443 public and 443 tailnet only, and `curl https://dashboard.tail354c76.ts.net:8443/api/health` from a phone *off* Wi-Fi and Tailscale gets 404.
+   - Add `PUBLIC_URL=https://dashboard.tail354c76.ts.net` and `TAILNET_URL=https://dashboard.tail354c76.ts.net:8443` to `.env`. The client IDs, secrets and refresh key are generated by a script in the go-live PR.
+   - Move the dashboard to 8443, tailnet-only: `sudo tailscale serve --https=443 off`, then `sudo tailscale serve --bg --https=8443 http://127.0.0.1:3000`.
+   - Restart the service, then run `sudo tailscale funnel --bg --https=443 http://127.0.0.1:3002`.
+   - **Check:** `tailscale funnel status` shows 443 public and 8443 tailnet only, and `curl https://dashboard.tail354c76.ts.net/api/health` from a phone *off* Wi-Fi and Tailscale gets 404.
 3. **In claude.ai:** add both connectors (§1). Do this from the laptop browser, which is on the tailnet and logged in to the dashboard.
 4. **Connector settings in claude.ai.** These apply to your whole account, chats included:
 
@@ -378,7 +383,7 @@ Phase 9 adds `report_run` and the briefing to the agent connector.
   - If web search and fetch can be turned off for the agent's task, do it. That's the last channel a fooled agent could use to send data out. The risk is small, because Claude only fetches web addresses that already appear in the conversation, but it isn't zero.
   - Checked while setting up phase 9.
 - [ ] **Does claude.ai keep a custom client ID and secret?** One bug report says they were lost after adding ([claude-ai-mcp#344](https://github.com/anthropics/claude-ai-mcp/issues/344)). If it happens here, fall back to "Use Claude's published identity" (CIMD), allowing exactly Anthropic's client-ID URL and its known redirect URIs, still without fetching anything at sign-in.
-- [ ] **Does Funnel pass the visitor's address?** In the door PR, check for `X-Forwarded-For` on a request from outside the tailnet, including one that sends its own fake header, to confirm Funnel appends. The rate limits use its last entry if it's there (§4).
+- [ ] **Does Funnel pass the visitor's address?** Partly answered: it sends `X-Forwarded-For`, and the journal shows real addresses (§4). Still to check: a request that sends its own fake header, to confirm Funnel appends. The rate limits use its last entry.
 - [ ] **Gmail links:** check that `https://mail.google.com/mail/u/0/#all/<id>` opens the message for the ids the Gmail connector gives the agent. If it doesn't, the card shows the email's details without a link.
 
 ---

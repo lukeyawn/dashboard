@@ -17,14 +17,14 @@ The Pi only shows the dashboard. It holds no data, so it can be switched off or 
 ```sh
 curl -fsSL https://tailscale.com/install.sh | sh
 sudo tailscale up        # open the link and approve the Pi
-curl -fsS https://dashboard.<tailnet>.ts.net/api/health && echo reachable
+curl -fsS https://dashboard.<tailnet>.ts.net:8443/api/health && echo reachable
 ```
 
 ## 3. The kiosk scripts
 
 ```sh
 git clone https://github.com/lukeyawn/dashboard ~/dashboard
-DASHBOARD_URL=https://dashboard.<tailnet>.ts.net ~/dashboard/kiosk/setup.sh
+DASHBOARD_URL=https://dashboard.<tailnet>.ts.net:8443 ~/dashboard/kiosk/setup.sh
 ```
 
 It asks for the **`KIOSK_TOKEN`** from the server's `.env` (not the `API_TOKEN`) and saves it where only you can read it. Then it installs `swayidle` and `wlopm`, sets the time zone, and replaces the desktop's autostart with the kiosk's. Your old autostart is kept as `autostart.before-dashboard`.

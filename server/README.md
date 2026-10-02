@@ -1,6 +1,6 @@
 # server/
 
-The Express server: the REST API under `/api`, the login flow, and, in production, the built frontend. It's one Node process on the VM, listening on `127.0.0.1:3000` behind `tailscale serve` (DESIGN §2, §11.1). It's the only program that opens the SQLite database. With `PUBLIC_URL` set, the same process also runs the claude.ai connector's public listener on `127.0.0.1:3002`, behind Tailscale Funnel ([docs/CONNECTOR.md](../docs/CONNECTOR.md)).
+The Express server: the REST API under `/api`, the login flow, and, in production, the built frontend. It's one Node process on the VM, listening on `127.0.0.1:3000` behind `tailscale serve` on port 8443 (DESIGN §2, §11.1). It's the only program that opens the SQLite database. With `PUBLIC_URL` set, the same process also runs the claude.ai connector's public listener on `127.0.0.1:3002`, behind Tailscale Funnel on port 443 ([docs/CONNECTOR.md](../docs/CONNECTOR.md)).
 
 Every `x.test.js` tests the `x.js` beside it. The exceptions are noted below.
 

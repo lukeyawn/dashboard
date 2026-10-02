@@ -1,7 +1,7 @@
 #!/usr/bin/env bash
 # One-time setup of the kiosk Pi (DESIGN §11.2). See kiosk/SETUP.md. Run as the
 # desktop user, from the repo cloned to ~/dashboard:
-#   DASHBOARD_URL=https://dashboard.<tailnet>.ts.net ~/dashboard/kiosk/setup.sh
+#   DASHBOARD_URL=https://dashboard.<tailnet>.ts.net:8443 ~/dashboard/kiosk/setup.sh
 set -euo pipefail
 
 : "${DASHBOARD_URL:?Set DASHBOARD_URL to the Tailscale address of the dashboard}"

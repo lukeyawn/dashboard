@@ -8,7 +8,7 @@ It needs two settings:
 
 | Variable | Value |
 |---|---|
-| `DASHBOARD_URL` | `https://dashboard.<tailnet>.ts.net` |
+| `DASHBOARD_URL` | `https://dashboard.<tailnet>.ts.net:8443` |
 | `DASHBOARD_TOKEN` | the `API_TOKEN` from the server's `.env` (not the kiosk's token) |
 
 ## Claude Code
@@ -17,12 +17,12 @@ From the repo, once:
 
 ```sh
 claude mcp add dashboard --scope user \
-  --env DASHBOARD_URL=https://dashboard.<tailnet>.ts.net \
+  --env DASHBOARD_URL=https://dashboard.<tailnet>.ts.net:8443 \
   --env DASHBOARD_TOKEN=<API_TOKEN> \
   -- node "$(pwd)/mcp/index.js"
 ```
 
-Claude Code runs in WSL on this laptop, so WSL itself must reach the tailnet. Either install Tailscale inside WSL, or turn on WSL's mirrored networking (`networkingMode=mirrored` in `%UserProfile%\.wslconfig`) and use Tailscale on Windows. Check with `curl https://dashboard.<tailnet>.ts.net/api/health`, which should print nothing and succeed.
+Claude Code runs in WSL on this laptop, so WSL itself must reach the tailnet. Either install Tailscale inside WSL, or turn on WSL's mirrored networking (`networkingMode=mirrored` in `%UserProfile%\.wslconfig`) and use Tailscale on Windows. Check with `curl https://dashboard.<tailnet>.ts.net:8443/api/health`, which should print nothing and succeed.
 
 ## Claude Desktop
 
@@ -35,7 +35,7 @@ In `claude_desktop_config.json`:
       "command": "node",
       "args": ["C:\\path\\to\\dashboard\\mcp\\index.js"],
       "env": {
-        "DASHBOARD_URL": "https://dashboard.<tailnet>.ts.net",
+        "DASHBOARD_URL": "https://dashboard.<tailnet>.ts.net:8443",
         "DASHBOARD_TOKEN": "<API_TOKEN>"
       }
     }

@@ -66,11 +66,11 @@ Still in the console SSH window:
 ```sh
 curl -fsSL https://tailscale.com/install.sh | sh
 sudo tailscale up --ssh          # open the link it prints and approve the machine
-sudo tailscale serve --bg 3000
+sudo tailscale serve --bg --https=8443 http://127.0.0.1:3000
 sudo tailscale serve status      # shows the dashboard's address
 ```
 
-The address is `https://dashboard.<tailnet>.ts.net`, where `<tailnet>` is your tailnet's name (like `tail1a2b3c`; it's also on the admin console's DNS page). Then, in the admin console's **Machines** page: `dashboard` → ⋯ → **Disable key expiry**, or its login lapses after 180 days and the server drops off your network.
+The address is `https://dashboard.<tailnet>.ts.net:8443`, where `<tailnet>` is your tailnet's name (like `tail1a2b3c`; it's also on the admin console's DNS page). It's on port 8443 because 443 is kept for the claude.ai connector, the only thing ever made public ([CONNECTOR.md](CONNECTOR.md)). Then, in the admin console's **Machines** page: `dashboard` → ⋯ → **Disable key expiry**, or its login lapses after 180 days and the server drops off your network.
 
 **On the laptop**, Tailscale goes in two places: the Windows app (from <https://tailscale.com/download>) for the browser, and inside WSL for SSH, the deploy script and Claude:
 
@@ -86,7 +86,7 @@ Host dashboard
     User <your VM username>
 ```
 
-Test from WSL: `curl -fsS https://dashboard.<tailnet>.ts.net/api/health && echo reachable` and `ssh dashboard true`.
+Test from WSL: `curl -fsS https://dashboard.<tailnet>.ts.net:8443/api/health && echo reachable` and `ssh dashboard true`.
 
 **Only once `ssh dashboard` works**, close the VM to the internet: VPC network → **Firewall** → delete `default-allow-ssh`, `default-allow-rdp` and `default-allow-icmp`. Delete them before that, and you lose the console's SSH button with no other way in.
 
