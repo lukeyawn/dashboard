@@ -8,7 +8,7 @@ Every `x.test.js` tests the `x.js` beside it. The exceptions are noted below.
 
 | File | Purpose |
 |---|---|
-| `index.js` | Entry point (`npm start`, `npm run dev:server`). Reads `.env`, refuses weak tokens, opens the database, starts the calendar feed, and listens. |
+| `index.js` | Entry point (`npm start`, `npm run dev:server`). Reads `.env`, refuses weak tokens, opens the database, starts the calendar feeds (the main one, and classes if `GCAL_ROUTINE_ICS_URL` is set), and listens. |
 | `app.js` | Builds the Express app without listening, so tests can run it on a random port. Mounts every route in order: health and login (no token), then `requireToken`, then the API, then the built frontend. |
 | `testing.js` | Test helper: runs the app on a random port with a fresh in-memory database, optionally with the public listener and a helper that signs in the way claude.ai does. |
 | `app.test.js` | Tests health, the tokens, login, the tasks API, the frontend files and the session. |
@@ -32,11 +32,11 @@ Every `x.test.js` tests the `x.js` beside it. The exceptions are noted below.
 
 | File | Purpose |
 |---|---|
-| `calendar.js` | Reads Google Calendar's private iCal feed every 10 minutes and expands repeating events into occurrences. Yearly all-day events become birthdays. Keeps the last good copy on disk. |
+| `calendar.js` | Reads Google Calendar's private iCal feed every 10 minutes and expands repeating events into occurrences. Yearly all-day events become birthdays. Keeps the last good copy on disk. `combineFeeds` merges the optional classes calendar in, tagging its events `routine`. |
 | `weather.js` | Current weather and today's high and low from Open-Meteo, cached per location for 30 minutes. |
 | `night.js` | Whether night mode is in force, from the night hours and any early start (DESIGN §6.4). |
 | `today.js` | `GET /api/today`: one snapshot of the day, mainly for Claude. |
-| `status.js` | `GET /api/status`: the last nightly backup and the calendar feed, and any problem the dock should show. |
+| `status.js` | `GET /api/status`: the last nightly backup and the calendar feeds, and any problem the dock should show. |
 | `backup.js` | The full JSON export (`/api/export`) and the nightly snapshot used by `scripts/backup.js`. |
 | `oauth.js` | Sign-in for the claude.ai connectors (OAuth 2.1): the metadata, `/oauth/authorize` (which only checks and redirects to the tailnet), `/oauth/token`, the tailnet approval API under `/api/connect`, and reading the connector's settings from `.env`. |
 | `public.js` | The public listener, the only thing Tailscale Funnel exposes: just the MCP endpoint and the sign-in routes, with the token checked first. |

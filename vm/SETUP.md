@@ -100,7 +100,7 @@ ssh dashboard
 sudo -u dashboard nano /opt/dashboard/.env
 ```
 
-Set `GCAL_ICS_URL` to the calendar's **Secret address in iCal format** (Google Calendar → Settings → your calendar → Integrate calendar). Values can't contain spaces. Then `sudo systemctl restart dashboard`.
+Set `GCAL_ICS_URL` to the calendar's **Secret address in iCal format** (Google Calendar → Settings → your calendar → Integrate calendar). If classes are in a calendar of their own, set `GCAL_ROUTINE_ICS_URL` to that calendar's secret address too: its events show on the Today timeline but not on Upcoming (docs/BLOCKS.md §1). It's optional; leave it empty otherwise. Values can't contain spaces. Then `sudo systemctl restart dashboard`.
 
 Keep a copy of `API_TOKEN` in your password manager: it's what you type at the login screen, and what Claude's MCP server uses. `KIOSK_TOKEN` goes on the Pi in phase 6.
 

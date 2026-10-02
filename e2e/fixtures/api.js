@@ -3,7 +3,7 @@
 // long enough to prove they truncate or wrap instead of breaking a tile.
 
 export const NOW = new Date('2026-09-30T13:35:00-05:00');
-const at = time => new Date(`2026-09-30T${time}:00-05:00`).toISOString();
+const at = (time, date = '2026-09-30') => new Date(`${date}T${time}:00-05:00`).toISOString();
 const stamp = '2026-09-30T12:00:00.000Z';
 const rows = list => list.map((row, i) => ({ id: i + 1, created_at: stamp, updated_at: stamp, ...row }));
 // items Claude added carry the ✦ mark (docs/CONNECTOR.md §6); put on the longest names
@@ -54,7 +54,22 @@ export const EVENTS = [
     { id: 'd', title: 'Operating Systems', start: at('13:00'), end: at('14:30'), location: 'UTC 2.112A' },
     { id: 'e', title: 'Gym', start: at('16:30'), end: at('17:30'), location: null },
     { id: 'f', title: 'Study group for the algorithms midterm', start: at('19:00'), end: at('21:00'), location: 'PCL 4th floor, room 4.102' },
-].map(e => ({ all_day: false, calendar: 'Luke', ...e }));
+    // Upcoming's days, Thursday to Sunday: a full Friday, an empty Saturday
+    // but for a birthday, and a class, which stays off Upcoming
+    { id: 'u1', title: 'Tutoring: calculus with Priya and her study partner', start: at('16:00', '2026-10-01'), end: at('17:00', '2026-10-01') },
+    { id: 'u2', title: 'Dentist', start: at('08:30', '2026-10-02'), end: at('09:30', '2026-10-02') },
+    { id: 'u3', title: 'Coffee chat with a Stripe engineer', start: at('10:00', '2026-10-02'), end: at('10:30', '2026-10-02') },
+    { id: 'u4', title: 'Work on problem set 4', start: at('13:00', '2026-10-02'), end: at('15:00', '2026-10-02') },
+    { id: 'u5', title: 'Tutoring', start: at('16:00', '2026-10-02'), end: at('17:00', '2026-10-02') },
+    { id: 'u6', title: 'Dinner with the robotics club', start: at('18:30', '2026-10-02'), end: at('20:00', '2026-10-02') },
+    { id: 'u7', title: 'Movie night', start: at('21:00', '2026-10-02'), end: at('23:00', '2026-10-02') },
+    { id: 'u8', title: 'Linear Algebra', start: at('09:00', '2026-10-01'), end: at('10:15', '2026-10-01'), routine: true },
+    { id: 'u9', title: 'Austin City Limits', start: '2026-10-04', end: '2026-10-04', all_day: true },
+    { id: 'u10', title: 'Call home', start: at('19:00', '2026-10-04'), end: at('19:30', '2026-10-04') },
+].map(e => ({ all_day: false, location: null, calendar: 'Luke', routine: false, ...e }));
+// the events between two local dates, as the server answers; the timed ones here all end on the day they start
+const chicagoDate = iso => new Date(iso).toLocaleDateString('en-CA', { timeZone: 'America/Chicago' });
+const eventsBetween = (from, to) => EVENTS.filter(e => (e.all_day ? e.start <= to && e.end >= from : chicagoDate(e.start) >= from && chicagoDate(e.start) <= to));
 
 export const GOALS = rows([
     { name: 'Read 12 books', current: 7, target: 12, unit: 'books' },
@@ -103,7 +118,7 @@ const FIXTURES = {
     '/api/session': () => ({ client: 'api' }),
     '/api/status': () => ({ backup: null, calendar: null, problems: [] }),
     '/api/night': () => ({ active: false, early: false, until: null, start: '22:00', end: '06:30' }),
-    '/api/events': q => (q.get('from') <= '2026-09-30' && q.get('to') >= '2026-09-30' ? EVENTS : []),
+    '/api/events': q => eventsBetween(q.get('from'), q.get('to')),
     '/api/birthdays': q => BIRTHDAYS.filter(b => b.date >= q.get('from') && b.date <= q.get('to')),
 };
 

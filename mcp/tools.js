@@ -7,6 +7,8 @@ import { query } from './client.js';
 
 const DATES = 'Dates are local calendar dates as YYYY-MM-DD; times of day are HH:MM; timestamps are UTC ISO-8601.';
 const CALENDAR = 'Read-only: events live in Google Calendar. To add or change one, use the Google Calendar connector instead.';
+// classes come from a second calendar (docs/BLOCKS.md §1)
+const ROUTINE = 'Events with routine: true are classes, from a calendar of their own: they show on the Today timeline but not on the Upcoming tile. Plan time blocks around them.';
 
 const id = z.number().int().positive().describe('The item id, from a list_ tool');
 
@@ -62,7 +64,7 @@ export function registerTools(server, call, now = () => new Date(), { omit = [] 
     };
 
     tool('get_today', 'read',
-        "A snapshot of today: today's events, birthdays this week, tasks due within 14 days (with overdue ones) and the other open tasks, goals, habits (whether each is done today, and how many days this week), the nearest countdowns, application counts, the weather and night mode. Start here.",
+        `A snapshot of today: today's events (classes tagged routine), birthdays this week, tasks due within 14 days (with overdue ones) and the other open tasks, goals, habits (whether each is done today, and how many days this week), the nearest countdowns, application counts, the weather and night mode. Start here. ${ROUTINE}`,
         {}, () => call('GET', '/today'));
 
     // Areas are a list the owner edits; Claude chooses one by name and can't
@@ -154,7 +156,7 @@ export function registerTools(server, call, now = () => new Date(), { omit = [] 
         { id, status: z.enum(schemas.STATUSES) },
         ({ id: appId, status }) => call('PATCH', `/applications/${appId}`, { status }));
 
-    tool('list_events', 'read', `Event occurrences between two dates, with repeating events expanded. ${CALENDAR}`,
+    tool('list_events', 'read', `Event occurrences between two dates, with repeating events expanded. ${ROUTINE} ${CALENDAR}`,
         { from: schemas.date, to: schemas.date }, args => call('GET', `/events${query(args)}`));
     tool('list_birthdays', 'read', `Birthdays between two dates: yearly all-day events in Google Calendar. ${CALENDAR} A birthday is created as an all-day event repeating yearly.`,
         { from: schemas.date, to: schemas.date }, args => call('GET', `/birthdays${query(args)}`));

@@ -2,7 +2,7 @@ import fs from 'node:fs';
 import os from 'node:os';
 import path from 'node:path';
 import { afterEach, describe, expect, it, vi } from 'vitest';
-import { createCalendarFeed, occurrences, parseFeed } from './calendar.js';
+import { combineFeeds, createCalendarFeed, occurrences, parseFeed } from './calendar.js';
 
 // tests run in America/Chicago, like the fixture's events
 const ICS = fs.readFileSync(new URL('./fixtures/calendar.ics', import.meta.url), 'utf8');
@@ -126,5 +126,46 @@ describe('createCalendarFeed', () => {
         await vi.advanceTimersByTimeAsync(30 * 60 * 1000);
         expect(fetch).toHaveBeenCalledTimes(2);
         vi.useRealTimers();
+    });
+});
+
+describe('combineFeeds', () => {
+    // a classes calendar: a lecture at 10 AM Chicago time, and a yearly all-day event
+    const CLASSES = [
+        'BEGIN:VCALENDAR', 'VERSION:2.0',
+        'BEGIN:VEVENT', 'UID:os@example.com', 'DTSTART:20260930T150000Z', 'DTEND:20260930T161500Z', 'SUMMARY:Operating Systems', 'END:VEVENT',
+        'BEGIN:VEVENT', 'UID:term@example.com', 'DTSTART;VALUE=DATE:20260930', 'DTEND;VALUE=DATE:20261001', 'RRULE:FREQ=YEARLY', 'SUMMARY:Not a birthday', 'END:VEVENT',
+        'END:VCALENDAR',
+    ].join('\r\n');
+    const log = { error: vi.fn() };
+    const main = () => createCalendarFeed({ cacheFile: new URL('./fixtures/calendar.ics', import.meta.url).pathname });
+    const classes = (fetch = async () => new Response(CLASSES)) => createCalendarFeed({ url: 'https://calendar.example/private-classes/basic.ics', name: 'Classes calendar', fetch, log });
+
+    it('tags each event with its calendar, in one sorted list, and takes birthdays from the main one', async () => {
+        const routine = classes();
+        const calendar = combineFeeds(main(), routine);
+        await routine.refresh();
+        const { events, birthdays } = calendar.between('2026-09-30', '2026-09-30');
+        expect(events.map(e => [e.title, local(e.start), e.routine])).toEqual([
+            ['Operating Systems', '10:00 AM', true],
+            ['Algorithms lecture (moved)', '11:00 AM', false],
+            ['Office hours', '2:00 PM', false],
+        ]);
+        expect(birthdays.map(b => b.title)).toEqual(["Mom's birthday"]);
+    });
+
+    it('works without a routine calendar', () => {
+        const calendar = combineFeeds(main());
+        expect(calendar.between('2026-09-30', '2026-09-30').events.map(e => e.routine)).toEqual([false, false]);
+        expect(calendar.status().routine).toBeNull();
+    });
+
+    it('keeps serving the main calendar while the routine one fails, and reports each', async () => {
+        const routine = classes(async () => { throw new Error('offline'); });
+        const calendar = combineFeeds(main(), routine);
+        await calendar.refresh();
+        expect(calendar.between('2026-09-30', '2026-09-30').events.map(e => e.title)).toEqual(['Algorithms lecture (moved)', 'Office hours']);
+        expect(calendar.status()).toMatchObject({ configured: false, routine: { configured: true, last_error: 'offline' } });
+        expect(log.error).toHaveBeenCalledWith('Classes calendar refresh failed: offline');
     });
 });

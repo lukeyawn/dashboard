@@ -121,7 +121,7 @@ server/
   app.js                  builds the Express app without listening (routes, auth, static files, SPA fallback for /manage and /login),
                           so tests can run it on a random port with an in-memory database
   db.js                   opens the database, runs migrations
-  calendar.js             fetches and caches the Google iCal feed, expands repeating events
+  calendar.js             fetches and caches the Google iCal feeds (main and classes), expands repeating events
   weather.js              picks the weather location and fetches Open-Meteo (§10, Dock)
   night.js                night-hours logic (§6.4)
   migrations/NNN-*.sql    numbered, applied at startup, tracked with PRAGMA user_version
@@ -139,7 +139,7 @@ e2e/
 vm/                       server setup: systemd units, Litestream config, backup script and timer, deploy.sh, RESTORE.md
 kiosk/                    Pi setup: labwc autostart, swayidle config, night-mode script
 data/                     gitignored: dashboard.db, backups/, calendar-cache/
-.env                      gitignored: API_TOKEN, KIOSK_TOKEN, GCAL_ICS_URL, TZ
+.env                      gitignored: API_TOKEN, KIOSK_TOKEN, GCAL_ICS_URL, GCAL_ROUTINE_ICS_URL (optional), TZ
 docs/DESIGN.md            this file
 ```
 
@@ -232,13 +232,13 @@ The resources are `tasks`, `countdowns`, `goals`, `habits` and `applications`.
 | `POST /api/<resource>` with a `source` that already exists | Returns the existing item with `200` instead of creating a duplicate (§5.5). |
 | `GET /api/changes?limit&actor&resource` | The change record, newest first (§5.5). |
 | `POST /api/changes/:id/undo` | Puts the item back as it was before that change. The undo is itself recorded. |
-| `GET /api/status` | The health of the parts that run on their own: the last nightly backup and the calendar feed (§5.5), and later the agent's runs. |
+| `GET /api/status` | The health of the parts that run on their own: the last nightly backup and the calendar feeds (§5.5), and later the agent's runs. |
 | `GET /api/countdowns?past=true` | The current countdowns, nearest first (by date, then time). `past=true` lists the past ones instead. A new date (and time) that has already passed is refused with a 400 saying so, such as *"That date has passed (Jan 1, 2026). Did you mean 2027?"*. Renaming a past countdown is allowed. |
 | `GET /api/habits?days=7` | Each habit includes its checked dates in that window, `week_count` (days done this calendar week, from `week_start`) and its streak. The server computes these on every read, so the widget and the agent agree. |
 | `PUT` / `DELETE /api/habits/:id/checks/:date` | Mark a day done or not done. Both are idempotent. |
 | `POST /api/goals/:id/increment` `{by = 1}` | Add progress to a goal. `by` may be negative, to undo a mistaken tap. |
 | `POST /api/applications/:id/advance` | Move an application forward: applied → interview → offer. |
-| `GET /api/events?from=YYYY-MM-DD&to=YYYY-MM-DD` | Read-only. Event occurrences from Google Calendar (see below). |
+| `GET /api/events?from=YYYY-MM-DD&to=YYYY-MM-DD` | Read-only. Event occurrences from Google Calendar, classes tagged `routine` (see below). |
 | `GET /api/birthdays?from&to` | Read-only. Birthday occurrences from Google Calendar (see below). |
 | `GET /api/settings` / `PATCH /api/settings` | Read and change user settings. |
 | `GET /api/night` | `{ active, until, start, end }`: whether night mode is in force now, from the night hours and any early start (§6.4). |
@@ -289,12 +289,13 @@ The dashboard must be reachable from the kiosk, the phone and the laptop, from a
 
 ### Google Calendar
 
-- **Source:** the calendar's **"Secret address in iCal format"** from Google Calendar settings, stored in `GCAL_ICS_URL` in `.env`. There's one calendar. There's no Google Cloud project for this and no OAuth.
+- **Source:** the calendar's **"Secret address in iCal format"** from Google Calendar settings, stored in `GCAL_ICS_URL` in `.env`. There's no Google Cloud project for this and no OAuth.
+- **Classes, a second calendar** ([BLOCKS.md §1](BLOCKS.md#1-upcoming-replacing-the-calendar)): optional, in `GCAL_ROUTINE_ICS_URL`. Its events are merged into `/api/events` tagged `routine: true` (the main calendar's are `routine: false`). They're on the Today timeline and in Claude's answers, where planning puts time blocks around them, but not on Upcoming, which they'd fill every day. It's kept apart by calendar, not by recurrence, because tutoring repeats too and has to show. Birthdays come from the main calendar only. Each feed has its own cache and its own warning in the status line (§5.5).
 - **Why not the Calendar API:** It needs OAuth, and an OAuth app left in "testing" mode has its login token expire every 7 days. The dashboard only needs to read, which the iCal feed covers.
-- **Refresh:** `server/calendar.js` fetches the feed every 10 minutes. The last good copy is saved in `data/calendar-cache/`, so a failed fetch, or a restart while Google can't be reached, still serves events.
+- **Refresh:** `server/calendar.js` fetches each feed every 10 minutes. The last good copy is saved in `data/calendar-cache/`, so a failed fetch, or a restart while Google can't be reached, still serves events.
 - **Birthdays:** birthdays are added to the same Google Calendar as **all-day events that repeat every year** (Google's "Annually" option). The server treats every such event as a birthday. It returns them from `/api/birthdays` and leaves them out of `/api/events`, so the timeline doesn't show them as regular events. Birthdays are separated by that repeat pattern, not by the word "birthday" in the title, so any title works. A yearly all-day event that isn't a birthday, such as an anniversary, is treated the same way, which is fine for a countdown.
 - **Occurrences:** The server expands repeating events so the dashboard and the agent always agree. Expansion honors skipped dates (EXDATE) and single changed occurrences (RECURRENCE-ID).
-- **Event shape:** `{ id, title, start, end, all_day, location?, calendar }`. The `id` is the event's UID plus its start time, so each occurrence of a repeating event has its own id.
+- **Event shape:** `{ id, title, start, end, all_day, location?, calendar, routine }`. The `id` is the event's UID plus its start time, so each occurrence of a repeating event has its own id.
 - **All-day events** have a date but no time and no timezone; treat them as local dates.
 - **Writing events:** in Google Calendar itself, or by Claude through its Google Calendar connector. Changes reach the dashboard on the next refresh.
 
@@ -363,7 +364,7 @@ Each can be revoked on its own: the tokens by changing them in `.env`, and each 
 - **The change record** (`changes`, §3): every write, from anyone, with the actor (`owner`, `kiosk`, `claude`, `agent`), the time, and the row before and after. Writes through the stdio MCP server are recorded as `claude`. It's kept for good. `/manage`'s **History** lists recent changes, filterable by who made them, each with **Undo**.
 - **Sources and no duplicates.** An item created from an email carries `source` (`gmail:<message id>`), and the server never creates a second item with the same source, so an agent re-reading the inbox every morning can't pile up copies.
 - **Richer tasks** (§3): due date, priority, area, time estimate, notes and a link back to the email, filled in by Claude.
-- **A status line** (`GET /api/status`): the last nightly backup and the calendar feed now, and the agent's runs later. The dock shows a warning only when something is wrong, such as no successful backup in 36 hours, or a calendar feed failing for over an hour.
+- **A status line** (`GET /api/status`): the last nightly backup and the calendar feed now, and the agent's runs later. The dock shows a warning only when something is wrong, such as no successful backup in 36 hours, or a calendar feed (main or classes) failing for over an hour.
 - **Claude's changes** on `/manage`: only what Claude did, each with Undo, plus *Undo everything since…*, and a ✦ on items Claude created ([CONNECTOR.md §6](CONNECTOR.md#6-claudes-changes-the-log-and-undo)). The agent's new changes also show as a chip in the dock ([AGENT.md §3](AGENT.md#3-the-review-a-glance-not-a-gate)).
 - **Later:** the agent's run reports and its daily briefing, shown on the dashboard.
 
@@ -490,8 +491,8 @@ The page is a CSS grid with two rows: the **dashboard grid** (`minmax(0, 1fr)`) 
 - **Supported:** landscape from 4:3 to 21:9, from 1024×768 up to 3840×2160. CI checks every resolution listed in §13. Portrait isn't supported (§1, Non-goals).
 
 ```
-"calendar calendar calendar  calendar  job   job   job   job   goals goals goals"
-"calendar calendar calendar  calendar  job   job   job   job   goals goals goals"
+"upcoming upcoming upcoming  upcoming  job   job   job   job   goals goals goals"
+"upcoming upcoming upcoming  upcoming  job   job   job   job   goals goals goals"
 "timeline timeline deadlines deadlines tasks tasks tasks tasks habit habit habit"
 "timeline timeline deadlines deadlines tasks tasks tasks tasks habit habit habit"
 "timeline timeline wotd      countdown tasks tasks tasks tasks habit habit habit"
@@ -501,7 +502,7 @@ The page is a CSS grid with two rows: the **dashboard grid** (`minmax(0, 1fr)`) 
 - **`src/layout.js` is the single source of truth for area extents,** e.g. `{ tasks: { col: [5, 8], row: [3, 5] } }`. `WidgetShell` reads its column and row spans from there (for sizing, §9), and click-to-focus (later, §12) will generate its track lists from the same data.
 - **Visual priority is set in tiers, not categories:**
   - Constantly needed: tasks, goals, timeline.
-  - Occasional: calendar, job tracker.
+  - Occasional: upcoming days, job tracker.
   - Ambient: countdown, word of the day, weather.
 
   A sidebar and a uniform tile field were both rejected; a sidebar solves a navigation problem that a wall kiosk doesn't have.
@@ -552,8 +553,8 @@ The panel is very low opacity with **no hue**, so the photo shows through almost
 
 A widget gets a title only if the content would be ambiguous without it. Titles are small, uppercase, muted and top-left, and never compete with the data.
 
-- **Titled:** Tasks, Goals, Habits, Deadlines, Job search, Today (the timeline).
-- **Untitled:** calendar, countdown, word of the day, dock.
+- **Titled:** Tasks, Goals, Habits, Deadlines, Job search, Today (the timeline), Upcoming.
+- **Untitled:** countdown, word of the day, dock.
 
 A title hides when its tile gets too small. That's a container query, not a media query.
 
@@ -564,7 +565,6 @@ These are sized to read from across the room:
 | Item | Size |
 |---|---|
 | Dock clock | About 40% of the dock's height, weight 300. The seconds are small and muted (§10, Dock). |
-| Calendar day number | Fills its half of the tile |
 | Countdown number | Fills its tile |
 | Timeline: the current event | One step larger than the other events |
 
@@ -578,7 +578,7 @@ Everything else stays at body size and is read up close.
   - **Why:** The kiosk may boot before the network is up, and self-hosting also serves the ten-year goal.
   - Noto's fontsource package is split by Unicode range, so only the chunks for characters actually shown get loaded.
   - Fonts use `font-display: swap`, so text shows in a fallback font immediately rather than staying invisible while fonts load.
-- **Weights:** 200 (calendar day number), 300 (clock and display numbers), 400, 600 (titles, emphasis), 700 (today's date in the calendar). Only these are imported.
+- **Weights:** 300 (clock and display numbers), 400, 600 (titles, emphasis), 700 (the now marker in Tasks). Only these are imported.
 - **Fallback stacks.** These only show while fonts load, or if a font file somehow fails. They're chosen to cover each device that opens the app:
 
   ```css
@@ -595,7 +595,7 @@ Everything else stays at body size and is read up close.
   | `Noto Sans`, `DejaVu Sans`, `Noto Sans CJK SC` | Raspberry Pi OS |
 
   `--font-sans` is set once on `body`, and `--font-cjk` on the hanzi element, which also carries `lang="zh-Hans"`.
-- **Large glyphs get `line-height: 1`** (countdown number, hanzi, calendar day, dock clock). CJK characters fill nearly the whole em square, so an inherited line-height above 1 adds padding to an already tall box. If a large glyph takes more vertical space than expected, check `line-height` before touching `font-size`.
+- **Large glyphs get `line-height: 1`** (countdown number, hanzi, dock clock). CJK characters fill nearly the whole em square, so an inherited line-height above 1 adds padding to an already tall box. If a large glyph takes more vertical space than expected, check `line-height` before touching `font-size`.
 
 ---
 
@@ -662,7 +662,7 @@ At the reference screen, a cell is about 150 px:
 | `--pad` | `calc(var(--cell) * 0.077)` | 11 px | Widget padding |
 | `--row-gap` | `calc(var(--cell) * 0.06)` | 9 px | Space between list rows |
 
-**Hero glyphs** size in plain `cqmin` against their own tile: the countdown number, the hanzi, and the big calendar day. For these, filling the tile *is* the point, and `cqmin` keeps them inside it on any aspect ratio.
+**Hero glyphs** size in plain `cqmin` against their own tile: the countdown number and the hanzi. For these, filling the tile *is* the point, and `cqmin` keeps them inside it on any aspect ratio.
 
 ### Why these choices
 
@@ -678,14 +678,19 @@ v1 has the nine widgets already in the grid plus the dock.
 
 **Quick action** means a single tap on the dashboard (§6.1–6.2). Everything else happens in the editor, opened with ✎ or on `/manage`.
 
-### Calendar (4×2) — untitled
-> **Redesign planned:** becomes Upcoming, the next 4 days of events ([BLOCKS.md §1](BLOCKS.md#1-upcoming-replacing-the-calendar)).
+### Upcoming (4×2) — titled "Upcoming"
+Replaced the month calendar, which repeated the dock's date and other tiles' deadlines and birthdays ([BLOCKS.md §1](BLOCKS.md#1-upcoming-replacing-the-calendar)).
 
-- **Left side:** today's weekday in accent, the day number huge, and the month.
-- **Right side:** the month grid, with today's date filled in accent.
-- **Dots:** Days that have a task due, a countdown or a birthday get a small dot. Regular Google Calendar events are not dotted, because weekly classes would dot every weekday.
-- **Month:** Always the current month; there's no navigation on a glanceable display.
-- **Data:** tasks with a due date, countdowns and birthdays.
+- **Shows:** the 4 days after today, starting tomorrow (Today covers today). The 4 is a constant, not a setting.
+- **Four day boxes side by side,** full height, each about one grid cell wide: they reach the tile's inner edge and are spaced by the grid's gap, so they line up with the tiles below. CI checks they're within 8 reference px of their columns.
+  - Header: the short weekday, with the date below it.
+  - All-day events and birthdays: chips at the top. An all-day event shows on each of its days.
+  - Timed events: the start time, and the title clamped to 2 lines, both at `--fs-small`. A timed event shows on the day it starts, so one still going from today is Today's.
+  - **Overflow:** when a day's events don't fit, the last ones fold into "+N".
+- **Empty days are dimmed boxes,** not collapsed, so the row shows time as it passes.
+- **A thin line where the week starts** (`week_start`), as in Habits; none before the first box.
+- **Only events and birthdays,** without classes (the `routine` calendar, §4). Tasks are in their own tiles, and countdowns in Countdown.
+- **Source:** Google Calendar (§4), read-only. No tap actions and no ✎, like Today.
 
 ### Job search (4×2)
 > **Redesign planned:** a list of what's next with a notes panel, an OA stage, and no stage counts ([BLOCKS.md §6](BLOCKS.md#6-job-search)).
@@ -858,7 +863,7 @@ The owner's idea: a new background each day, through the Unsplash API. Until the
 
 - **Tapping a widget's title** makes it grow while its siblings shrink and condense. Tapping the title again, or another widget's title, changes focus.
   - Titles are the trigger because taps inside a tile already do things (tick a task, toggle a habit).
-  - The untitled widgets (calendar, countdown, word of the day) have no tap actions, so tapping **anywhere** on them focuses them.
+  - The untitled widgets (countdown, word of the day) have no tap actions, so tapping **anywhere** on them focuses them.
   - Titles become tap targets at least `--hit` tall.
 - The focused-widget state lives on `Dashboard`.
 - Growth comes from **interpolating `grid-template-columns` and `grid-template-rows`** between two `fr` lists that have the same number of tracks. Those animate smoothly; `grid-template-areas` and `span` do not.
