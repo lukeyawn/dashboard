@@ -19,6 +19,21 @@ describe('Dock', () => {
         act(() => vi.advanceTimersByTime(2000));
         expect(screen.getByText('1:36')).toBeTruthy();
     });
+
+    it('shows the seconds beside the hours and minutes, ticking each second', () => {
+        render(<Dock />);
+        const seconds = () => document.querySelector('.dock-seconds').textContent;
+        expect(seconds()).toBe('58');
+
+        act(() => vi.advanceTimersByTime(1000));
+        expect(seconds()).toBe('59');
+        expect(screen.getByText('1:35')).toBeTruthy();
+
+        act(() => vi.advanceTimersByTime(1000));
+        expect(seconds()).toBe('00');
+        expect(screen.getByText('1:36')).toBeTruthy();
+        expect(document.querySelector('.dock-time').textContent).toBe('1:3600PM');
+    });
 });
 
 describe('Dock status line', () => {

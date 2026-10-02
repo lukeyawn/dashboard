@@ -209,3 +209,9 @@ Choices made while building, where [DESIGN.md](DESIGN.md) left room or turned ou
 | Switching a connector off on `/manage` takes a second tap; switching it on doesn't. Revoke and Undo everything since take a second tap too. | One stray tap shouldn't cut claude.ai off or undo a day's work. Turning something on is harmless. |
 | Undo everything since offers the last hour, today, or a picked time, and covers claude.ai only unless widened. | The common cases are "that run just now" and "today". |
 | `oauth-client.sh` makes each secret from 32 bytes of `/dev/urandom`, base64url. The client ID starts `chat-`. | As strong as the tokens, with no Node needed; the prefix makes the two clients easy to tell apart later. |
+
+## The block redesign
+
+| Choice | Why |
+|---|---|
+| The dock's seconds and AM/PM share one small column beside the minutes: the seconds on top, level with the tops of the digits, and AM/PM below, on the baseline. Both are 26 px at the reference screen (AM/PM was 24 px). | BLOCKS.md §8 put the seconds raised beside the minutes ("10:42 ³⁷"). Stacked over AM/PM, they add no width to the clock, and the two small labels don't read as one run of text. |

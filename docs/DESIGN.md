@@ -585,7 +585,7 @@ These are sized to read from across the room:
 
 | Item | Size |
 |---|---|
-| Dock clock | About 40% of the dock's height, weight 300 |
+| Dock clock | About 40% of the dock's height, weight 300. The seconds are small and muted (§10, Dock). |
 | Calendar day number | Fills its half of the tile |
 | Countdown number | Fills its tile |
 | Timeline: the current event | One step larger than the other events |
@@ -772,9 +772,8 @@ v1 has the nine widgets already in the grid plus the dock.
 - **Date math:** compare local calendar dates, never raw timestamps (see §14).
 
 ### Dock
-> **Redesign planned:** seconds on the clock, smaller and muted ([BLOCKS.md §8](BLOCKS.md#8-the-dock-clock-seconds)).
-
 - **Left:** a large live clock (1-second tick, `tabular-nums`, §8 glanceable sizes) and the date.
+  - **Seconds** sit beside the minutes, at about 40% of the clock's size in `--text-muted`, above AM/PM. Full-size seconds were rejected: changing every second, they would pull the eye across the room, and the clock would be about 40% wider ([BLOCKS.md §8](BLOCKS.md#8-the-dock-clock-seconds)).
 - **Right:** the weather: current temperature, condition, and the day's high and low. The page asks the server (`GET /api/weather`) every 30 minutes. The server fetches from Open-Meteo, which needs no API key, and caches each location's answer for 30 minutes.
 - **Weather location,** in this order:
   1. **The viewing device's own location,** if its browser gives permission. The page asks once, rounds the coordinates to about 1 km, and sends them with the request. They aren't stored. On a phone or laptop, the weather is for wherever you are.
