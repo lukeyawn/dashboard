@@ -193,7 +193,7 @@ Everything lives on the VM, except events, which are Google's.
 | `tasks` | `name`, `done_at`, `due?`, `priority`, `notes?`, `link?`, `source?`, `area_id?`, `minutes?`, `repeat?`, `last_done_at?` | One list for to-dos and deadlines: a task with a `due` date is a deadline, and overdue ones stay until done. `priority` is when you mean to do it: `now`, `soon` (the default) or `someday`. `area_id` is one of the `areas`; the API adds its name as `area`. `minutes` is an estimate. `repeat` is a recurrence rule, `{ every, unit: day \| week \| month \| year, weekdays?, day_of_month? }` as JSON, and needs a `due` date: completing the task moves `due` to the next occurrence after today (and after the current due date) and sets `last_done_at`, instead of setting `done_at`. Everything but the name is optional, and Claude fills it in (§5.5, [BLOCKS.md §3](BLOCKS.md#3-tasks-and-assignments)). |
 | `areas` | `name`, `position` | The task areas, a list the owner edits on `/manage`; Claude only chooses from it. Names are unique ignoring case. Seeded with School, Work, Job search, Home, Health, Personal and Errands. Deleting one clears it from its tasks; the change record keeps their ids, so Undo puts it back on them. |
 | `countdowns` | `label`, `target_date`, `target_time?`, `detail`, `pinned`, `source?` | One-off dates such as finals or a break. Birthdays come from Google Calendar (§4). `target_time` is a local HH:MM; without one, a countdown counts to the start of its day. `detail` is `days` (the default), `hours` or `live`; the last two need a time. A countdown is past from the day after its `target_date`, worked out on every read ([BLOCKS.md §4](BLOCKS.md#4-countdown)). |
-| `goals` | `name`, `current`, `target`, `unit?`, `archived_at` | No time frames in v1. |
+| `goals` | `name`, `current?`, `target?`, `unit?`, `archived_at`, `kind`, `deadline?`, `started`, `step?`, `achieved_at?`, `dream` | `kind` is `progress` (a count toward `target`, by `step`, 1 by default) or `milestone` (done once; no current, target, unit or step). `started` is where the pace toward a `deadline` begins, the day the goal is made by default. `achieved_at` is set when a progress goal reaches its target (and cleared if it drops back below), or when a milestone is done. A `dream` is a long-horizon goal kept off the tile. The API adds `week_gain`: how much `current` went up this calendar week, summed from the change record ([BLOCKS.md §5](BLOCKS.md#5-goals)). |
 | `habits` | `name`, `position`, `per_week`, `archived_at` | `per_week` is the weekly target, 1 to 7, defaulting to 7 (daily) ([BLOCKS.md §2](BLOCKS.md#2-habits-a-weekly-target)). |
 | `habit_checks` | `habit_id`, `date` | Primary key is `(habit_id, date)`. A row exists means the habit was done that day. Deleting a habit deletes its checks. |
 | `applications` | `company`, `role`, `status`, `applied_on`, `url?`, `notes?`, `source?` | `status` is one of `applied`, `interview`, `offer`, `rejected`. |
@@ -236,7 +236,9 @@ The resources are `tasks`, `countdowns`, `goals`, `habits` and `applications`.
 | `GET /api/countdowns?past=true` | The current countdowns, nearest first (by date, then time). `past=true` lists the past ones instead. A new date (and time) that has already passed is refused with a 400 saying so, such as *"That date has passed (Jan 1, 2026). Did you mean 2027?"*. Renaming a past countdown is allowed. |
 | `GET /api/habits?days=7` | Each habit includes its checked dates in that window, `week_count` (days done this calendar week, from `week_start`) and its streak. The server computes these on every read, so the widget and the agent agree. |
 | `PUT` / `DELETE /api/habits/:id/checks/:date` | Mark a day done or not done. Both are idempotent. |
-| `POST /api/goals/:id/increment` `{by = 1}` | Add progress to a goal. `by` may be negative, to undo a mistaken tap. |
+| `POST /api/goals/:id/increment` `{by = step}` | Add progress to a progress goal: its step if `by` is left out. `by` may be negative, to undo a mistaken tap. A milestone is refused (409). |
+| `POST /api/goals/:id/achieve` | Done, for a milestone: sets `achieved_at` and archives it, in one undoable change. A progress goal is refused (409). |
+| `GET /api/goals?archived&dream` | `dream=false` for the tile, `dream=true` for Dreams on `/manage`. The nearest deadline first, goals without one last, then oldest first. |
 | `POST /api/applications/:id/advance` | Move an application forward: applied → interview → offer. |
 | `GET /api/events?from=YYYY-MM-DD&to=YYYY-MM-DD` | Read-only. Event occurrences from Google Calendar, classes tagged `routine` (see below). |
 | `GET /api/birthdays?from&to` | Read-only. Birthday occurrences from Google Calendar (see below). |
@@ -316,7 +318,7 @@ A Claude agent (in Claude Desktop or Claude Code) reads and writes dashboard dat
 |---|---|
 | Read | `get_today` (includes the weather), `list_tasks`, `list_areas`, `list_events` (from/to, read-only), `list_birthdays` (read-only), `list_countdowns`, `list_goals`, `list_habits`, `list_applications`, `get_settings` |
 | Create / edit | `add_*` and `update_*` for tasks, countdowns, goals, habits and applications; `update_settings`. `add_task` asks Claude to fill in due date, priority, area and minutes when it can tell them. Claude names an area, and an unknown one is refused with the list: only the owner adds areas. Planning goes in Google Calendar as time blocks, not as dates on tasks. |
-| Quick actions | `complete_task`, `check_habit` (habit, date, done), `increment_goal`, `set_application_status`, `start_night` / `cancel_night` |
+| Quick actions | `complete_task`, `check_habit` (habit, date, done), `increment_goal` (the goal's step by default), `achieve_goal` (a milestone's Done), `set_application_status`, `start_night` / `cancel_night` |
 | Delete | `delete_item` (resource, id). Its description tells the agent to confirm with the user before deleting. |
 
 **Events and birthdays are not written through this server.** To add or change one, the agent uses Claude's **Google Calendar connector**. A birthday is created as an all-day event repeating yearly. The descriptions of `list_events` and `list_birthdays` say this, so the agent knows where to go.
@@ -401,7 +403,7 @@ The kiosk is a touchscreen, and it's used standing at a wall.
 | Tasks | The whole row |
 | Assignments | The whole row |
 | Habits | Each day cell: at least `0.92 × --hit` wide (the tile is too narrow for seven full-width cells) and the full row height. Habit names truncate to make room. |
-| Goals | The **+1** button, `--hit` |
+| Goals | The **+** button (it reads its step, "+1", "+10") and a milestone's **Done**, `--hit` |
 | Job | The status pill, with its tap area enlarged to `--hit` |
 | Any editable widget | The ✎ button, `--hit` |
 
@@ -431,7 +433,7 @@ A cleared task is marked done (`done_at` is set), not deleted, so it can still b
 
 **Toggles stay instant:**
 - **Habit dots** are sent immediately; a mistaken tap is undone by tapping again.
-- **Goal +1** is sent immediately. For 5 seconds afterward a small "undo" appears next to the goal, which sends −1.
+- **Goal +** is sent immediately. For 5 seconds afterward a small "undo" appears next to the goal, which takes the same step back off. A milestone's **Done** is a pending action instead, like completing a task.
 
 Instant actions are **optimistic**: the UI updates immediately, and if the request fails the change is reverted and the widget shows a short error.
 
@@ -547,6 +549,7 @@ The panel is very low opacity with **no hue**, so the photo shows through almost
 | `--track` | `hsla(0,0%,100%,.12)` | Progress-bar track, pending-action timer |
 | `--accent` / `--accent-glow` | `hsl(195,90%,70%)` / 30% alpha | Today, the current item, progress, completed |
 | `--urgent` | `hsl(0,85%,72%)` | Due dates within 2 days, or overdue; the now marker |
+| `--behind` | `hsl(40,90%,65%)` | A goal's bar when it's more than 10% of the target behind its pace. Never red. |
 | `--quick`, `--long` | `hsl(140,60%,62%)`, `hsl(270,75%,80%)` | A task's time chip: 15 minutes or less, and over an hour |
 | `--applied` / `--interview` / `--offer` / `--rejected` | blue / amber / green / gray | Job stages |
 
@@ -699,11 +702,17 @@ Replaced the month calendar, which repeated the dock's date and other tiles' dea
 - **Quick action:** tapping the pill advances the application (applied → interview → offer), through the 5-second pending action. **Rejected is set only in the editor or by the agent,** so a stray tap can't reject an application.
 
 ### Goals (3×2)
-> **Redesign planned:** deadlines with pace, a step size, milestones and dreams ([BLOCKS.md §5](BLOCKS.md#5-goals)).
+Deadlines with pace, a step, milestones and dreams ([BLOCKS.md §5](BLOCKS.md#5-goals)).
 
-- **Shows:** each active goal with name, `current / target unit`, and a progress bar. Up to 4 fit; anything beyond shows as "+N more".
-- **Quick action:** a **+1** button (`--hit`) on each goal, sent immediately, with a 5-second "undo".
-- **Finished goals:** the bar is full and a ✓ appears. The goal stays until it's archived in the editor.
+- **Shows:** active goals that aren't dreams, the nearest deadline first (goals without one last), then oldest first. Up to 4 fit; anything beyond shows as "+N more".
+- **A progress goal:** the name, `current/target unit`, and a progress bar. Under the bar, when there's something to say: the time left ("3 days left", "3 wk left", "4 mo left") and "+N this week".
+  - **With a deadline,** a tick on the bar marks where steady progress from `started` would be today. The fill turns `--behind` (amber) when it's more than 10% of the target behind the tick. Never red.
+  - **+N this week** is how much `current` went up since the week started (`week_start`): every way of changing it counts, the + button, the editor, `update_goal` and Undo. It's hidden when it isn't above 0.
+  - **Quick action:** the **+** button (`--hit`) adds the goal's step and reads it ("+1", "+10", "+0.5"). It's sent immediately, with a 5-second "undo" that takes the same amount off.
+  - **Finished:** the bar is full and a ✓ appears. The goal stays until it's archived in the editor.
+- **A milestone:** the name, "by Dec 31 · 3 mo left" with a deadline, and a **Done** button (`--hit`) with the 5-second pending tap. Done achieves and archives it. There's no bar.
+- **Dreams** never show here. They're in a Dreams section on `/manage`, where "Make it a goal" puts one on the tile.
+- **Editing:** the editor's add form starts with Progress / Milestone, and shows only that kind's fields. The kind can't be changed afterward.
 
 ### Habits (3×3)
 - **Shows:** one row per habit, with dots for the last 7 days (today on the right, its weekday label in accent) and the current streak.

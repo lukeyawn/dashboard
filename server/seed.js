@@ -41,11 +41,13 @@ seed('countdowns', createCountdownStore(db), [
     { label: "New Year's!", target_date: `${new Date().getFullYear() + 1}-01-01`, target_time: '00:00', detail: 'live' },
 ]);
 
+// one behind its pace, one with a step, a milestone and a dream (docs/BLOCKS.md §5)
 seed('goals', createGoalStore(db), [
-    { name: 'Read 12 books', current: 7, target: 12, unit: 'books' },
-    { name: 'Run 100 miles', current: 64, target: 100, unit: 'mi' },
+    { name: 'Read 12 books', current: 7, target: 12, unit: 'books', started: day(-200), deadline: day(90) },
+    { name: 'Run 100 miles', current: 30, target: 100, unit: 'mi', step: 2.5, started: day(-60), deadline: day(30) },
     { name: 'LeetCode problems', current: 92, target: 150 },
-    { name: 'Internship applications', current: 23, target: 40 },
+    { name: 'Get an internship offer', kind: 'milestone', deadline: day(120) },
+    { name: 'See the northern lights', kind: 'milestone', dream: true },
 ]);
 
 // three weeks of checks, oldest first and ending today, so weekly targets

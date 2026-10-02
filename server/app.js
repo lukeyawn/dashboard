@@ -102,7 +102,7 @@ export function createApp({ db, apiToken, kioskToken, build = 'dev', distDir = n
         tasks: createTaskStore(db, { log, now: () => new Date(now()) }),
         areas: createAreaStore(db, { log }),
         countdowns: createCountdownStore(db, { log, now: () => new Date(now()) }),
-        goals: createGoalStore(db, { log }),
+        goals: createGoalStore(db, { log, now: () => new Date(now()), weekStart: () => settings.get('week_start') }),
         habits: createHabitStore(db, { now: () => new Date(now()), log, weekStart: () => settings.get('week_start') }),
         applications: createApplicationStore(db, { log }),
     };

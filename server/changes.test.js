@@ -432,3 +432,84 @@ describe('the migration to the assignments area (docs/BLOCKS.md §3)', () => {
         expect(setting(db)).toBeNull();
     });
 });
+
+// how much a goal went up this week, from its recorded changes (docs/BLOCKS.md §5)
+describe("a goal's progress this week", () => {
+    it('sums every change to current since the week started, with Undo taking back what it undoes', async () => {
+        let at = new Date(2026, 8, 26, 12).getTime(); // Saturday, Sep 26
+        server = await startServer({ now: () => at });
+        const { request } = server;
+        const goal = (await request('/api/goals', { method: 'POST', body: { name: 'Pages', target: 500, step: 10 } })).body;
+        const add = () => request(`/api/goals/${goal.id}/increment`, { method: 'POST' });
+        await add(); // last week, on either week_start
+        at = new Date(2026, 8, 27, 12).getTime(); // Sunday
+        await add();
+        at = new Date(2026, 8, 30, 12).getTime(); // Wednesday
+        await add();
+        await request(`/api/goals/${goal.id}`, { method: 'PATCH', body: { current: 45 } });
+        expect((await request('/api/goals')).body[0].week_gain).toBe(35);
+        await request('/api/settings', { method: 'PATCH', body: { week_start: 'monday' } });
+        expect((await request('/api/goals')).body[0].week_gain).toBe(25);
+
+        const [latest] = await changes(request, '?resource=goals');
+        await undo(request, latest.id);
+        expect((await request('/api/goals')).body[0]).toMatchObject({ current: 30, week_gain: 10 });
+    });
+
+    it("doesn't count a deleted goal's progress for one that reuses its id", async () => {
+        server = await startServer({ now: () => NOW });
+        const { request } = server;
+        const old = (await request('/api/goals', { method: 'POST', body: { name: 'Old', target: 5 } })).body;
+        await request(`/api/goals/${old.id}/increment`, { method: 'POST', body: { by: 3 } });
+        await request(`/api/goals/${old.id}`, { method: 'DELETE' });
+        await new Promise(resolve => setTimeout(resolve, 5));
+        const reused = (await request('/api/goals', { method: 'POST', body: { name: 'New', target: 5 } })).body;
+        expect(reused.id).toBe(old.id);
+        expect(reused.week_gain).toBe(0);
+    });
+});
+
+describe("a milestone's Done (docs/BLOCKS.md §5)", () => {
+    it('is undone in one step, back to open', async () => {
+        const request = await start();
+        const offer = (await request('/api/goals', { method: 'POST', body: { name: 'Offer', kind: 'milestone' } })).body;
+        await request(`/api/goals/${offer.id}/achieve`, { method: 'POST' });
+        const [done] = await changes(request, '?resource=goals');
+        expect((await undo(request, done.id)).status).toBe(200);
+        expect((await request('/api/goals')).body[0]).toMatchObject({ achieved_at: null, archived_at: null });
+    });
+});
+
+describe('the migration to goal kinds (docs/BLOCKS.md §5)', () => {
+    it('keeps every goal as progress, started the day it was made, and rewrites older changes so they can still be undone', () => {
+        const db = new Database(':memory:');
+        const migrations = loadMigrations();
+        migrate(db, migrations.slice(0, 15));
+        const log = createChangeLog(db);
+        const raw = id => db.prepare('SELECT * FROM goals WHERE id = ?').get(id);
+        const { id } = db.prepare("INSERT INTO goals (name, target, created_at) VALUES ('Books', 12, '2026-09-30T03:00:00.000Z') RETURNING id").get();
+        log.record({ resource: 'goals', itemId: id, action: 'create', after: raw(id) });
+        const before = raw(id);
+        db.prepare("UPDATE goals SET current = 2, updated_at = '2026-09-30T12:00:00.000Z' WHERE id = ?").run(id);
+        log.record({ resource: 'goals', itemId: id, action: 'update', before, after: raw(id) });
+
+        migrate(db, migrations);
+        // 3 AM UTC is the evening before in Chicago, where the tests run
+        expect(raw(id)).toMatchObject({ kind: 'progress', started: '2026-09-29', step: 1, deadline: null, achieved_at: null, dream: 0 });
+        const [updated, created] = log.list();
+        expect(Object.keys(updated.after).slice(-6)).toEqual(['kind', 'deadline', 'started', 'step', 'achieved_at', 'dream']);
+
+        const undoChange = createUndo(db, log);
+        expect(undoChange(updated.id).current).toBe(0);
+        expect(undoChange(created.id)).toBeNull();
+        expect(raw(id)).toBeUndefined();
+    });
+
+    it('refuses a milestone with a count, and a progress goal without a target', () => {
+        const db = new Database(':memory:');
+        migrate(db);
+        expect(() => db.prepare("INSERT INTO goals (name, kind, current, target, step, started) VALUES ('x', 'milestone', NULL, 3, NULL, '2026-09-30')").run()).toThrow(/CHECK/);
+        expect(() => db.prepare("INSERT INTO goals (name, target, started) VALUES ('x', NULL, '2026-09-30')").run()).toThrow(/CHECK/);
+        expect(() => db.prepare("INSERT INTO goals (name, kind, current, step, started) VALUES ('x', 'milestone', NULL, NULL, '2026-09-30')").run()).not.toThrow();
+    });
+});

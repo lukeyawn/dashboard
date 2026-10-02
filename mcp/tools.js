@@ -117,14 +117,33 @@ export function registerTools(server, call, now = () => new Date(), { omit = [] 
         notes: " One-off dates such as finals or a break. A date (and time) that has passed is refused; a countdown is past from the day after its target_date, and list_countdowns shows only current ones unless past is true. A past countdown can still be renamed. At most one is pinned; pinning one unpins the rest. Birthdays are not countdowns: they are yearly all-day events in Google Calendar.",
     });
 
+    // docs/BLOCKS.md §5
+    const g = schemas.shapes.goal;
     crud('goals', 'goal', 'goals', {
-        listInput: { archived: z.boolean().optional().describe('false for active goals only') },
-        createInput: { name: schemas.shapes.goal.name, target: schemas.shapes.goal.target, current: schemas.shapes.goal.current.optional(), unit: schemas.shapes.goal.unit },
-        notes: ' Archive a finished goal by setting archived_at to the current time.',
+        listInput: {
+            archived: z.boolean().optional().describe('false for active goals only'),
+            dream: z.boolean().optional().describe('true for dreams only, false to leave them out'),
+        },
+        createInput: {
+            name: g.name,
+            kind: g.kind.optional().describe('progress (the default): a count toward a target. milestone: a one-time thing, such as an internship offer, with no target, current, unit or step.'),
+            target: g.target.optional().describe('Required for a progress goal'),
+            current: g.current.optional(),
+            unit: g.unit,
+            step: g.step.optional().describe('How much each + adds, such as 10 pages; 1 if left out'),
+            deadline: g.deadline.optional(),
+            started: g.started.optional().describe('Where the pace toward the deadline starts; today if left out'),
+            dream: g.dream.optional().describe('true for a long-horizon, bucket-list goal, kept off the tile'),
+        },
+        // the kind is chosen when the goal is made
+        update: updateInput(Object.fromEntries(Object.entries(g).filter(([key]) => key !== 'kind'))),
+        notes: " A progress goal counts toward a target; with a deadline, the tile shows whether it's on pace. A milestone is done once, with achieve_goal. week_gain is how much current went up this calendar week (weeks start on the week_start setting). achieved_at is set when a progress goal reaches its target, or a milestone is done. A dream stays off the tile until dream is set to false. Habit-like goals belong in habits, and goals that reset each week are weekly habits. Archive a finished goal by setting archived_at to the current time.",
     });
-    tool('increment_goal', 'write', 'Add progress to a goal. A negative amount undoes progress; it never goes below 0.',
-        { id, by: z.number().refine(n => n !== 0, 'by cannot be 0').optional().describe('How much to add; 1 if left out') },
+    tool('increment_goal', 'write', "Add progress to a progress goal. A negative amount undoes progress; it never goes below 0.",
+        { id, by: z.number().refine(n => n !== 0, 'by cannot be 0').optional().describe("How much to add; the goal's step if left out") },
         ({ id: goalId, by }) => call('POST', `/goals/${goalId}/increment`, by === undefined ? {} : { by }));
+    tool('achieve_goal', 'write', 'Mark a milestone done: it is achieved and archived. Progress goals are achieved by reaching their target instead.', { id },
+        ({ id: goalId }) => call('POST', `/goals/${goalId}/achieve`));
 
     crud('habits', 'habit', 'habits', {
         listInput: { days: z.number().int().min(1).max(366).optional().describe('How many recent days of checks to include; 7 if left out') },

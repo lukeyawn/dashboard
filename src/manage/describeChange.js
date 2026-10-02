@@ -45,6 +45,9 @@ function describeUpdate(noun, before, after) {
     // a recurring task moves to its next due date when completed (docs/BLOCKS.md §3)
     if (after.last_done_at && before.last_done_at !== after.last_done_at) return `Completed ${name}, next ${weekdayOrDate(after.due)}`;
     if (before.done_at && !after.done_at) return `Restored ${name}`;
+    // a goal reaching its target, or a milestone's Done, which also archives it (docs/BLOCKS.md §5)
+    if (noun === 'goal' && !before.achieved_at && after.achieved_at) return `Achieved ${name}`;
+    if (noun === 'goal' && before.dream !== after.dream) return after.dream ? `Made ${name} a dream` : `Made dream "${nameOf(after)}" a goal`;
     if (!before.archived_at && after.archived_at) return `Archived ${name}`;
     if (before.archived_at && !after.archived_at) return `Unarchived ${name}`;
     if (noun === 'countdown' && before.pinned !== after.pinned) return `${after.pinned ? 'Pinned' : 'Unpinned'} ${name}`;

@@ -28,7 +28,8 @@ export async function todaySnapshot({ stores, settings, calendar, weatherAt, now
         // tasks with a due date, nearest first, then every other open task
         assignments: assignments.map(t => ({ ...t, days_left: daysBetween(date, t.due) })),
         tasks,
-        goals: stores.goals.list({ archived: false }),
+        // dreams stay off the tile, and out of the day
+        goals: stores.goals.list({ archived: false, dream: false }),
         habits: stores.habits.list({ days: 7, archived: false }).map(h => ({
             id: h.id, name: h.name, per_week: h.per_week, done_today: h.checks.includes(date), week_count: h.week_count, streak: h.streak, checks: h.checks,
         })),

@@ -202,6 +202,59 @@ describe('goals', () => {
     it('need a positive target', async () => {
         const { request } = await start();
         expect((await request('/api/goals', { method: 'POST', body: { name: 'x', target: 0 } })).status).toBe(400);
+        expect((await request('/api/goals', { method: 'POST', body: { name: 'x' } })).status).toBe(400);
+    });
+
+    // docs/BLOCKS.md §5
+    it('start today, take a deadline after the start, and list the nearest deadline first', async () => {
+        const { request } = await start();
+        const post = body => request('/api/goals', { method: 'POST', body });
+        const open = (await post({ name: 'Open-ended', target: 5 })).body;
+        expect(open).toMatchObject({ kind: 'progress', started: '2026-09-30', deadline: null, step: 1, achieved_at: null, dream: false });
+        await post({ name: 'Far', target: 5, deadline: '2027-01-01' });
+        await post({ name: 'Near', target: 5, deadline: '2026-11-01' });
+        expect((await request('/api/goals')).body.map(g => g.name)).toEqual(['Near', 'Far', 'Open-ended']);
+        expect((await post({ name: 'x', target: 5, started: '2026-10-01', deadline: '2026-09-30' })).status).toBe(400);
+        expect((await request(`/api/goals/${open.id}`, { method: 'PATCH', body: { deadline: '2026-09-01' } })).status).toBe(400);
+        expect((await request(`/api/goals/${open.id}`, { method: 'PATCH', body: { kind: 'milestone' } })).status).toBe(400);
+    });
+
+    it('add their step, and are achieved on reaching the target, until they drop back below it', async () => {
+        const { request } = await start();
+        const goal = (await request('/api/goals', { method: 'POST', body: { name: 'Pages', target: 25, step: 10 } })).body;
+        const add = by => request(`/api/goals/${goal.id}/increment`, { method: 'POST', body: by === undefined ? {} : { by } });
+        expect((await add()).body).toMatchObject({ current: 10, achieved_at: null });
+        await add();
+        const reached = (await add()).body;
+        expect(reached.current).toBe(30);
+        expect(reached.achieved_at).toBe(new Date(NOW).toISOString());
+        expect((await add(-10)).body.achieved_at).toBeNull();
+    });
+
+    it('as milestones, have no count, and are done once: achieved and archived', async () => {
+        const { request } = await start();
+        const post = body => request('/api/goals', { method: 'POST', body });
+        const offer = (await post({ name: 'Internship offer', kind: 'milestone', deadline: '2026-12-31' })).body;
+        expect(offer).toMatchObject({ kind: 'milestone', current: null, target: null, step: null, week_gain: null });
+        expect((await post({ name: 'x', kind: 'milestone', target: 3 })).status).toBe(400);
+        expect((await request(`/api/goals/${offer.id}`, { method: 'PATCH', body: { current: 2 } })).status).toBe(400);
+        expect((await request(`/api/goals/${offer.id}/increment`, { method: 'POST' })).status).toBe(409);
+        const done = (await request(`/api/goals/${offer.id}/achieve`, { method: 'POST' })).body;
+        expect(done).toMatchObject({ achieved_at: new Date(NOW).toISOString(), archived_at: new Date(NOW).toISOString() });
+        const books = (await post({ name: 'Books', target: 3 })).body;
+        expect((await request(`/api/goals/${books.id}/achieve`, { method: 'POST' })).status).toBe(409);
+        expect((await request('/api/goals/99/achieve', { method: 'POST' })).status).toBe(404);
+    });
+
+    it('as dreams, are listed apart, and become goals when dream is cleared', async () => {
+        const { request } = await start();
+        const dream = (await request('/api/goals', { method: 'POST', body: { name: 'See the northern lights', kind: 'milestone', dream: true } })).body;
+        await request('/api/goals', { method: 'POST', body: { name: 'Books', target: 3 } });
+        expect((await request('/api/goals?dream=false')).body.map(g => g.name)).toEqual(['Books']);
+        expect((await request('/api/goals?dream=true')).body.map(g => g.name)).toEqual(['See the northern lights']);
+        await request(`/api/goals/${dream.id}`, { method: 'PATCH', body: { dream: false, deadline: '2027-03-01' } });
+        expect((await request('/api/goals?dream=false')).body.map(g => g.name)).toEqual(['See the northern lights', 'Books']);
+        expect((await request('/api/today')).body.goals.map(g => g.name)).toEqual(['See the northern lights', 'Books']);
     });
 });
 

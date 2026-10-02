@@ -44,7 +44,7 @@ describe('the tool list', () => {
         const { tools } = await client.listTools();
         const names = tools.map(t => t.name);
         for (const name of ['get_today', 'list_tasks', 'add_task', 'update_task', 'complete_task', 'list_areas', 'list_events', 'list_birthdays',
-            'check_habit', 'increment_goal', 'set_application_status', 'update_settings', 'delete_item']) {
+            'check_habit', 'increment_goal', 'achieve_goal', 'set_application_status', 'update_settings', 'delete_item']) {
             expect(names).toContain(name);
         }
         for (const tool of tools) expect(tool.description).toContain('YYYY-MM-DD');

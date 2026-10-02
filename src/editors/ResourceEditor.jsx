@@ -13,7 +13,8 @@ import './editors.css';
 // filters: [{ key, label, options }] narrow the list; options may be a function of the rows
 // sorts:   [{ label, compare }] orders the list; the first is the default
 // check:   (values, before) extra checks, passed on to EditorForm
-export default function ResourceEditor({ resource, noun, params, fields, createSchema, updateSchema, sections, describe, actions = () => [], createFields = fields, filters = [], sorts = [], check }) {
+// createValues: always sent with a new item, such as { dream: true } for Dreams
+export default function ResourceEditor({ resource, noun, params, fields, createSchema, updateSchema, sections, describe, actions = () => [], createFields = fields, filters = [], sorts = [], check, createValues = {} }) {
     const items = useResource(resource, { params });
     const [editing, setEditing] = useState(null);
     const [chosen, setChosen] = useState({});
@@ -71,7 +72,7 @@ export default function ResourceEditor({ resource, noun, params, fields, createS
         <div className="editor">
             <details className="editor-add">
                 <summary>Add {/^[aeiou]/.test(noun) ? 'an' : 'a'} {noun}</summary>
-                <EditorForm fields={createFields} schema={createSchema} check={check} submitLabel={`Add ${noun}`} onSubmit={values => items.create(values)} />
+                <EditorForm fields={createFields} schema={createSchema} check={check} submitLabel={`Add ${noun}`} onSubmit={values => items.create({ ...values, ...createValues })} />
             </details>
             {items.saveError && <p className="editor-error" role="status">Couldn't save. {items.saveError.message}</p>}
             {(filters.length > 0 || sorts.length > 1) && items.data && (

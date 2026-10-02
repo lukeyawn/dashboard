@@ -16,7 +16,7 @@ export const ALLOWED = {
         // areas are read-only: Claude chooses from them, and only the owner edits them
         ['GET', new RegExp(`^/(today|${RESOURCES}|areas|events|birthdays|settings|night)${end}`)],
         ['POST', new RegExp(`^/(${RESOURCES})${end}`)],
-        ['POST', new RegExp(`^/goals/\\d+/increment${end}`)],
+        ['POST', new RegExp(`^/goals/\\d+/(increment|achieve)${end}`)],
         ['POST', new RegExp(`^/applications/\\d+/advance${end}`)],
         ['POST', new RegExp(`^/night/(start|cancel)${end}`)],
         ['PATCH', new RegExp(`^/(${RESOURCES})/\\d+${end}`)],

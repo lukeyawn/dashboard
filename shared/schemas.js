@@ -112,17 +112,51 @@ export const countdownQuery = z.strictObject({ past: flag.optional() });
 
 // goals
 
+// progress goals count toward a target; milestones are done once, and have
+// no current, target, unit or step (docs/BLOCKS.md §5)
+export const GOAL_KINDS = ['progress', 'milestone'];
+
 const goal = {
     name: text(100),
     current: z.number().min(0).max(1e9),
     target: z.number().positive().max(1e9),
     unit: optionalText(20),
     archived_at: timestamp.nullable(),
+    kind: z.enum(GOAL_KINDS),
+    deadline: date.nullable(),
+    // where the pace starts; the day the goal is created if left out
+    started: date,
+    // how much + adds
+    step: z.number().positive().max(1e6),
+    // a long-horizon goal, kept off the tile until it's made a goal
+    dream: z.boolean(),
 };
-export const goalCreate = z.strictObject({ name: goal.name, target: goal.target, current: goal.current.optional(), unit: goal.unit });
-export const goalUpdate = partial(goal);
-export const goalQuery = z.strictObject({ archived: flag.optional() });
-export const goalIncrement = z.strictObject({ by: z.number().min(-1e6).max(1e6).refine(n => n !== 0, 'by cannot be 0').default(1) });
+const startsBeforeDeadline = [g => !g.deadline || !g.started || g.started <= g.deadline, { message: 'The deadline is before the start.', path: ['deadline'] }];
+const MILESTONE_HAS_NO = ['current', 'target', 'unit', 'step'];
+export const goalCreate = z.strictObject({
+    name: goal.name,
+    kind: goal.kind.default('progress'),
+    target: goal.target.optional(),
+    current: goal.current.optional(),
+    unit: goal.unit,
+    step: goal.step.optional(),
+    deadline: goal.deadline.optional(),
+    started: goal.started.optional(),
+    dream: goal.dream.optional(),
+}).superRefine((g, ctx) => {
+    if (g.kind === 'progress' && g.target === undefined) ctx.addIssue({ code: 'custom', message: 'A goal needs a target.', path: ['target'] });
+    if (g.kind === 'milestone') {
+        for (const key of MILESTONE_HAS_NO.filter(k => g[k] !== undefined && g[k] !== null)) {
+            ctx.addIssue({ code: 'custom', message: `A milestone has no ${key}.`, path: [key] });
+        }
+    }
+}).refine(...startsBeforeDeadline);
+// the kind is chosen when the goal is made
+const changeable = Object.fromEntries(Object.entries(goal).filter(([key]) => key !== 'kind'));
+export const goalUpdate = partial(changeable).refine(...startsBeforeDeadline);
+export const goalQuery = z.strictObject({ archived: flag.optional(), dream: flag.optional() });
+// the goal's step if left out
+export const goalIncrement = z.strictObject({ by: z.number().min(-1e6).max(1e6).refine(n => n !== 0, 'by cannot be 0').optional() });
 
 // habits
 
