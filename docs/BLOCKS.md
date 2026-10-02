@@ -4,7 +4,7 @@ Oct 2, 2026 · Luke (owner, design and review) · Claude (implementation)
 
 After a few days of using the live dashboard, Luke went through it block by block. This doc records what each block becomes, and why. Where this doc and [DESIGN.md](DESIGN.md) differ, this doc is newer. Each code PR updates DESIGN.md to describe what it built (§10's widget specs, §3's data model and so on), so DESIGN.md stays the description of what exists.
 
-Nothing here is built yet. The build order is in §10.
+The build order is in §10. DESIGN.md describes the parts already built.
 
 **In short,** every block on the grid, and what happens to it:
 

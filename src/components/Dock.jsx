@@ -9,7 +9,8 @@ function timeParts(now) {
     const parts = new Intl.DateTimeFormat('en-US', {hour: 'numeric', minute: '2-digit'}).formatToParts(now);
     const period = parts.find(p => p.type === 'dayPeriod')?.value ?? '';
     const time = parts.filter(p => p.type !== 'dayPeriod').map(p => p.value).join('').trim();
-    return { time, period };
+    const seconds = String(now.getSeconds()).padStart(2, '0');
+    return { time, seconds, period };
 }
 
 // The clock, the date and the weather (DESIGN §10, Dock), a note when the
@@ -17,7 +18,7 @@ function timeParts(now) {
 // button that starts night mode (§6.4, §5.5)
 export default function Dock({ night, onMoon }) {
     const now = useNow(1000);
-    const { time, period } = timeParts(now);
+    const { time, seconds, period } = timeParts(now);
     const offlineSince = useOfflineSince();
     // backups and the calendar feed; only a problem is shown (DESIGN §5.5)
     const status = useResource('status', { pollMs: 5 * 60 * 1000 });
@@ -27,7 +28,12 @@ export default function Dock({ night, onMoon }) {
         <div className="dock">
             <div className="dock-clock">
                 <time className="dock-time" dateTime={now.toISOString()}>
-                    {time}<span className="dock-period">{period}</span>
+                    {time}
+                    {/* small and muted, so they don't pull the eye (BLOCKS.md §8) */}
+                    <span className="dock-time-side">
+                        <span className="dock-seconds">{seconds}</span>
+                        <span className="dock-period">{period}</span>
+                    </span>
                 </time>
                 <span className="dock-date">
                     {now.toLocaleDateString('en-US', {weekday: 'long', month: 'long', day: 'numeric'})}

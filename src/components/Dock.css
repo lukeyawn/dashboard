@@ -24,9 +24,18 @@
     font-variant-numeric: tabular-nums;
 }
 
-.dock-period {
+/* the seconds over AM/PM, at 40% of the clock's size: the seconds' tops line
+   up with the digits' and AM/PM sits on their baseline. Raising the column by
+   one line (plus the gap) puts AM/PM on the baseline, and the gap makes up the
+   rest of the digits' height. */
+.dock-time-side {
+    --side-gap: calc(2 * var(--px));
+    display: inline-flex;
+    flex-direction: column;
+    gap: var(--side-gap);
     margin-left: calc(8 * var(--px));
-    font-size: calc(24 * var(--px));
+    vertical-align: calc(1em + var(--side-gap));
+    font-size: calc(26 * var(--px));
     font-weight: 400;
     color: var(--text-muted);
 }
