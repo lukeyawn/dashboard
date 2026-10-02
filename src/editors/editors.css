@@ -113,6 +113,19 @@
     accent-color: var(--accent);
 }
 
+/* a row of buttons for a few short options; the chosen one is pressed */
+.editor-choice {
+    display: flex;
+    flex-wrap: wrap;
+    gap: calc(var(--e-gap) * 0.5);
+}
+
+.editor .editor-choice button[aria-pressed='true'] {
+    border-color: var(--accent);
+    color: var(--accent);
+    font-weight: 600;
+}
+
 .editor-error {
     margin: 0;
     color: var(--urgent);

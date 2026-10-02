@@ -32,8 +32,8 @@ export async function todaySnapshot({ stores, settings, calendar, weatherAt, now
         habits: stores.habits.list({ days: 7, archived: false }).map(h => ({
             id: h.id, name: h.name, per_week: h.per_week, done_today: h.checks.includes(date), week_count: h.week_count, streak: h.streak, checks: h.checks,
         })),
+        // the nearest current ones, by the store's rule: by date, then time (docs/BLOCKS.md §4)
         countdowns: stores.countdowns.list()
-            .filter(c => c.target_date >= date)
             .slice(0, 3)
             .map(c => ({ ...c, days_left: daysBetween(date, c.target_date) })),
         applications: {

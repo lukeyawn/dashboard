@@ -82,9 +82,17 @@ export function registerTools(server, call, now = () => new Date(), { omit = [] 
     tool('complete_task', 'write', 'Mark a task (or deadline) done. It can be restored with update_task and done_at: null.', { id },
         ({ id: taskId }) => call('PATCH', `/tasks/${taskId}`, { done_at: now().toISOString() }));
 
+    const c = schemas.shapes.countdown;
     crud('countdowns', 'countdown', 'countdowns', {
-        createInput: { label: schemas.shapes.countdown.label, target_date: schemas.shapes.countdown.target_date, pinned: schemas.shapes.countdown.pinned.optional() },
-        notes: ' One-off dates such as finals or a break. At most one is pinned; pinning one unpins the rest. Birthdays are not countdowns: they are yearly all-day events in Google Calendar.',
+        listInput: { past: z.boolean().optional().describe('true for past countdowns only; current ones if left out') },
+        createInput: {
+            label: c.label,
+            target_date: c.target_date,
+            target_time: c.target_time.optional().describe('A local time, if it counts down to a moment; the start of the day if left out'),
+            detail: c.detail.optional().describe('days (the default), hours (hours under 48 hours, minutes under 1), or live (as hours, then a ticking clock in the last 24 hours). hours and live need target_time.'),
+            pinned: c.pinned.optional(),
+        },
+        notes: " One-off dates such as finals or a break. A date (and time) that has passed is refused; a countdown is past from the day after its target_date, and list_countdowns shows only current ones unless past is true. A past countdown can still be renamed. At most one is pinned; pinning one unpins the rest. Birthdays are not countdowns: they are yearly all-day events in Google Calendar.",
     });
 
     crud('goals', 'goal', 'goals', {

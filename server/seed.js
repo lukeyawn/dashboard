@@ -33,6 +33,8 @@ seed('tasks', createTaskStore(db), [
 seed('countdowns', createCountdownStore(db), [
     { label: 'Thanksgiving break', target_date: day(56), pinned: true },
     { label: 'Finals', target_date: day(71) },
+    // a live one, ticking in its last day (docs/BLOCKS.md §4)
+    { label: "New Year's!", target_date: `${new Date().getFullYear() + 1}-01-01`, target_time: '00:00', detail: 'live' },
 ]);
 
 seed('goals', createGoalStore(db), [

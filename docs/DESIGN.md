@@ -191,7 +191,7 @@ Everything lives on the VM, except events, which are Google's.
 | Table | Columns | Notes |
 |---|---|---|
 | `tasks` | `name`, `done_at`, `due?`, `priority`, `effort?`, `area?`, `notes?`, `link?`, `source?` | One list for to-dos and deadlines: a task with a `due` date is a deadline, and overdue ones stay until done. `priority` is `high`, `normal` (the default) or `low`; `effort` is `quick` (under 15 min), `medium` or `big` (over an hour); `area` is free text such as a course or "job search". Everything but the name is optional, and Claude fills it in (§5.5). |
-| `countdowns` | `label`, `target_date`, `pinned`, `source?` | One-off dates such as finals or a break. Birthdays come from Google Calendar (§4). |
+| `countdowns` | `label`, `target_date`, `target_time?`, `detail`, `pinned`, `source?` | One-off dates such as finals or a break. Birthdays come from Google Calendar (§4). `target_time` is a local HH:MM; without one, a countdown counts to the start of its day. `detail` is `days` (the default), `hours` or `live`; the last two need a time. A countdown is past from the day after its `target_date`, worked out on every read ([BLOCKS.md §4](BLOCKS.md#4-countdown)). |
 | `goals` | `name`, `current`, `target`, `unit?`, `archived_at` | No time frames in v1. |
 | `habits` | `name`, `position`, `per_week`, `archived_at` | `per_week` is the weekly target, 1 to 7, defaulting to 7 (daily) ([BLOCKS.md §2](BLOCKS.md#2-habits-a-weekly-target)). |
 | `habit_checks` | `habit_id`, `date` | Primary key is `(habit_id, date)`. A row exists means the habit was done that day. Deleting a habit deletes its checks. |
@@ -231,6 +231,7 @@ The resources are `tasks`, `countdowns`, `goals`, `habits` and `applications`.
 | `GET /api/changes?limit&actor&resource` | The change record, newest first (§5.5). |
 | `POST /api/changes/:id/undo` | Puts the item back as it was before that change. The undo is itself recorded. |
 | `GET /api/status` | The health of the parts that run on their own: the last nightly backup and the calendar feed (§5.5), and later the agent's runs. |
+| `GET /api/countdowns?past=true` | The current countdowns, nearest first (by date, then time). `past=true` lists the past ones instead. A new date (and time) that has already passed is refused with a 400 saying so, such as *"That date has passed (Jan 1, 2026). Did you mean 2027?"*. Renaming a past countdown is allowed. |
 | `GET /api/habits?days=7` | Each habit includes its checked dates in that window, `week_count` (days done this calendar week, from `week_start`) and its streak. The server computes these on every read, so the widget and the agent agree. |
 | `PUT` / `DELETE /api/habits/:id/checks/:date` | Mark a day done or not done. Both are idempotent. |
 | `POST /api/goals/:id/increment` `{by = 1}` | Add progress to a goal. `by` may be negative, to undo a mistaken tap. |
@@ -764,16 +765,25 @@ v1 has the nine widgets already in the grid plus the dock.
 - **Must test:** single-character words and long definitions. The definition clamps to 2 lines.
 
 ### Countdown (1×1) — untitled
-> **Redesign planned:** an optional time, finer units or a live clock, and past dates refused ([BLOCKS.md §4](BLOCKS.md#4-countdown)).
-
 - **Which countdown:**
   1. A birthday **within the next 7 days**, if there is one. It reads, for example, "3 days · Mom's birthday".
-  2. Otherwise, the `pinned` countdown if there is one.
-  3. Otherwise, the nearest upcoming countdown.
+  2. Otherwise, the `pinned` countdown if there is one and it's current. A pinned countdown that has passed no longer counts.
+  3. Otherwise, the nearest current countdown, by date and then time.
 
   Birthdays only take over when they're close. With a year's worth of birthdays, one is almost always nearer than anything else, and they would otherwise crowd out finals and breaks.
-- **Number:** days when 60 or fewer remain, otherwise weeks. It reads "Today" on the day itself.
-- **Date math:** compare local calendar dates, never raw timestamps (see §14).
+- **Current and past** ([BLOCKS.md §4](BLOCKS.md#4-countdown)): a countdown is current through its whole target day, and past from the next. There's no column and no job. The tile and `list_countdowns` show only current ones; the editor has a Past view to review and delete them.
+- **Past dates are refused** by the server, which knows the time zone: on a new countdown, or as a new date or time for one. Today is allowed, and a timed countdown is allowed until its time. The message names the date and, when the same date next year is still ahead, asks "Did you mean 2027?". The editor shows it beside the field, and Claude gets the same text.
+- **Number,** by `detail`:
+
+  | `detail` | Shows |
+  |---|---|
+  | `days` (default) | Weeks above 60 days, then days, then "Today" all through the target day. |
+  | `hours` | As `days`, then hours under 48 hours and minutes under 1 hour. |
+  | `live` | As `hours`, then a ticking H:MM:SS in the last 24 hours. In the last minute, the seconds alone fill the tile. |
+
+  `hours` and `live` need a time. Once a timed countdown's time has come, the tile reads "Today" with the label for the rest of that day. With `days`, the time decides when the countdown is refused as passed, and orders two countdowns on the same day; the tile reads "Today" all day either way.
+- **Ticking:** every second only during a live countdown's last day, every minute otherwise.
+- **Date math:** compare local calendar dates, never raw timestamps (see §14). Hours and minutes count real time to the moment, so a day with a clock change has 23 or 25 hours.
 
 ### Dock
 - **Left:** a large live clock (1-second tick, `tabular-nums`, §8 glanceable sizes) and the date.

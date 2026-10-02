@@ -1,6 +1,7 @@
 // Request schemas shared by the API, the frontend and the MCP server, so every
 // way of putting data in goes through the same validation (DESIGN §4, §5).
 import { z } from 'zod';
+import { DETAILS } from './countdowns.js';
 import { WEEK_STARTS, daysBetween, isDateString } from './dates.js';
 
 const text = (max, label = 'Name') => z.string().trim()
@@ -60,16 +61,27 @@ export const taskCreate = z.strictObject({
 export const taskUpdate = partial(task);
 export const taskQuery = z.strictObject({ done: flag.optional() });
 
-// countdowns
+// countdowns: past dates are refused by the server, which knows the time
+// (shared/countdowns.js); hours and live need a time (docs/BLOCKS.md §4)
 
 const countdown = {
     label: text(100, 'Label'),
     target_date: date,
+    // local; without one, a countdown counts to the start of its day
+    target_time: time.nullable(),
+    detail: z.enum(DETAILS),
     pinned: z.boolean(),
 };
-export const countdownCreate = z.strictObject({ ...countdown, pinned: countdown.pinned.optional(), source: source.optional() });
+export const countdownCreate = z.strictObject({
+    ...countdown,
+    target_time: countdown.target_time.optional(),
+    detail: countdown.detail.optional(),
+    pinned: countdown.pinned.optional(),
+    source: source.optional(),
+}).refine(c => !c.detail || c.detail === 'days' || c.target_time, { message: 'Hours and live need a time.', path: ['detail'] });
 export const countdownUpdate = partial(countdown);
-export const countdownQuery = z.strictObject({});
+// the current countdowns by default; past=true for the ones whose day has gone
+export const countdownQuery = z.strictObject({ past: flag.optional() });
 
 // goals
 

@@ -99,7 +99,7 @@ export function createApp({ db, apiToken, kioskToken, build = 'dev', distDir = n
     });
     const stores = {
         tasks: createTaskStore(db, { log }),
-        countdowns: createCountdownStore(db, { log }),
+        countdowns: createCountdownStore(db, { log, now: () => new Date(now()) }),
         goals: createGoalStore(db, { log }),
         habits: createHabitStore(db, { now: () => new Date(now()), log, weekStart: () => settings.get('week_start') }),
         applications: createApplicationStore(db, { log }),
