@@ -8,6 +8,11 @@ export function tasksRouter(store) {
     return crudRouter(store, { noun: 'task', create: schemas.taskCreate, update: schemas.taskUpdate, query: schemas.taskQuery });
 }
 
+// the task areas (docs/BLOCKS.md §3); adding a name that exists, ignoring case, returns that area
+export function areasRouter(store) {
+    return crudRouter(store, { noun: 'area', create: schemas.areaCreate, update: schemas.areaUpdate, query: schemas.areaQuery });
+}
+
 export function countdownsRouter(store) {
     return crudRouter(store, { noun: 'countdown', create: schemas.countdownCreate, update: schemas.countdownUpdate, query: schemas.countdownQuery });
 }

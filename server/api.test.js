@@ -18,24 +18,60 @@ async function start(options = {}) {
 }
 
 describe('tasks with details', () => {
-    it('take an optional due date, priority, effort, area, notes and link', async () => {
+    it('take an optional due date, priority, area, minutes, notes and link, and name the area', async () => {
         const { request } = await start();
+        const school = (await request('/api/areas')).body.find(a => a.name === 'School');
         const created = await request('/api/tasks', { method: 'POST', body: {
-            name: 'Pset 4', due: '2026-10-01', priority: 'high', effort: 'big', area: 'M 340L', notes: 'Problems 1-6', link: 'https://canvas.example/a/4',
+            name: 'Pset 4', due: '2026-10-01', priority: 'now', area_id: school.id, minutes: 120, notes: 'Problems 1-6', link: 'https://canvas.example/a/4',
         } });
         expect(created.status).toBe(201);
-        expect(created.body).toMatchObject({ due: '2026-10-01', priority: 'high', effort: 'big', area: 'M 340L', source: null });
+        expect(created.body).toMatchObject({ due: '2026-10-01', priority: 'now', area_id: school.id, area: 'School', minutes: 120, repeat: null, source: null });
         const plain = (await request('/api/tasks', { method: 'POST', body: { name: 'Buy milk' } })).body;
-        expect(plain).toMatchObject({ due: null, priority: 'normal', effort: null, area: null });
-        const cleared = await request(`/api/tasks/${created.body.id}`, { method: 'PATCH', body: { area: '', due: null } });
+        expect(plain).toMatchObject({ due: null, priority: 'soon', minutes: null, area_id: null, area: null });
+        const cleared = await request(`/api/tasks/${created.body.id}`, { method: 'PATCH', body: { area_id: null, due: null } });
         expect(cleared.body).toMatchObject({ area: null, due: null });
+        expect((await request('/api/tasks')).body[0].area).toBeNull();
     });
 
-    it('reject impossible dates and unknown priorities', async () => {
+    it('reject impossible dates, unknown priorities and old fields', async () => {
         const { request } = await start();
-        for (const body of [{ name: 'x', due: '2026-02-30' }, { name: 'x', priority: 'urgent' }, { name: 'x', effort: 'tiny' }]) {
+        for (const body of [{ name: 'x', due: '2026-02-30' }, { name: 'x', priority: 'high' }, { name: 'x', effort: 'quick' }, { name: 'x', minutes: 0 }]) {
             expect((await request('/api/tasks', { method: 'POST', body })).status).toBe(400);
         }
+    });
+
+    it('refuse an unknown area, naming the ones there are', async () => {
+        const { request } = await start();
+        const res = await request('/api/tasks', { method: 'POST', body: { name: 'x', area_id: 99 } });
+        expect(res.status).toBe(400);
+        expect(res.body.error.message).toBe("There's no area 99. The areas are: School (1), Work (2), Job search (3), Home (4), Health (5), Personal (6), Errands (7).");
+    });
+
+    // docs/BLOCKS.md §3; NOW is Wednesday Sep 30
+    it('roll a recurring task forward when completed, instead of marking it done', async () => {
+        const { request } = await start();
+        const laundry = (await request('/api/tasks', { method: 'POST', body: { name: 'Laundry', due: '2026-09-27', repeat: { every: 1, unit: 'week' } } })).body;
+        expect(laundry.repeat).toEqual({ every: 1, unit: 'week' });
+        const done = (await request(`/api/tasks/${laundry.id}`, { method: 'PATCH', body: { done_at: '2026-09-30T17:00:00.000Z' } })).body;
+        // three days late: the next Sunday after today, not the one it missed
+        expect(done).toMatchObject({ done_at: null, due: '2026-10-04', last_done_at: '2026-09-30T17:00:00.000Z' });
+        expect((await request('/api/tasks?done=false')).body.map(t => t.name)).toEqual(['Laundry']);
+        // with the rule cleared, completing it marks it done
+        await request(`/api/tasks/${laundry.id}`, { method: 'PATCH', body: { repeat: null } });
+        expect((await request(`/api/tasks/${laundry.id}`, { method: 'PATCH', body: { done_at: '2026-09-30T18:00:00.000Z' } })).body.done_at).toBe('2026-09-30T18:00:00.000Z');
+    });
+
+    it('need a due date for a recurring task, and a valid rule', async () => {
+        const { request } = await start();
+        const weekly = { every: 1, unit: 'week' };
+        expect((await request('/api/tasks', { method: 'POST', body: { name: 'x', repeat: weekly } })).status).toBe(400);
+        for (const repeat of [{ every: 0, unit: 'day' }, { every: 1, unit: 'fortnight' }, { every: 1, unit: 'day', weekdays: [1] }, { every: 1, unit: 'week', weekdays: [1, 1] }, { every: 1, unit: 'week', day_of_month: 3 }]) {
+            expect((await request('/api/tasks', { method: 'POST', body: { name: 'x', due: '2026-10-04', repeat } })).status).toBe(400);
+        }
+        const task = (await request('/api/tasks', { method: 'POST', body: { name: 'x', due: '2026-10-04', repeat: weekly } })).body;
+        const cleared = await request(`/api/tasks/${task.id}`, { method: 'PATCH', body: { due: null } });
+        expect(cleared.status).toBe(400);
+        expect(cleared.body.error.message).toBe('A recurring task needs a due date. Clear the repeat rule first.');
     });
 
     it('never create a second item from the same source', async () => {
@@ -50,6 +86,43 @@ describe('tasks with details', () => {
         const app = { company: 'Stripe', role: 'Intern', source: 'gmail:abc' };
         await request('/api/applications', { method: 'POST', body: app });
         expect((await request('/api/applications', { method: 'POST', body: app })).status).toBe(200);
+    });
+});
+
+describe('areas (docs/BLOCKS.md §3)', () => {
+    const names = async request => (await request('/api/areas')).body.map(a => a.name);
+
+    it('start with the seeded list, and add to the end, finding an existing name ignoring case', async () => {
+        const { request } = await start();
+        expect(await names(request)).toEqual(['School', 'Work', 'Job search', 'Home', 'Health', 'Personal', 'Errands']);
+        const added = await request('/api/areas', { method: 'POST', body: { name: 'Music' } });
+        expect(added.status).toBe(201);
+        expect(added.body.position).toBe(7);
+        const same = await request('/api/areas', { method: 'POST', body: { name: ' school ' } });
+        expect(same.status).toBe(200);
+        expect(same.body.name).toBe('School');
+        expect((await names(request)).length).toBe(8);
+    });
+
+    it('rename, refusing a name another area has, and reorder', async () => {
+        const { request } = await start();
+        expect((await request('/api/areas/2', { method: 'PATCH', body: { name: 'Internship' } })).body.name).toBe('Internship');
+        const clash = await request('/api/areas/2', { method: 'PATCH', body: { name: 'HOME' } });
+        expect(clash.status).toBe(409);
+        expect(clash.body.error.message).toBe("There's already an area called Home.");
+        expect((await request('/api/areas/2', { method: 'PATCH', body: { name: 'internship' } })).status).toBe(200);
+        // Errands to the top, then Job search down one
+        await request('/api/areas/7', { method: 'PATCH', body: { position: 0 } });
+        await request('/api/areas/3', { method: 'PATCH', body: { position: 4 } });
+        expect(await names(request)).toEqual(['Errands', 'School', 'internship', 'Home', 'Job search', 'Health', 'Personal']);
+        expect((await request('/api/areas')).body.map(a => a.position)).toEqual([0, 1, 2, 3, 4, 5, 6]);
+    });
+
+    it('clear a deleted area from its tasks', async () => {
+        const { request } = await start();
+        const task = (await request('/api/tasks', { method: 'POST', body: { name: 'Pset', area_id: 1 } })).body;
+        expect((await request('/api/areas/1', { method: 'DELETE' })).status).toBe(204);
+        expect((await request(`/api/tasks`)).body.find(t => t.id === task.id)).toMatchObject({ area_id: null, area: null });
     });
 });
 
@@ -293,7 +366,7 @@ describe('today', () => {
         await request('/api/tasks', { method: 'POST', body: { name: 'Do laundry' } });
         await request('/api/tasks', { method: 'POST', body: { name: 'Overdue', due: '2026-09-29' } });
         await request('/api/tasks', { method: 'POST', body: { name: 'Soon', due: '2026-10-05' } });
-        await request('/api/tasks', { method: 'POST', body: { name: 'Far off', due: '2026-12-01', priority: 'high' } });
+        await request('/api/tasks', { method: 'POST', body: { name: 'Far off', due: '2026-12-01', priority: 'now' } });
         await request('/api/countdowns', { method: 'POST', body: { label: 'Break', target_date: '2026-11-25' } });
         await request('/api/countdowns', { method: 'POST', body: { label: 'Flight', target_date: '2026-10-02', target_time: '14:00', detail: 'hours' } });
         await request('/api/countdowns', { method: 'POST', body: { label: 'Out of class', target_date: '2026-10-02' } });

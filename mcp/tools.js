@@ -53,33 +53,53 @@ export function registerTools(server, call, now = () => new Date(), { omit = [] 
         });
     }
 
-    const crud = (resource, singular, plural, { listInput = {}, listQuery = args => args, createInput, notes = '' }) => {
+    // toApi: turns a tool's arguments into the API's fields, such as an area's name into its id
+    const crud = (resource, singular, plural, { listInput = {}, listQuery = args => args, createInput, update = updateInput(schemas.shapes[singular]), toApi = async args => args, notes = '' }) => {
         tool(`list_${plural}`, 'read', `List ${plural}.${notes}`, listInput, args => call('GET', `/${resource}${query(listQuery(args))}`));
-        tool(`add_${singular}`, 'write', `Add a ${singular}.${notes}`, createInput, args => call('POST', `/${resource}`, args));
+        tool(`add_${singular}`, 'write', `Add a ${singular}.${notes}`, createInput, async args => call('POST', `/${resource}`, await toApi(args)));
         tool(`update_${singular}`, 'write', `Change some fields of a ${singular}; leave out the fields that stay the same.${notes}`,
-            updateInput(schemas.shapes[singular]), ({ id: itemId, ...changes }) => call('PATCH', `/${resource}/${itemId}`, changes));
+            update, async ({ id: itemId, ...changes }) => call('PATCH', `/${resource}/${itemId}`, await toApi(changes)));
     };
 
     tool('get_today', 'read',
         "A snapshot of today: today's events, birthdays this week, tasks due within 14 days (with overdue ones) and the other open tasks, goals, habits (whether each is done today, and how many days this week), the nearest countdowns, application counts, the weather and night mode. Start here.",
         {}, () => call('GET', '/today'));
 
+    // Areas are a list the owner edits; Claude chooses one by name and can't
+    // add one (docs/BLOCKS.md §3). An unknown name is refused with the list.
+    tool('list_areas', 'read', 'The task areas, such as School or Home. Tasks can only use these; ask the owner when nothing fits.', {}, () => call('GET', '/areas'));
+    async function areaToId({ area, ...args }) {
+        if (area === undefined) return args;
+        if (area === null) return { ...args, area_id: null };
+        const areas = await call('GET', '/areas');
+        const found = areas.find(a => a.name.toLowerCase() === area.trim().toLowerCase());
+        if (!found) throw new Error(`There's no area called "${area}". The areas are: ${areas.map(a => a.name).join(', ')}. Ask the owner if none fits; only they can add one.`);
+        return { ...args, area_id: found.id };
+    }
+
     const t = schemas.shapes.task;
+    const area = z.string().trim().min(1).max(40).nullable().describe('One of the areas from list_areas, by name; null clears it');
+    const taskFields = {
+        due: t.due.describe('The deadline, if it has one. A task with a due date is a deadline.'),
+        priority: t.priority.describe('When the owner means to do it: now, soon (the default) or someday. It is about timing, not importance.'),
+        area,
+        minutes: t.minutes.describe('Your estimate of how long it takes, in minutes'),
+        notes: t.notes,
+        link: t.link.describe('A link back to where it came from, such as the email'),
+        repeat: t.repeat.describe('For a chore that recurs, such as laundry every week or rent every month on the 1st: { every, unit: day | week | month | year, weekdays (0 = Sunday, for weeks), day_of_month (for months) }. Needs a due date, the first occurrence. Completing it moves the due date to the next occurrence. null stops it.'),
+    };
     crud('tasks', 'task', 'tasks', {
         listInput: { done: z.boolean().optional().describe('false for open tasks only, true for completed ones') },
         createInput: {
             name: t.name,
-            due: t.due.optional().describe('The deadline, if it has one. A task with a due date is a deadline.'),
-            priority: t.priority.optional().describe('high, normal (the default) or low'),
-            effort: t.effort.optional().describe('quick (under 15 minutes), medium, or big (over an hour)'),
-            area: t.area.describe('A course code, "job search", "home" and so on'),
-            notes: t.notes,
-            link: t.link.describe('A link back to where it came from, such as the email'),
+            ...Object.fromEntries(Object.entries(taskFields).map(([key, field]) => [key, field.optional()])),
             source: t.source.optional().describe('Where it came from, such as "gmail:<message id>". The same source never creates a second task.'),
         },
-        notes: " One list for to-dos and deadlines; a task with a due date is a deadline. When adding one, fill in due, priority, effort and area whenever the request or its context makes them clear, and leave them out when it doesn't.",
+        update: { id, name: t.name.optional(), done_at: t.done_at.optional(), ...Object.fromEntries(Object.entries(taskFields).map(([key, field]) => [key, field.optional()])) },
+        toApi: areaToId,
+        notes: " One list for to-dos and deadlines; a task with a due date is a deadline. When adding one, fill in due, priority, area and minutes whenever the request or its context makes them clear, and leave them out when it doesn't. Plan work as time blocks in Google Calendar (\"work on problem set 4\"), not as dates on tasks.",
     });
-    tool('complete_task', 'write', 'Mark a task (or deadline) done. It can be restored with update_task and done_at: null.', { id },
+    tool('complete_task', 'write', 'Mark a task (or deadline) done. A recurring task moves to its next due date instead, and stays open. A done task can be restored with update_task and done_at: null.', { id },
         ({ id: taskId }) => call('PATCH', `/tasks/${taskId}`, { done_at: now().toISOString() }));
 
     const c = schemas.shapes.countdown;

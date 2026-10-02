@@ -19,16 +19,20 @@ function seed(name, store, rows, after = () => {}) {
     console.log(`${name}: added ${rows.length}.`);
 }
 
+// areas are seeded by migration 014; tasks name theirs (docs/BLOCKS.md §3)
+const areaId = name => db.prepare('SELECT id FROM areas WHERE name = ? COLLATE NOCASE').get(name)?.id ?? null;
 seed('tasks', createTaskStore(db), [
-    { name: 'Do laundry', effort: 'medium', area: 'home' },
-    { name: 'Email professor about office hours', priority: 'high', effort: 'quick' },
-    { name: 'Renew library books', priority: 'low', effort: 'quick' },
-    { name: 'Linear Algebra pset 4', due: day(1), priority: 'high', effort: 'big', area: 'M 340L' },
-    { name: 'OS Shell project', due: day(2), effort: 'big', area: 'CS 439' },
-    { name: 'Stripe OA', due: day(9), area: 'job search' },
-    { name: 'Algorithms midterm', due: day(14), area: 'CS 331' },
-    { name: 'Book flights for Thanksgiving', due: day(30) },
-].map(task => ({ priority: 'normal', ...task })));
+    { name: 'Do laundry', minutes: 60, area: 'Home', due: day(3), repeat: { every: 1, unit: 'week' } },
+    { name: 'Pay rent', minutes: 5, area: 'Home', due: day(5), repeat: { every: 1, unit: 'month', day_of_month: 1 } },
+    { name: 'Email professor about office hours', priority: 'now', minutes: 5, area: 'School' },
+    { name: 'Renew library books', priority: 'someday', minutes: 15, area: 'Errands' },
+    { name: 'Learn to make dumplings', priority: 'someday', minutes: 120, area: 'Personal' },
+    { name: 'Linear Algebra pset 4', due: day(1), priority: 'now', minutes: 120, area: 'School' },
+    { name: 'OS Shell project', due: day(2), minutes: 120, area: 'School' },
+    { name: 'Stripe OA', due: day(9), minutes: 60, area: 'Job search' },
+    { name: 'Algorithms midterm', due: day(14), area: 'School' },
+    { name: 'Book flights for Thanksgiving', due: day(30), minutes: 30, area: 'Personal' },
+].map(({ area, ...task }) => ({ priority: 'soon', ...task, area_id: areaId(area) })));
 
 seed('countdowns', createCountdownStore(db), [
     { label: 'Thanksgiving break', target_date: day(56), pinned: true },

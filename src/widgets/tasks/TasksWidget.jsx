@@ -1,6 +1,6 @@
 import { useCallback, useState } from 'react';
 import { today } from '../../../shared/dates';
-import { compareTasks, isDueSoon } from '../../../shared/tasks';
+import { compareTasks, isDueSoon, minutesLabel } from '../../../shared/tasks';
 import ClaudeMark from '../../components/ClaudeMark';
 import EditButton from '../../components/EditButton';
 import { TasksEditor } from '../../editors/editors';
@@ -9,8 +9,9 @@ import { usePendingAction } from '../../hooks/usePendingAction';
 import { useResource } from '../../hooks/useResource';
 import './TasksWidget.css';
 
-// Open tasks that aren't in Due soon, by priority, then due date, then effort
-// (DESIGN §10). Tapping a row clears it after 5 seconds; tapping again cancels.
+// Open tasks that aren't in Due soon: now, soon, then someday (muted), then
+// due date, then shortest first (DESIGN §10, docs/BLOCKS.md §3; the row's
+// redesign comes with the Assignments tile). Tapping a row clears it after 5 seconds; tapping again cancels.
 // Cleared tasks get done_at and can be restored.
 export default function TasksWidget() {
     const tasks = useResource('tasks', { params: { done: false } });
@@ -46,13 +47,13 @@ function TaskList({ tasks, pending, todayDate }) {
             {open.map(t => {
                 const isPending = pending.isPending(t.id);
                 return (
-                    <li key={t.id} className={['task', isPending && 'pending', t.priority === 'low' && 'low'].filter(Boolean).join(' ')} style={{'--pending-ms': `${pending.delayMs}ms`}}>
+                    <li key={t.id} className={['task', isPending && 'pending', t.priority === 'someday' && 'low'].filter(Boolean).join(' ')} style={{'--pending-ms': `${pending.delayMs}ms`}}>
                         {/* the whole row is the label, so a tap anywhere on it toggles the checkbox (DESIGN §6.1) */}
                         <label data-tap>
                             <input type="checkbox" checked={isPending} onChange={() => pending.toggle(t.id)} />
-                            {t.priority === 'high' && <span className="task-high" aria-label="high priority">!</span>}
+                            {t.priority === 'now' && <span className="task-high" aria-label="now">!</span>}
                             <span className="task-name">{t.name}</span>
-                            {t.effort === 'quick' && <span className="task-tag">quick</span>}
+                            {t.minutes && <span className="task-tag">{minutesLabel(t.minutes)}</span>}
                         </label>
                         {t.claude_change && <ClaudeMark change={t.claude_change} name={t.name} onUndone={tasks.refresh} />}
                     </li>

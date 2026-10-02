@@ -4,9 +4,12 @@ import { useState } from 'react';
 // the same zod schema the server uses before sending them, and for an edit,
 // sends only the fields that changed.
 //
-// fields: [{ key, label, type: 'text' | 'textarea' | 'date' | 'time' | 'number' | 'select' | 'choice' | 'checkbox', options, placeholder, optional, omitEmpty }]
-// a select whose options are numbers sends a number; labels: { option: 'shown as' }
+// fields: [{ key, label, type: 'text' | 'textarea' | 'date' | 'time' | 'number' | 'select' | 'choice' | 'checkbox' | 'custom', options, placeholder, optional, omitEmpty }]
+// a select whose options are numbers sends a number, and shows a stored value
+// that isn't one of them; labels: { option: 'shown as' }
 // choice: the options as a row of buttons, one pressed, for a few short options
+// custom: field.render({ value, onChange }) draws the input, and the value is
+// sent as it is, such as an id or a repeat rule
 // check(values, before): problems the schema can't see, such as a date that has
 // passed, as { field: message } or null; before is the item being edited, or null
 // optional: empty means null (cleared); omitEmpty: empty means left out, for the server to fill in
@@ -43,10 +46,11 @@ export default function EditorForm({ fields, schema, initial = {}, onlyChanges =
     return (
         <form className="editor-form" onSubmit={submit} noValidate>
             {fields.map(f => {
-                // a row of buttons isn't one control, so it can't sit in a label
-                const Field = f.type === 'choice' ? 'div' : 'label';
+                // a row of buttons, or a custom input with several controls, can't sit in one label
+                const group = f.type === 'choice' || f.type === 'custom';
+                const Field = group ? 'div' : 'label';
                 return (
-                    <Field key={f.key} className={`editor-field ${f.type ?? 'text'}`} role={f.type === 'choice' ? 'group' : undefined} aria-label={f.type === 'choice' ? f.label : undefined}>
+                    <Field key={f.key} className={`editor-field ${f.type ?? 'text'}`} role={group ? 'group' : undefined} aria-label={group ? f.label : undefined}>
                         <span className="editor-label">{f.label}{f.optional && <span className="editor-optional"> (optional)</span>}</span>
                         <Input field={f} value={values[f.key]} onChange={value => setValues(prev => ({ ...prev, [f.key]: value }))} />
                         {errors[f.key] && <span className="editor-error">{errors[f.key]}</span>}
@@ -67,9 +71,13 @@ function Input({ field, value, onChange }) {
     switch (field.type) {
         case 'textarea':
             return <textarea rows={3} {...common} />;
-        case 'select':
-            // an empty option reads as "not set"
-            return <select {...common}>{field.options.map(o => <option key={o} value={o}>{field.labels?.[o] ?? (o || '—')}</option>)}</select>;
+        case 'select': {
+            // an empty option reads as "not set"; a stored value outside the list, such as Claude's 45 minutes, is kept
+            const options = value === '' || field.options.map(String).includes(value) ? field.options : [...field.options, value];
+            return <select {...common}>{options.map(o => <option key={o} value={o}>{field.labels?.[o] ?? (o || '—')}</option>)}</select>;
+        }
+        case 'custom':
+            return field.render({ value, onChange });
         case 'checkbox':
             return <input type="checkbox" checked={value} onChange={event => onChange(event.target.checked)} />;
         case 'choice':
@@ -87,6 +95,7 @@ function Input({ field, value, onChange }) {
 // what an input shows for a stored value
 function toInput(field, value) {
     if (field.type === 'checkbox') return Boolean(value);
+    if (field.type === 'custom') return value ?? field.default ?? null;
     if (value === null || value === undefined) return field.default ?? '';
     return String(value);
 }
@@ -94,8 +103,9 @@ function toInput(field, value) {
 // what gets sent for an input's value; undefined leaves the field out
 function fromInput(field, value) {
     if (field.type === 'checkbox') return value;
+    if (field.type === 'custom') return value === null && field.omitEmpty ? undefined : value;
     if (field.type === 'number') return value.trim() === '' ? undefined : Number(value);
-    if (field.type === 'select' && typeof field.options[0] === 'number') return Number(value);
+    if (field.type === 'select' && field.options.some(o => typeof o === 'number') && value !== '') return Number(value);
     // an empty required field is sent as '', so the schema names the problem
     if (value.trim() === '') return field.omitEmpty ? undefined : field.optional ? null : '';
     return value;
@@ -107,7 +117,7 @@ function readable(message) {
 }
 
 function same(a, b) {
-    return (a ?? null) === (b ?? null) || (a === '' && b === null);
+    return (a ?? null) === (b ?? null) || (a === '' && b === null) || JSON.stringify(a) === JSON.stringify(b);
 }
 
 // A few short options as a row of buttons, the chosen one pressed

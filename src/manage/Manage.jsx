@@ -1,4 +1,4 @@
-import { ApplicationsEditor, CountdownsEditor, GoalsEditor, HabitsEditor, TasksEditor } from '../editors/editors';
+import { ApplicationsEditor, AreasEditor, CountdownsEditor, GoalsEditor, HabitsEditor, TasksEditor } from '../editors/editors';
 import SettingsEditor from '../editors/SettingsEditor';
 import Claude from './Claude';
 import History from './History';
@@ -6,6 +6,7 @@ import './Manage.css';
 
 const SECTIONS = [
     ['tasks', 'Tasks and deadlines', TasksEditor],
+    ['areas', 'Task areas', AreasEditor],
     ['countdowns', 'Countdowns', CountdownsEditor],
     ['goals', 'Goals', GoalsEditor],
     ['habits', 'Habits', HabitsEditor],

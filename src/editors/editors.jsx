@@ -3,24 +3,31 @@ import { useState } from 'react';
 import { DETAILS, countdownProblems, formatClock } from '../../shared/countdowns';
 import * as schemas from '../../shared/schemas';
 import { parseDate } from '../../shared/dates';
-import { compareTasks } from '../../shared/tasks';
+import { describeRepeat } from '../../shared/repeat';
+import { compareTasks, minutesLabel } from '../../shared/tasks';
 import { formatNumber } from '../lib/format';
 import { streakText } from '../widgets/habits/habitText';
 import { Choice } from './EditorForm';
 import ResourceEditor from './ResourceEditor';
+import { AreaInput, RepeatInput } from './taskFields';
 
 const now = () => new Date().toISOString();
 const shortDate = date => parseDate(date).toLocaleDateString('en-US', { weekday: 'short', month: 'short', day: 'numeric', year: 'numeric' });
 const recentFirst = (a, b) => (b.done_at ?? b.archived_at ?? '').localeCompare(a.done_at ?? a.archived_at ?? '');
 
-// One list for to-dos and deadlines; a due date makes a task a deadline (DESIGN §3)
+const PRIORITY_LABELS = { now: 'Now', soon: 'Soon', someday: 'Someday' };
+
+// One list for to-dos and deadlines; a due date makes a task a deadline (DESIGN §3).
+// Areas come from a list, priority is when you mean to do it, and a recurring
+// task moves to its next due date when completed (docs/BLOCKS.md §3).
 export function TasksEditor() {
     const fields = [
         { key: 'name', label: 'Task' },
         { key: 'due', label: 'Due', type: 'date', optional: true },
-        { key: 'priority', label: 'Priority', type: 'select', options: schemas.PRIORITIES, default: 'normal' },
-        { key: 'effort', label: 'Effort', type: 'select', options: ['', ...schemas.EFFORTS], optional: true },
-        { key: 'area', label: 'Area', optional: true, placeholder: 'e.g. CS 439, job search, home' },
+        { key: 'priority', label: 'When', type: 'choice', options: schemas.PRIORITIES, labels: PRIORITY_LABELS, default: 'soon' },
+        { key: 'area_id', label: 'Area', type: 'custom', optional: true, render: props => <AreaInput {...props} /> },
+        { key: 'minutes', label: 'Time it takes', type: 'select', options: ['', 5, 15, 30, 60, 120], labels: { 120: '60+' }, optional: true },
+        { key: 'repeat', label: 'Repeats', type: 'custom', optional: true, render: props => <RepeatInput {...props} /> },
         { key: 'notes', label: 'Notes', type: 'textarea', optional: true },
         { key: 'link', label: 'Link', optional: true, placeholder: 'https://' },
     ];
@@ -29,17 +36,16 @@ export function TasksEditor() {
             resource="tasks"
             noun="task"
             fields={fields}
-            // a new task leaves out what isn't filled in; the server picks normal priority
+            // a new task leaves out what isn't filled in
             createFields={fields.map(f => (f.optional ? { ...f, optional: false, omitEmpty: true } : f))}
             createSchema={schemas.taskCreate}
             updateSchema={schemas.taskUpdate}
             filters={[
-                { key: 'priority', label: 'Priority', options: schemas.PRIORITIES },
-                { key: 'effort', label: 'Effort', options: schemas.EFFORTS },
+                { key: 'priority', label: 'When', options: schemas.PRIORITIES },
                 { key: 'area', label: 'Area', options: rows => [...new Set(rows.map(r => r.area).filter(Boolean))].sort() },
             ]}
             sorts={[
-                { label: 'Priority, then due', compare: compareTasks },
+                { label: 'When, then due', compare: compareTasks },
                 { label: 'Due date', compare: (a, b) => (a.due ?? '9999').localeCompare(b.due ?? '9999') || a.id - b.id },
                 { label: 'Newest', compare: (a, b) => b.id - a.id },
             ]}
@@ -52,8 +58,9 @@ export function TasksEditor() {
                 title: t.name,
                 detail: [
                     t.due && `due ${shortDate(t.due)}`,
-                    t.priority !== 'normal' && `${t.priority} priority`,
-                    t.effort,
+                    t.priority !== 'soon' && PRIORITY_LABELS[t.priority].toLowerCase(),
+                    minutesLabel(t.minutes),
+                    t.repeat && describeRepeat(t.repeat),
                     t.area,
                 ].filter(Boolean).join(' · ') || null,
             })}
@@ -66,6 +73,29 @@ const DETAIL_LABELS = { days: 'Days', hours: 'Hours', live: 'Live' };
 
 // Current countdowns, or the past ones to review and delete. A date that has
 // passed is refused with the server's own message, beside the field (docs/BLOCKS.md §4).
+// The task areas (docs/BLOCKS.md §3): add, rename, reorder and delete.
+// Deleting one clears it from its tasks; Undo in History puts it back on them.
+export function AreasEditor() {
+    return (
+        <ResourceEditor
+            resource="areas"
+            noun="area"
+            fields={[{ key: 'name', label: 'Area' }]}
+            createSchema={schemas.areaCreate}
+            updateSchema={schemas.areaUpdate}
+            sections={rows => [{ title: null, rows }]}
+            describe={a => ({ title: a.name, detail: null })}
+            actions={(a, rows) => {
+                const index = rows.findIndex(r => r.id === a.id);
+                return [
+                    index > 0 && { label: '↑', changes: { position: index - 1 } },
+                    index < rows.length - 1 && { label: '↓', changes: { position: index + 1 } },
+                ].filter(Boolean);
+            }}
+        />
+    );
+}
+
 export function CountdownsEditor() {
     const [past, setPast] = useState(false);
     return (

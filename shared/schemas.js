@@ -2,6 +2,7 @@
 // way of putting data in goes through the same validation (DESIGN §4, §5).
 import { z } from 'zod';
 import { DETAILS } from './countdowns.js';
+import { UNITS } from './repeat.js';
 import { WEEK_STARTS, daysBetween, isDateString } from './dates.js';
 
 const text = (max, label = 'Name') => z.string().trim()
@@ -33,32 +34,58 @@ const partial = shape => z.strictObject(shape).partial().refine(...notEmpty);
 
 // tasks: one list for to-dos and deadlines; a task with a due date is a deadline (DESIGN §3)
 
-export const PRIORITIES = ['high', 'normal', 'low'];
-export const EFFORTS = ['quick', 'medium', 'big'];
+// when you intend to do it (docs/BLOCKS.md §3)
+export const PRIORITIES = ['now', 'soon', 'someday'];
+
+// a recurrence rule (shared/repeat.js); a recurring task needs a due date
+export const repeatRule = z.strictObject({
+    every: z.number().int().min(1).max(365),
+    unit: z.enum(UNITS),
+    weekdays: z.array(z.number().int().min(0).max(6)).min(1).max(7).optional(),
+    day_of_month: z.number().int().min(1).max(31).optional(),
+})
+    .refine(r => !r.weekdays || r.unit === 'week', { message: 'weekdays are only for weekly rules', path: ['weekdays'] })
+    .refine(r => !r.weekdays || new Set(r.weekdays).size === r.weekdays.length, { message: 'A weekday is listed twice', path: ['weekdays'] })
+    .refine(r => !r.day_of_month || r.unit === 'month', { message: 'day_of_month is only for monthly rules', path: ['day_of_month'] });
 
 const task = {
     name: text(200),
-    // set to complete it, null to restore it
+    // set to complete it, null to restore it; a recurring task moves to its next due date instead
     done_at: timestamp.nullable(),
     due: date.nullable(),
     priority: z.enum(PRIORITIES),
-    effort: z.enum(EFFORTS).nullable(),
-    area: optionalText(60),
+    // one of the areas (GET /api/areas)
+    area_id: z.number().int().positive().nullable(),
+    // an estimate, in minutes
+    minutes: z.number().int().min(1, 'At least a minute').max(10_000).nullable(),
     notes: optionalText(5000),
     link: optionalText(500),
     source: source.nullable(),
+    repeat: repeatRule.nullable(),
 };
+const needsDue = [t => !t.repeat || t.due, { message: 'A recurring task needs a due date', path: ['due'] }];
 export const taskCreate = z.strictObject({
     name: task.name,
     due: task.due.optional(),
-    priority: task.priority.default('normal'),
-    effort: task.effort.optional(),
-    area: task.area,
+    priority: task.priority.default('soon'),
+    area_id: task.area_id.optional(),
+    minutes: task.minutes.optional(),
     notes: task.notes,
     link: task.link,
     source: source.optional(),
-});
+    repeat: task.repeat.optional(),
+}).refine(...needsDue);
 export const taskUpdate = partial(task);
+
+// areas: a list the owner edits; Claude only chooses from it (docs/BLOCKS.md §3)
+const area = {
+    name: text(40),
+    // the area's place in the list, from 0; moving one shifts the rest
+    position: z.number().int().min(0).max(1000),
+};
+export const areaCreate = z.strictObject({ name: area.name });
+export const areaUpdate = partial(area);
+export const areaQuery = z.strictObject({});
 export const taskQuery = z.strictObject({ done: flag.optional() });
 
 // countdowns: past dates are refused by the server, which knows the time
@@ -167,7 +194,7 @@ export const changesQuery = z.strictObject({
     limit: z.coerce.number().int().min(1).max(200).default(50),
     // one actor, or several separated by commas: ?actor=claude,agent
     actor: z.string().transform(value => value.split(',')).pipe(z.array(z.enum(ACTORS)).min(1)).optional(),
-    resource: z.enum(['tasks', 'countdowns', 'goals', 'habits', 'habit_checks', 'applications', 'settings']).optional(),
+    resource: z.enum(['tasks', 'areas', 'countdowns', 'goals', 'habits', 'habit_checks', 'applications', 'settings']).optional(),
     via: via.optional(),
     since: timestamp.optional(),
 });
@@ -185,4 +212,4 @@ export const connectorName = z.enum(CONNECTOR_NAMES);
 export const connectorSwitch = z.strictObject({ enabled: z.boolean() });
 
 // The fields of each resource, for building other schemas from (the MCP tools use them)
-export const shapes = { task, countdown, goal, habit, application };
+export const shapes = { task, area, countdown, goal, habit, application };

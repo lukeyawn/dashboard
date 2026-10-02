@@ -41,8 +41,8 @@ describe('the chat connector over MCP', () => {
 
     it('adds a task, recorded as Claude through this claude.ai connection', async () => {
         await connect();
-        const added = text(await client.callTool({ name: 'add_task', arguments: { name: 'Email Prof. Lee', due: '2026-10-03', priority: 'high' } }));
-        expect(added).toMatchObject({ name: 'Email Prof. Lee', due: '2026-10-03', priority: 'high' });
+        const added = text(await client.callTool({ name: 'add_task', arguments: { name: 'Email Prof. Lee', due: '2026-10-03', priority: 'now', area: 'school' } }));
+        expect(added).toMatchObject({ name: 'Email Prof. Lee', due: '2026-10-03', priority: 'now', area: 'School' });
         const [change] = (await server.request('/api/changes')).body;
         expect(change).toMatchObject({ actor: 'claude', via: 'claude.ai', action: 'create' });
         expect(change.connection_id).toEqual(expect.any(Number));

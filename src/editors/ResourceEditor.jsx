@@ -9,7 +9,7 @@ import './editors.css';
 //
 // sections(rows): [{ title, rows }] how to group the items
 // describe(row): { title, detail } how an item reads in the list
-// actions(row): [{ label, changes }] extra one-tap buttons, such as Archive
+// actions(row, rows): [{ label, changes }] extra one-tap buttons, such as Archive
 // filters: [{ key, label, options }] narrow the list; options may be a function of the rows
 // sorts:   [{ label, compare }] orders the list; the first is the default
 // check:   (values, before) extra checks, passed on to EditorForm
@@ -54,7 +54,7 @@ export default function ResourceEditor({ resource, noun, params, fields, createS
                             ) : (
                                 <ItemRow
                                     {...describe(row)}
-                                    actions={actions(row)}
+                                    actions={actions(row, items.data)}
                                     onAction={changes => items.update(row.id, changes)}
                                     onEdit={() => setEditing(row.id)}
                                     onDelete={() => items.remove(row.id)}
