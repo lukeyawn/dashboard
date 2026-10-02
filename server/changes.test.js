@@ -164,15 +164,14 @@ describe('undo', () => {
 });
 
 describe('createChangeLog', () => {
-    it('records outside a request as the system, and prunes entries over a year old', () => {
+    it('records outside a request as the system, and keeps entries over a year old (docs/BLOCKS.md §7)', () => {
         const db = new Database(':memory:');
         migrate(db);
-        let time = Date.parse('2027-10-01T00:00:00Z');
-        const log = createChangeLog(db, { now: () => time });
-        db.prepare("INSERT INTO changes (at, actor, resource, item_id, action) VALUES ('2026-09-01T00:00:00.000Z', 'owner', 'tasks', '1', 'create')").run();
+        const log = createChangeLog(db, { now: () => Date.parse('2027-10-01T00:00:00Z') });
+        db.prepare("INSERT INTO changes (at, actor, resource, item_id, action) VALUES ('2025-09-01T00:00:00.000Z', 'owner', 'tasks', '1', 'create')").run();
         log.record({ resource: 'tasks', itemId: 2, action: 'create', after: { id: 2 } });
         withActor('agent', () => log.record({ resource: 'tasks', itemId: 3, action: 'create', after: { id: 3 } }));
-        expect(log.list().map(c => [c.item_id, c.actor])).toEqual([['3', 'agent'], ['2', 'system']]);
+        expect(log.list().map(c => [c.item_id, c.actor])).toEqual([['3', 'agent'], ['2', 'system'], ['1', 'owner']]);
         expect(log.get(999)).toBeNull();
     });
 });
@@ -262,5 +261,17 @@ describe("Claude's changes (docs/CONNECTOR.md §6)", () => {
         expect(reused.id).toBe(fromLaptop.id);
         marks = await byId();
         expect(marks[reused.id]).toBeNull();
+    });
+
+    it('drops the mark a year after Claude created the item, and keeps the change (docs/BLOCKS.md §7)', async () => {
+        const { asClaude, request, tick } = await startWithClaude();
+        const task = await add(asClaude, 'from a chat');
+        const mark = async () => (await request('/api/tasks')).body.find(t => t.id === task.id).claude_change ?? null;
+        tick(364 * 24 * 60 * 60 * 1000);
+        expect(await mark()).toMatchObject({ actor: 'claude' });
+
+        tick(2 * 24 * 60 * 60 * 1000);
+        expect(await mark()).toBeNull();
+        expect((await changes(request, '?resource=tasks')).map(c => [c.item_id, c.action])).toEqual([[String(task.id), 'create']]);
     });
 });

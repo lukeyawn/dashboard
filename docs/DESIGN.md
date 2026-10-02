@@ -196,7 +196,7 @@ Everything lives on the VM, except events, which are Google's.
 | `habits` | `name`, `position`, `archived_at` | Daily only in v1. |
 | `habit_checks` | `habit_id`, `date` | Primary key is `(habit_id, date)`. A row exists means the habit was done that day. Deleting a habit deletes its checks. |
 | `applications` | `company`, `role`, `status`, `applied_on`, `url?`, `notes?`, `source?` | `status` is one of `applied`, `interview`, `offer`, `rejected`. |
-| `changes` | `at`, `actor`, `resource`, `item_id`, `action`, `before?`, `after?` | Every write, from anyone, in the same transaction as the write itself (§5.5). `action` is `create`, `update` or `delete`; `before` and `after` are the whole row as JSON. Kept for a year. |
+| `changes` | `at`, `actor`, `resource`, `item_id`, `action`, `before?`, `after?` | Every write, from anyone, in the same transaction as the write itself (§5.5). `action` is `create`, `update` or `delete`; `before` and `after` are the whole row as JSON. Kept for good, for a year in review ([BLOCKS.md §7](BLOCKS.md#7-the-change-record-kept-for-good)). |
 | `settings` | `key`, `value` (JSON) | v1 keys you can change: `night_start` (default `"22:00"`), `night_end` (default `"06:30"`). Keys the system sets: `night_early_until` (§6.4) and `kiosk_location`, `{ lat, lon, name, reported_at }` (§10, Dock). |
 
 **Not in the database:**
@@ -382,7 +382,7 @@ Each can be revoked on its own. Each connector sign-in is its own *connection*, 
 
 ### 5.5 Records that make an agent trustworthy
 
-- **The change record** (`changes`, §3): every write, from anyone, with the actor (`owner`, `kiosk`, `claude`, `agent`), the time, and the row before and after. Writes through the MCP server are recorded as `claude`. `/manage` gets a **History** section listing recent changes, filterable by who made them, each with **Undo**.
+- **The change record** (`changes`, §3): every write, from anyone, with the actor (`owner`, `kiosk`, `claude`, `agent`), the time, and the row before and after. Writes through the MCP server are recorded as `claude`. It's never pruned: a stats or year-in-review page can read it later. `/manage` gets a **History** section listing recent changes, filterable by who made them, each with **Undo**.
 - **Sources and no duplicates.** An item created from an email carries `source` (`gmail:<message id>`), and the server never creates a second item with the same source. An agent re-reading the same inbox every morning can't pile up copies, and a suggestion for an item that already exists is refused.
 - **Richer tasks** (§3): priority, effort, area, notes and a link back to the email, filled in by Claude. The tile shows them as small markers, and `/manage` can filter and sort by them.
 - **A status line** (`GET /api/status`): the last nightly backup and the calendar feed now, the agent's runs later. The dock shows a warning only when something is wrong, such as no successful backup in 36 hours, or a calendar feed failing for over an hour.

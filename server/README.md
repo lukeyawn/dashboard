@@ -22,7 +22,7 @@ Every `x.test.js` tests the `x.js` beside it. The exceptions are noted below.
 | `errors.js` | `HttpError`, `validate` (zod), and the handler that turns errors into `{ error: { message, details } }`. |
 | `db.js` | Opens SQLite and runs the numbered migrations in `migrations/` in order, tracked by `user_version`. |
 | `crud.js` | The four generic routes every resource gets (list, create, update, delete) and the SQL behind them. Stores build on it. Every write goes through the change record in the same transaction. Creating an item whose `source` already exists returns the existing one. |
-| `changes.js` | The change record (DESIGN §5.5): `withActor` tags every write in a request with who made it (owner, kiosk, Claude), and the log stores each row before and after. Kept a year. |
+| `changes.js` | The change record (DESIGN §5.5): `withActor` tags every write in a request with who made it (owner, kiosk, Claude), and the log stores each row before and after. Kept for good; the ✦ mark on what Claude created lasts a year. |
 | `access.js` | What a claude.ai connector's token may do: an allow-list of routes per connector, and the chat connector's 100 writes a day (docs/CONNECTOR.md §5). |
 | `clean.js` | Cleans text written through a connector (invisible and reordering characters) and refuses links that aren't https. |
 | `limits.js` | Rate limits: the dashboard's login lockout, and the public listener's split limits, by connection, by visitor and per kind of traffic. |
