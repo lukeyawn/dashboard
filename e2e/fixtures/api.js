@@ -63,13 +63,16 @@ export const GOALS = rows([
 
 const week = ['2026-09-24', '2026-09-25', '2026-09-26', '2026-09-27', '2026-09-28', '2026-09-29', '2026-09-30'];
 const pick = pattern => week.filter((_, i) => pattern[i] === 'x');
+// weeks start on Sunday (SETTINGS), so this week is Sep 27 to 30
 export const HABITS = rows([
-    { name: 'Exercise', checks: pick('x.xx.xx'), streak: 2 },
+    { name: 'Exercise', checks: pick('x.xx.xx'), per_week: 3, week_count: 3, streak: 5 },
     { name: 'Read 30 minutes', checks: pick('xxxxx.x'), streak: 1 },
     { name: 'Chinese practice', checks: pick('xx.xxxx'), streak: 4 },
-    { name: 'Sleep by midnight', checks: pick('.xx..x.'), streak: 1 },
+    { name: 'Sleep by midnight, even on weekends', checks: pick('.xx..x.'), per_week: 5, week_count: 1, streak: 0 },
     { name: 'No phone in bed', checks: pick('x..xxxx'), streak: 4 },
-].map((h, i) => ({ ...h, position: i, archived_at: null })));
+].map((h, i) => ({ per_week: 7, week_count: h.checks.filter(d => d >= '2026-09-27').length, position: i, archived_at: null, ...h })));
+
+export const SETTINGS = { night_start: '22:00', night_end: '06:30', week_start: 'sunday' };
 
 export const APPLICATIONS = rows([
     { company: 'Google', role: 'Software Engineering Intern, Summer 2027', status: 'interview', updated_at: '2026-09-29T15:00:00.000Z', claude_change },
@@ -90,6 +93,7 @@ const FIXTURES = {
     '/api/countdowns': () => COUNTDOWNS,
     '/api/goals': () => GOALS,
     '/api/habits': () => HABITS,
+    '/api/settings': () => SETTINGS,
     '/api/applications': () => APPLICATIONS,
     '/api/weather': () => WEATHER,
     '/api/session': () => ({ client: 'api' }),

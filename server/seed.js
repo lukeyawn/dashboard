@@ -42,14 +42,16 @@ seed('goals', createGoalStore(db), [
     { name: 'Internship applications', current: 23, target: 40 },
 ]);
 
+// three weeks of checks, oldest first and ending today, so weekly targets
+// (per_week) have a streak to show (docs/BLOCKS.md §2)
 const habits = createHabitStore(db);
 seed('habits', habits, [
-    { name: 'Exercise', position: 0, pattern: 'x.xx.xx' },
-    { name: 'Read 30 minutes', position: 1, pattern: 'xxxxx.x' },
-    { name: 'Chinese practice', position: 2, pattern: 'xx.xxxx' },
-    { name: 'Sleep by midnight', position: 3, pattern: '.xx..x.' },
-].map(({ pattern, ...habit }) => ({ ...habit, pattern })), (habit, { pattern }) => {
-    [...pattern].forEach((mark, i) => mark === 'x' && habits.setCheck(habit.id, day(i - 6), true));
+    { name: 'Gym', position: 0, per_week: 3, pattern: 'x.x.x..' + '.x.x.x.' + 'x..x.x.' },
+    { name: 'Read 30 minutes', position: 1, pattern: 'xxxxxxx' + 'xxxx.xx' + 'xxxxx.x' },
+    { name: 'Chinese practice', position: 2, pattern: 'xxxxxxx' + 'xxxxxxx' + 'xx.xxxx' },
+    { name: 'Sleep by midnight', position: 3, per_week: 5, pattern: 'xx.xx.x' + 'x.xxx.x' + '.xx..x.' },
+], (habit, { pattern }) => {
+    [...pattern].forEach((mark, i) => mark === 'x' && habits.setCheck(habit.id, day(i - (pattern.length - 1)), true));
 });
 
 seed('applications', createApplicationStore(db), [

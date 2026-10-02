@@ -215,3 +215,9 @@ Choices made while building, where [DESIGN.md](DESIGN.md) left room or turned ou
 | Choice | Why |
 |---|---|
 | The dock's seconds and AM/PM share one small column beside the minutes: the seconds on top, level with the tops of the digits, and AM/PM below, on the baseline. Both are 26 px at the reference screen (AM/PM was 24 px). | BLOCKS.md §8 put the seconds raised beside the minutes ("10:42 ³⁷"). Stacked over AM/PM, they add no width to the clock, and the two small labels don't read as one run of text. |
+| Habits: `week_count` and the streak come back on reads (the list, `/today`, a check), not from create or update, which return the stored row as every resource does. | The editor and the tile refetch the list after a change, so nothing shows a stale count. |
+| Habits: the divider is a line in the gap before the week's first day, spanning the day labels and every row. Every item in the habit grid is placed by row and column, so the line can overlap them. | An auto-placed grid would move the cells out of the line's way. |
+| Habits: "2/3 this week" is its own small line, between the name and the streak. | The name column is about 140 px wide at the reference screen, too narrow for the count and the streak on one line. |
+| Habits: the tile's count this week moves at once when a day is tapped, along with the dot; the streak waits for the server. | The count is simple to work out locally, and it's what turns accent when met. |
+| Settings: `per_week` is a 1–7 select in the habit editor; a select whose options are numbers sends a number. `week_start` is a Sunday/Monday select beside the night hours, saved with them ("Save settings"). | Taps rather than typing, on the wall too. |
+| Seed data: three weeks of habit checks instead of one, with Gym at 3 a week and Sleep by midnight at 5. | So a weekly streak has something to show in development. |

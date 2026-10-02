@@ -1,4 +1,5 @@
 import { useState } from 'react';
+import { WEEK_STARTS } from '../../shared/dates';
 import * as schemas from '../../shared/schemas';
 import { useResource } from '../hooks/useResource';
 import { request } from '../lib/api';
@@ -6,7 +7,8 @@ import { formatTime } from '../lib/format';
 import EditorForm from './EditorForm';
 import './editors.css';
 
-// Night hours, and starting or cancelling night mode now (DESIGN §6.4)
+// Night hours and the day weeks start on, and starting or cancelling night
+// mode now (DESIGN §6.4)
 export default function SettingsEditor() {
     const settings = useResource('settings');
     const night = useResource('night');
@@ -31,15 +33,17 @@ export default function SettingsEditor() {
     return (
         <div className="editor">
             <EditorForm
-                key={`${settings.data.night_start}-${settings.data.night_end}`}
+                key={`${settings.data.night_start}-${settings.data.night_end}-${settings.data.week_start}`}
                 fields={[
                     { key: 'night_start', label: 'Night starts', type: 'time' },
                     { key: 'night_end', label: 'Night ends', type: 'time' },
+                    // for habits' weekly targets (docs/BLOCKS.md §2)
+                    { key: 'week_start', label: 'Weeks start on', type: 'select', options: WEEK_STARTS, labels: { sunday: 'Sunday', monday: 'Monday' } },
                 ]}
                 schema={schemas.settingsUpdate}
                 initial={settings.data}
                 onlyChanges
-                submitLabel="Save night hours"
+                submitLabel="Save settings"
                 onSubmit={changes => run('PATCH', '/settings', changes)}
             />
             <div className="editor-row">

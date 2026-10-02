@@ -41,3 +41,12 @@ export function addDays(text, days) {
 export function daysBetween(from, to) {
     return Math.round((parseDate(to) - parseDate(from)) / DAY_MS);
 }
+
+export const WEEK_STARTS = ['sunday', 'monday'];
+
+// the first day of the calendar week holding a date, for weeks that start on
+// weekStart ('sunday' or 'monday', the week_start setting)
+export function startOfWeek(text, weekStart = 'sunday') {
+    const first = weekStart === 'monday' ? 1 : 0;
+    return addDays(text, -((parseDate(text).getDay() - first + 7) % 7));
+}

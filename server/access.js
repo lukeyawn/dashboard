@@ -19,7 +19,8 @@ export const ALLOWED = {
         ['POST', new RegExp(`^/applications/\\d+/advance${end}`)],
         ['POST', new RegExp(`^/night/(start|cancel)${end}`)],
         ['PATCH', new RegExp(`^/(${RESOURCES})/\\d+${end}`)],
-        // only the night hours can be set through it (shared/schemas.js)
+        // only the night hours and week_start can be set through it (shared/schemas.js);
+        // week_start is harmless, since streaks are worked out on every read
         ['PATCH', new RegExp(`^/settings${end}`)],
         ['PUT', new RegExp(`^/habits/\\d+/checks/[0-9-]+${end}`)],
         // unchecking a day: a quick action, not a deletion of anything

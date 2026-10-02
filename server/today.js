@@ -30,7 +30,7 @@ export async function todaySnapshot({ stores, settings, calendar, weatherAt, now
         tasks: openTasks.filter(t => !isDueSoon(t, date)).sort(compareTasks),
         goals: stores.goals.list({ archived: false }),
         habits: stores.habits.list({ days: 7, archived: false }).map(h => ({
-            id: h.id, name: h.name, done_today: h.checks.includes(date), streak: h.streak, checks: h.checks,
+            id: h.id, name: h.name, per_week: h.per_week, done_today: h.checks.includes(date), week_count: h.week_count, streak: h.streak, checks: h.checks,
         })),
         countdowns: stores.countdowns.list()
             .filter(c => c.target_date >= date)

@@ -4,6 +4,7 @@ import Database from 'better-sqlite3';
 import { afterEach, describe, expect, it } from 'vitest';
 import { createChangeLog, withActor } from './changes.js';
 import { loadMigrations, migrate } from './db.js';
+import { createUndo } from './undo.js';
 import { KIOSK_TOKEN, startServer } from './testing.js';
 
 const NOW = new Date(2026, 8, 30, 12, 0).getTime();
@@ -160,6 +161,38 @@ describe('undo', () => {
         const created = (await changes(request, '?limit=200')).find(c => c.action === 'create');
         expect((await undo(request, created.id)).status).toBe(409);
         expect((await undo(request, 9999)).status).toBe(404);
+    });
+});
+
+describe('the migration to weekly habit targets (docs/BLOCKS.md §2)', () => {
+    it('gives every habit 7 a week, and rewrites older changes so they can still be undone', () => {
+        const db = new Database(':memory:');
+        const migrations = loadMigrations();
+        migrate(db, migrations.slice(0, 11));
+        const log = createChangeLog(db);
+        const raw = id => db.prepare('SELECT * FROM habits WHERE id = ?').get(id);
+        // as the habit store recorded changes before the migration: whole rows
+        const { id } = db.prepare("INSERT INTO habits (name) VALUES ('Gym') RETURNING id").get();
+        log.record({ resource: 'habits', itemId: id, action: 'create', after: raw(id) });
+        const before = raw(id);
+        db.prepare("UPDATE habits SET name = 'Gym!', updated_at = '2026-09-30T12:00:00.000Z' WHERE id = ?").run(id);
+        log.record({ resource: 'habits', itemId: id, action: 'update', before, after: raw(id) });
+        const { id: goneId } = db.prepare("INSERT INTO habits (name) VALUES ('Gone') RETURNING id").get();
+        log.record({ resource: 'habits', itemId: goneId, action: 'delete', before: { ...raw(goneId), _checks: ['2026-09-29'] } });
+        db.prepare('DELETE FROM habits WHERE id = ?').run(goneId);
+
+        migrate(db, migrations);
+        expect(raw(id).per_week).toBe(7);
+        const [deleted, updated, created] = log.list();
+        expect(Object.keys(updated.after).at(-1)).toBe('per_week');
+        expect(deleted.before).toMatchObject({ _checks: ['2026-09-29'], per_week: 7 });
+
+        // undo matches the rewritten copies, key order included
+        const undo = createUndo(db, log);
+        expect(undo(updated.id).name).toBe('Gym');
+        expect(undo(created.id)).toBeNull();
+        expect(raw(id)).toBeUndefined();
+        expect(undo(deleted.id)).toMatchObject({ name: 'Gone', per_week: 7 });
     });
 });
 

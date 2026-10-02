@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { addDays, daysBetween, formatDate, isDateString, parseDate, today } from './dates.js';
+import { addDays, daysBetween, formatDate, isDateString, parseDate, startOfWeek, today } from './dates.js';
 
 // tests run with TZ=America/Chicago (see package.json), where clocks change on
 // 2026-03-08 and 2026-11-01
@@ -67,5 +67,28 @@ describe('daysBetween', () => {
         expect(daysBetween('2026-03-07', '2026-03-09')).toBe(2);
         expect(daysBetween('2026-10-31', '2026-11-02')).toBe(2);
         expect(daysBetween('2026-01-01', '2027-01-01')).toBe(365);
+    });
+});
+
+describe('startOfWeek', () => {
+    it('finds the Sunday or Monday that starts the week', () => {
+        // Wednesday Sep 30, 2026
+        expect(startOfWeek('2026-09-30', 'sunday')).toBe('2026-09-27');
+        expect(startOfWeek('2026-09-30', 'monday')).toBe('2026-09-28');
+        expect(startOfWeek('2026-09-30')).toBe('2026-09-27');
+    });
+
+    it('puts Sunday first or last, as the setting says', () => {
+        expect(startOfWeek('2026-09-27', 'sunday')).toBe('2026-09-27');
+        expect(startOfWeek('2026-09-27', 'monday')).toBe('2026-09-21');
+        expect(startOfWeek('2026-09-28', 'monday')).toBe('2026-09-28');
+        expect(startOfWeek('2026-09-26', 'sunday')).toBe('2026-09-20');
+    });
+
+    it('crosses month and year ends and the clock change', () => {
+        expect(startOfWeek('2026-10-01', 'sunday')).toBe('2026-09-27');
+        expect(startOfWeek('2027-01-01', 'monday')).toBe('2026-12-28');
+        expect(startOfWeek('2026-11-03', 'sunday')).toBe('2026-11-01');
+        expect(startOfWeek('2026-11-01', 'monday')).toBe('2026-10-26');
     });
 });

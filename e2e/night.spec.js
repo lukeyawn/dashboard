@@ -55,7 +55,7 @@ test('/manage changes night hours and starts night mode early, on a phone', asyn
     // the same start and end means no night hours, so this works at any time of day
     await settings.getByLabel('Night starts').fill('04:00');
     await settings.getByLabel('Night ends').fill('04:00');
-    await settings.getByRole('button', { name: 'Save night hours' }).click();
+    await settings.getByRole('button', { name: 'Save settings' }).click();
     await expect.poll(async () => (await (await page.request.get('/api/settings')).json()).night_start).toBe('04:00');
     await expect(settings.getByText('Night mode is off')).toBeVisible();
 

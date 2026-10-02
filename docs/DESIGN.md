@@ -193,11 +193,11 @@ Everything lives on the VM, except events, which are Google's.
 | `tasks` | `name`, `done_at`, `due?`, `priority`, `effort?`, `area?`, `notes?`, `link?`, `source?` | One list for to-dos and deadlines: a task with a `due` date is a deadline, and overdue ones stay until done. `priority` is `high`, `normal` (the default) or `low`; `effort` is `quick` (under 15 min), `medium` or `big` (over an hour); `area` is free text such as a course or "job search". Everything but the name is optional, and Claude fills it in (§5.5). |
 | `countdowns` | `label`, `target_date`, `pinned`, `source?` | One-off dates such as finals or a break. Birthdays come from Google Calendar (§4). |
 | `goals` | `name`, `current`, `target`, `unit?`, `archived_at` | No time frames in v1. |
-| `habits` | `name`, `position`, `archived_at` | Daily only in v1. |
+| `habits` | `name`, `position`, `per_week`, `archived_at` | `per_week` is the weekly target, 1 to 7, defaulting to 7 (daily) ([BLOCKS.md §2](BLOCKS.md#2-habits-a-weekly-target)). |
 | `habit_checks` | `habit_id`, `date` | Primary key is `(habit_id, date)`. A row exists means the habit was done that day. Deleting a habit deletes its checks. |
 | `applications` | `company`, `role`, `status`, `applied_on`, `url?`, `notes?`, `source?` | `status` is one of `applied`, `interview`, `offer`, `rejected`. |
 | `changes` | `at`, `actor`, `resource`, `item_id`, `action`, `before?`, `after?` | Every write, from anyone, in the same transaction as the write itself (§5.5). `action` is `create`, `update` or `delete`; `before` and `after` are the whole row as JSON. Kept for good, for a year in review ([BLOCKS.md §7](BLOCKS.md#7-the-change-record-kept-for-good)). |
-| `settings` | `key`, `value` (JSON) | v1 keys you can change: `night_start` (default `"22:00"`), `night_end` (default `"06:30"`). Keys the system sets: `night_early_until` (§6.4) and `kiosk_location`, `{ lat, lon, name, reported_at }` (§10, Dock). |
+| `settings` | `key`, `value` (JSON) | Keys you can change: `night_start` (default `"22:00"`), `night_end` (default `"06:30"`), and `week_start` (`"sunday"`, the default, or `"monday"`), the day weeks start on for habits. Keys the system sets: `night_early_until` (§6.4) and `kiosk_location`, `{ lat, lon, name, reported_at }` (§10, Dock). |
 
 **Not in the database:**
 - **Events and birthdays** come from Google Calendar (§4). There's no events table.
@@ -231,7 +231,7 @@ The resources are `tasks`, `countdowns`, `goals`, `habits` and `applications`.
 | `GET /api/changes?limit&actor&resource` | The change record, newest first (§5.5). |
 | `POST /api/changes/:id/undo` | Puts the item back as it was before that change. The undo is itself recorded. |
 | `GET /api/status` | The health of the parts that run on their own: the last nightly backup and the calendar feed (§5.5), and later the agent's runs. |
-| `GET /api/habits?days=7` | Each habit includes its checked dates in that window, plus its streak. The server computes the streak, so the widget and the agent agree. |
+| `GET /api/habits?days=7` | Each habit includes its checked dates in that window, `week_count` (days done this calendar week, from `week_start`) and its streak. The server computes these on every read, so the widget and the agent agree. |
 | `PUT` / `DELETE /api/habits/:id/checks/:date` | Mark a day done or not done. Both are idempotent. |
 | `POST /api/goals/:id/increment` `{by = 1}` | Add progress to a goal. `by` may be negative, to undo a mistaken tap. |
 | `POST /api/applications/:id/advance` | Move an application forward: applied → interview → offer. |
@@ -242,7 +242,7 @@ The resources are `tasks`, `countdowns`, `goals`, `habits` and `applications`.
 | `POST /api/night/start` / `POST /api/night/cancel` | Start night mode early, or cancel an early start (§6.4). |
 | `GET /api/weather?lat&lon` | Current weather and today's high and low: `{ location: { lat, lon, name, source }, temperature, condition, high, low }`. `source` is `device`, `kiosk` or `default` (§10, Dock). |
 | `PUT /api/location/kiosk` | The kiosk reports its location. Accepted only with the kiosk token. |
-| `GET /api/today` | A snapshot of today: today's events, open tasks (with those due within 14 days, or overdue, listed separately), goals, today's habit status, the nearest countdowns, application counts, and the weather at the kiosk. This is mainly for the agent. |
+| `GET /api/today` | A snapshot of today: today's events, open tasks (with those due within 14 days, or overdue, listed separately), goals, each habit's status today and count this week, the nearest countdowns, application counts, and the weather at the kiosk. This is mainly for the agent. |
 | `GET /api/export` | A full JSON dump of every table. |
 | `POST /api/login` `{ token }` | Checks a token and sets the login cookie (see Access). |
 | `GET /api/health` | `200` with no body. Needs no token and reveals nothing; the kiosk uses it to check the server is reachable before loading or reloading. |
@@ -483,7 +483,7 @@ Instant actions are **optimistic**: the UI updates immediately, and if the reque
 
 **Night mode:**
 
-- **Hours:** `night_start` and `night_end` in the `settings` table. The default is **22:00–06:30**. They can be changed on `/manage` or by Claude. A start later than the end means the period wraps past midnight.
+- **Hours:** `night_start` and `night_end` in the `settings` table. The default is **22:00–06:30**. They can be changed on `/manage` (Settings, beside `week_start`) or by Claude. A start later than the end means the period wraps past midnight.
 - **During night hours:**
   1. After 5 minutes with no touch, the page puts up a full-screen black overlay.
   2. About a minute later, the system (`swayidle`) turns the display off.
@@ -723,11 +723,15 @@ v1 has the nine widgets already in the grid plus the dock.
 - **Finished goals:** the bar is full and a ✓ appears. The goal stays until it's archived in the editor.
 
 ### Habits (3×3)
-> **Redesign planned:** a target number of days per week, and a `week_start` setting ([BLOCKS.md §2](BLOCKS.md#2-habits-a-weekly-target)).
-
 - **Shows:** one row per habit, with dots for the last 7 days (today on the right, its weekday label in accent) and the current streak.
+- **Weekly targets** ([BLOCKS.md §2](BLOCKS.md#2-habits-a-weekly-target)): a habit is meant for `per_week` days a week, 7 (daily) by default. Weeks are calendar weeks starting on the `week_start` setting.
+  - A thin line between two day columns marks where the week starts. There's none when the week starts on the leftmost day.
+  - A habit under 7 a week also shows "2/3 this week" under its name, in accent once met.
 - **Quick action:** tap any of the 7 day cells to toggle that day, so a forgotten day can be filled in. Each cell is a full-height tap target (§6.1).
-- **Streak:** consecutive done days ending today, or ending yesterday if today isn't done yet. That way the streak doesn't read 0 every morning. Computed by the server (§4).
+- **Streak:** computed by the server (§4) from the stored check dates on every read, so changing `week_start` or `per_week` loses nothing.
+  - At 7 a week: consecutive done days ending today, or ending yesterday if today isn't done yet. That way the streak doesn't read 0 every morning. Shown as "4-day streak".
+  - Below 7: calendar weeks in a row that met the target, ending with this week if it's already met and with last week otherwise, so it doesn't drop to 0 at the start of every week. Shown as "3-week streak".
+- **Logging stays manual:** a tap on the kiosk, `/manage`, or telling Claude (`check_habit`).
 
 ### Timeline (2×3) — titled "Today"
 - **Source:** Google Calendar (§4), read-only. No ✎ button.
