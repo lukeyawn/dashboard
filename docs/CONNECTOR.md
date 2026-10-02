@@ -4,11 +4,13 @@ Oct 1, 2026 · Luke (owner, design and review) · Claude (implementation)
 
 This is the detailed design for phase 8, the door through which claude.ai reaches the dashboard. It's what claude.ai chats and the scheduled agent (phase 9) connect to. [DESIGN §5](DESIGN.md#5-claude-agent-access) has the reasoning (the threat, the rule, the credentials). This doc covers how it works. Where the two differ, this doc is newer, and DESIGN.md is updated to match in the same PR.
 
-The chat connector (§14's PRs 1 and 2) is built; the *As built* notes say where it differs. Suggestions and the agent's connector aren't built yet.
+The chat connector (§14's PRs 1 and 2) is built; the *As built* notes say where it differs. The agent's connector isn't built yet, and is redesigned in [AGENT.md](AGENT.md) (Oct 2): **it adds and changes directly instead of suggesting.** Where the two differ, AGENT.md is newer.
 
 ---
 
 ## 1. What you'll do with it
+
+> **Updated ([AGENT.md](AGENT.md)):** the second connector is "Dashboard (agent)". The agent adds and changes things directly, and a dock chip lists what it did, with Undo.
 
 Once phase 8 is deployed, connecting is a one-time setup (§10 has the exact steps):
 
@@ -28,6 +30,8 @@ From then on:
 ---
 
 ## 2. Two connectors, and what the second one doesn't guarantee
+
+> **Updated ([AGENT.md §1](AGENT.md#1-why)):** the agent's connector now writes too (no deletes, 30 a day). The account-wide reach described here is part of why suggest-only was dropped.
 
 There are two connectors, as DESIGN §5.3 planned:
 - **`/mcp`**, for chats: everything except deleting.
@@ -177,6 +181,8 @@ Connector tokens get **allow-lists**, not block-lists. A new route added later i
 | `GET` | `/api/today`, `/api/tasks`, `/api/countdowns`, `/api/goals`, `/api/habits`, `/api/applications`, `/api/events`, `/api/birthdays`, `/api/suggestions` |
 | `POST` | `/api/suggestions` |
 
+> **Replaced by [AGENT.md §2](AGENT.md#2-what-the-agents-connector-can-do):** the agent's connector can create and change, like the chat connector, but not settings or night mode, and at most 30 times a day.
+
 Everything else returns 403. A test checks every route with each kind of token.
 
 **Two details:**
@@ -215,6 +221,8 @@ The changes table gains one nullable column, `connection_id`. It's empty for the
 ---
 
 ## 7. Suggestions (the agent's connector)
+
+> **Replaced by [AGENT.md](AGENT.md):** suggestions won't be built. The text and link rules under *Limits the server enforces* still apply to both connectors; the suggestion counts don't.
 
 ### Kinds
 
@@ -295,6 +303,8 @@ suggestions(id, created_at, kind, target_id?, payload JSON, before JSON?,
 
 ## 8. Reviewing suggestions on the dashboard
 
+> **Replaced by [AGENT.md §3](AGENT.md#3-the-review-a-glance-not-a-gate):** a dock chip lists the agent's new changes, with Undo.
+
 - **Dock:** a ✦ *n* chip beside the status chip, shown only when suggestions are pending. Tapping it opens the review modal, the same modal the editors use.
 - **A card per suggestion, oldest first:**
   - What it does, in words: *Add task*, *Change due date*, *Mark done*, *Move to interview*.
@@ -310,6 +320,8 @@ suggestions(id, created_at, kind, target_id?, payload JSON, before JSON?,
 ---
 
 ## 9. The "Claude" section on `/manage`, and the kill switches
+
+> **Updated ([AGENT.md](AGENT.md)):** today's counts become chat writes and agent writes (30 a day); there are no suggestions to list.
 
 The section holds:
 - **Claude's changes** (§6);
@@ -354,6 +366,8 @@ These go into `vm/CONNECTOR.md` with the go-live PR.
 ---
 
 ## 11. Tools
+
+> **Updated ([AGENT.md §5](AGENT.md#5-what-phase-9-keeps)):** the agent gets the shared read and write tools, minus settings and night mode. There are no suggest tools, and no `list_suggestions`.
 
 **`/mcp` (chats):** the same tools as the stdio server (DESIGN §5), minus `delete_item`, plus `list_suggestions`. They're shared with `mcp/tools.js`, one definition each.
 - `add_task` keeps its instruction to fill in due, priority, effort and area from context.
@@ -424,7 +438,7 @@ Each PR is cut from `main` once the previous one has merged (no stacking). The o
    - The "Claude" section with connections and the chat switch.
    - Funnel stays off, so it's still unreachable from the internet.
 2. **Go-live for chats.** The client-secret script, `vm/CONNECTOR.md`, and the deploy. Then your setup (§10, the chat connector only) and the manual check. From here, claude.ai chats on the laptop and phone can add to the dashboard.
-3. **Suggestions and the agent connector.** The `suggestions` table and API, `/mcp/agent`, the review chip and modal, the agent switch, and the setup steps for the second connector.
+3. ~~**Suggestions and the agent connector.**~~ Rescoped as **the agent's connector**, in [AGENT.md §6](AGENT.md#6-phase-8s-last-pr-rescoped).
 
 **Until then:** you can build the agent's email and calendar reading in claude.ai now, with Gmail and Calendar only (send, draft and delete blocked), and have it write what it would suggest into the chat. That's how to judge its judgment before it touches anything. When the agent connector is ready, add it and change "write it in the chat" to "suggest it on the dashboard".
 
@@ -508,6 +522,8 @@ These are exactly the files each PR adds or changes, based on `main` once #18 is
 | `docs/DECISIONS.md` | What the first real connection taught, including whether Funnel passes `X-Forwarded-For` |
 
 ### PR 3: suggestions and the agent connector
+
+> **Replaced by [AGENT.md §6](AGENT.md#6-phase-8s-last-pr-rescoped).** The lists below are kept for the record.
 
 **New:**
 
