@@ -190,7 +190,8 @@ Everything lives on the VM, except events, which are Google's.
 
 | Table | Columns | Notes |
 |---|---|---|
-| `tasks` | `name`, `done_at`, `due?`, `priority`, `effort?`, `area?`, `notes?`, `link?`, `source?` | One list for to-dos and deadlines: a task with a `due` date is a deadline, and overdue ones stay until done. `priority` is `high`, `normal` (the default) or `low`; `effort` is `quick` (under 15 min), `medium` or `big` (over an hour); `area` is free text such as a course or "job search". Everything but the name is optional, and Claude fills it in (§5.5). |
+| `tasks` | `name`, `done_at`, `due?`, `priority`, `notes?`, `link?`, `source?`, `area_id?`, `minutes?`, `repeat?`, `last_done_at?` | One list for to-dos and deadlines: a task with a `due` date is a deadline, and overdue ones stay until done. `priority` is when you mean to do it: `now`, `soon` (the default) or `someday`. `area_id` is one of the `areas`; the API adds its name as `area`. `minutes` is an estimate. `repeat` is a recurrence rule, `{ every, unit: day \| week \| month \| year, weekdays?, day_of_month? }` as JSON, and needs a `due` date: completing the task moves `due` to the next occurrence after today (and after the current due date) and sets `last_done_at`, instead of setting `done_at`. Everything but the name is optional, and Claude fills it in (§5.5, [BLOCKS.md §3](BLOCKS.md#3-tasks-and-assignments)). |
+| `areas` | `name`, `position` | The task areas, a list the owner edits on `/manage`; Claude only chooses from it. Names are unique ignoring case. Seeded with School, Work, Job search, Home, Health, Personal and Errands. Deleting one clears it from its tasks; the change record keeps their ids, so Undo puts it back on them. |
 | `countdowns` | `label`, `target_date`, `target_time?`, `detail`, `pinned`, `source?` | One-off dates such as finals or a break. Birthdays come from Google Calendar (§4). `target_time` is a local HH:MM; without one, a countdown counts to the start of its day. `detail` is `days` (the default), `hours` or `live`; the last two need a time. A countdown is past from the day after its `target_date`, worked out on every read ([BLOCKS.md §4](BLOCKS.md#4-countdown)). |
 | `goals` | `name`, `current`, `target`, `unit?`, `archived_at` | No time frames in v1. |
 | `habits` | `name`, `position`, `per_week`, `archived_at` | `per_week` is the weekly target, 1 to 7, defaulting to 7 (daily) ([BLOCKS.md §2](BLOCKS.md#2-habits-a-weekly-target)). |
@@ -226,7 +227,8 @@ The resources are `tasks`, `countdowns`, `goals`, `habits` and `applications`.
 
 | Route | Purpose |
 |---|---|
-| `GET /api/tasks?done=false` | Hide completed tasks. |
+| `GET /api/tasks?done=false` | Hide completed tasks. Each task carries its area's name as `area`. An unknown `area_id` is refused with the list of areas. |
+| `GET` / `POST /api/areas`, `PATCH` / `DELETE /api/areas/:id` | The task areas, in order. Adding a name that exists, ignoring case, returns that area. `PATCH` with `position` moves an area to that place and renumbers the rest. Read-only for claude.ai chats. |
 | `POST /api/<resource>` with a `source` that already exists | Returns the existing item with `200` instead of creating a duplicate (§5.5). |
 | `GET /api/changes?limit&actor&resource` | The change record, newest first (§5.5). |
 | `POST /api/changes/:id/undo` | Puts the item back as it was before that change. The undo is itself recorded. |
@@ -311,8 +313,8 @@ A Claude agent (in Claude Desktop or Claude Code) reads and writes dashboard dat
 
 | Kind | Tools |
 |---|---|
-| Read | `get_today` (includes the weather), `list_tasks`, `list_events` (from/to, read-only), `list_birthdays` (read-only), `list_countdowns`, `list_goals`, `list_habits`, `list_applications`, `get_settings` |
-| Create / edit | `add_*` and `update_*` for tasks, countdowns, goals, habits and applications; `update_settings`. `add_task` asks Claude to fill in due date, priority, effort and area when it can tell them. |
+| Read | `get_today` (includes the weather), `list_tasks`, `list_areas`, `list_events` (from/to, read-only), `list_birthdays` (read-only), `list_countdowns`, `list_goals`, `list_habits`, `list_applications`, `get_settings` |
+| Create / edit | `add_*` and `update_*` for tasks, countdowns, goals, habits and applications; `update_settings`. `add_task` asks Claude to fill in due date, priority, area and minutes when it can tell them. Claude names an area, and an unknown one is refused with the list: only the owner adds areas. Planning goes in Google Calendar as time blocks, not as dates on tasks. |
 | Quick actions | `complete_task`, `check_habit` (habit, date, done), `increment_goal`, `set_application_status`, `start_night` / `cancel_night` |
 | Delete | `delete_item` (resource, id). Its description tells the agent to confirm with the user before deleting. |
 
@@ -750,9 +752,9 @@ v1 has the nine widgets already in the grid plus the dock.
 - It replaced the Deadlines tile when deadlines became tasks with a due date (§17).
 
 ### Tasks (4×3)
-> **Redesign planned:** editable areas, now/soon/someday, time estimates, recurrence, and sort and filter on the tile ([BLOCKS.md §3](BLOCKS.md#3-tasks-and-assignments)).
+> **Redesign planned:** the new row, sort and filter on the tile, and Assignments replacing Due soon ([BLOCKS.md §3](BLOCKS.md#3-tasks-and-assignments)). The data is built: areas, now/soon/someday, time estimates and recurrence.
 
-- **Shows:** open tasks that aren't in Due soon, sorted by priority, then due date, then effort, then age, each with a round checkbox. A small marker shows high priority, and another shows quick ones. Each task appears in exactly one of the two tiles. It's a `<ul>`, not a table: a table is for data where every column means the same thing in every row.
+- **Shows:** open tasks that aren't in Due soon, sorted now → soon → someday, then due date, then shortest first, then age, each with a round checkbox. A "!" marks `now` tasks, someday ones are muted, and a chip shows the time estimate ("15m", "1h", "1h+"). Each task appears in exactly one of the two tiles. It's a `<ul>`, not a table: a table is for data where every column means the same thing in every row.
 - **Quick action:** tapping a row clears the task, through the 5-second pending action (§6.2). Cleared tasks are still in the database and can be restored in the editor.
 - **Adding:** an inline "+ Add task" row at the bottom (§6.3).
 - **Markup:** a controlled checkbox (`checked` plus `onChange`) paired with a `<label htmlFor>` that fills the row, so tapping anywhere on the row toggles it.

@@ -1,15 +1,23 @@
 import { describe, expect, it } from 'vitest';
 import { describeChange, whoMade } from './describeChange';
 
-const task = fields => ({ id: 1, name: 'Pset 4', done_at: null, priority: 'normal', due: null, updated_at: 'a', ...fields });
+const task = fields => ({ id: 1, name: 'Pset 4', done_at: null, priority: 'soon', due: null, repeat: null, last_done_at: null, updated_at: 'a', ...fields });
 const change = (resource, action, before, after, item_id = '1') => ({ resource, action, before, after, item_id });
 
 describe('describeChange', () => {
     it('reads adds, deletes and plain edits', () => {
         expect(describeChange(change('tasks', 'create', null, task()))).toBe('Added task "Pset 4"');
         expect(describeChange(change('tasks', 'delete', task(), null))).toBe('Deleted task "Pset 4"');
-        expect(describeChange(change('tasks', 'update', task(), task({ priority: 'high', due: '2026-10-01', updated_at: 'b' }))))
-            .toBe('Changed task "Pset 4": priority normal → high, due nothing → 2026-10-01');
+        expect(describeChange(change('tasks', 'update', task(), task({ priority: 'now', due: '2026-10-01', updated_at: 'b' }))))
+            .toBe('Changed task "Pset 4": priority soon → now, due nothing → 2026-10-01');
+    });
+
+    it('reads a recurring task rolled forward, and its rule in words (docs/BLOCKS.md §3)', () => {
+        const laundry = fields => task({ name: 'Laundry', due: '2026-09-27', repeat: '{"every":1,"unit":"week"}', ...fields });
+        expect(describeChange(change('tasks', 'update', laundry(), laundry({ due: '2026-10-04', last_done_at: 'x' })))).toBe('Completed task "Laundry", next Sun, Oct 4');
+        expect(describeChange(change('tasks', 'update', laundry({ repeat: null }), laundry())))
+            .toBe('Changed task "Laundry": repeat nothing → every week');
+        expect(describeChange(change('areas', 'create', null, { id: 8, name: 'Music' }))).toBe('Added area "Music"');
     });
 
     it('names the common actions in plain words', () => {

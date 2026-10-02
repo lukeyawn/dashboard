@@ -23,18 +23,21 @@ export const TASKS = rows([
     'Back up laptop',
     'Return Amazon package',
 ].map((name, i) => ({
-    name, done_at: null, due: null, effort: null, area: null, notes: null, link: null, source: null,
-    priority: i === 1 ? 'high' : i === 9 ? 'low' : 'normal',
-    ...(i === 3 && { effort: 'quick' }),
+    name, done_at: null, due: null, area_id: null, area: null, minutes: null, repeat: null, last_done_at: null, notes: null, link: null, source: null,
+    priority: i === 1 ? 'now' : i === 9 ? 'someday' : 'soon',
+    ...(i === 3 && { minutes: 15 }),
+    ...(i === 0 && { minutes: 120 }),
     ...(i === 2 && { claude_change }),
 })).concat([
     // the Due soon tile's tasks: overdue, or due within 14 days of the fixed date
-    { name: 'Reading response 3', due: '2026-09-28', area: 'RHE 306' },
-    { name: 'Linear Algebra problem set 4: eigenvalues and diagonalization', due: '2026-10-01', area: 'M 340L', priority: 'high', effort: 'big', claude_change },
-    { name: 'OS Shell project', due: '2026-10-02', area: 'CS 439' },
-    { name: 'Stripe online assessment', due: '2026-10-09', area: 'job search' },
-    { name: 'Algorithms midterm', due: '2026-10-14', area: 'CS 331' },
-].map(t => ({ done_at: null, priority: 'normal', effort: null, notes: null, link: null, source: null, ...t }))));
+    { name: 'Reading response 3', due: '2026-09-28', area_id: 1, area: 'School' },
+    { name: 'Linear Algebra problem set 4: eigenvalues and diagonalization', due: '2026-10-01', area_id: 1, area: 'School', priority: 'now', minutes: 120, claude_change },
+    { name: 'OS Shell project', due: '2026-10-02', area_id: 1, area: 'School' },
+    { name: 'Stripe online assessment', due: '2026-10-09', area_id: 3, area: 'Job search' },
+    { name: 'Algorithms midterm', due: '2026-10-14', area_id: 1, area: 'School' },
+].map(t => ({ done_at: null, priority: 'soon', minutes: null, repeat: null, last_done_at: null, notes: null, link: null, source: null, ...t }))));
+
+export const AREAS = rows(['School', 'Work', 'Job search', 'Home', 'Health', 'Personal', 'Errands'].map((name, position) => ({ name, position })));
 
 export const COUNTDOWNS = rows([
     { label: 'Thanksgiving break', target_date: '2026-11-25', pinned: true },
@@ -91,6 +94,7 @@ export const WEATHER = {
 const FIXTURES = {
     '/api/tasks': () => TASKS,
     '/api/countdowns': () => COUNTDOWNS,
+    '/api/areas': () => AREAS,
     '/api/goals': () => GOALS,
     '/api/habits': () => HABITS,
     '/api/settings': () => SETTINGS,

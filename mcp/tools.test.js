@@ -43,7 +43,7 @@ describe('the tool list', () => {
         await connect();
         const { tools } = await client.listTools();
         const names = tools.map(t => t.name);
-        for (const name of ['get_today', 'list_tasks', 'add_task', 'update_task', 'complete_task', 'list_events', 'list_birthdays',
+        for (const name of ['get_today', 'list_tasks', 'add_task', 'update_task', 'complete_task', 'list_areas', 'list_events', 'list_birthdays',
             'check_habit', 'increment_goal', 'set_application_status', 'update_settings', 'delete_item']) {
             expect(names).toContain(name);
         }
@@ -107,11 +107,21 @@ describe('the tools', () => {
 
     it('add a task with details, and record it as Claude', async () => {
         await connect();
-        const task = (await use('add_task', { name: 'Pset 4', due: '2026-10-01', priority: 'high', effort: 'big', area: 'M 340L', source: 'gmail:1' })).value;
-        expect(task).toMatchObject({ due: '2026-10-01', priority: 'high', effort: 'big', area: 'M 340L' });
+        const task = (await use('add_task', { name: 'Pset 4', due: '2026-10-01', priority: 'now', minutes: 120, area: 'School', source: 'gmail:1' })).value;
+        expect(task).toMatchObject({ due: '2026-10-01', priority: 'now', minutes: 120, area: 'School' });
         expect((await use('add_task', { name: 'Pset 4 again', source: 'gmail:1' })).value.id).toBe(task.id);
         const [change] = (await server.request('/api/changes')).body;
         expect(change).toMatchObject({ actor: 'claude', action: 'create' });
+
+        // an area is chosen by name, ignoring case; an unknown one is refused with the list (docs/BLOCKS.md §3)
+        expect((await use('update_task', { id: task.id, area: 'home' })).value.area).toBe('Home');
+        expect((await use('update_task', { id: task.id, area: null })).value.area).toBeNull();
+        const refused = await use('add_task', { name: 'Practice', area: 'Music' });
+        expect(refused.text).toBe('There\'s no area called "Music". The areas are: School, Work, Job search, Home, Health, Personal, Errands. Ask the owner if none fits; only they can add one.');
+        expect((await use('list_areas')).value.map(a => a.name)).toContain('Errands');
+        // a recurring chore rolls forward
+        const rent = (await use('add_task', { name: 'Rent', due: '2026-10-01', repeat: { every: 1, unit: 'month', day_of_month: 1 } })).value;
+        expect((await use('complete_task', { id: rent.id })).value).toMatchObject({ due: '2026-11-01', done_at: null });
     });
 
     it('delete an item', async () => {

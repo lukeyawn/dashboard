@@ -15,12 +15,13 @@ import { createOAuth } from './oauth.js';
 import { createPublicApp } from './public.js';
 import { changesRouter } from './routes/changes.js';
 import { connectionsRouter, switchKey } from './routes/connections.js';
-import { applicationsRouter, countdownsRouter, goalsRouter, habitsRouter, tasksRouter } from './routes/resources.js';
+import { applicationsRouter, areasRouter, countdownsRouter, goalsRouter, habitsRouter, tasksRouter } from './routes/resources.js';
 import { calendarRouters, locationRouter, nightRouter, settingsRouter, weatherRouter } from './routes/system.js';
 import { createApplicationStore } from './stores/applications.js';
 import { createConnectionStore } from './stores/connections.js';
 import { createCountdownStore } from './stores/countdowns.js';
 import { createGoalStore } from './stores/goals.js';
+import { createAreaStore } from './stores/areas.js';
 import { createHabitStore } from './stores/habits.js';
 import { createSettingsStore } from './stores/settings.js';
 import { createTaskStore } from './stores/tasks.js';
@@ -98,7 +99,8 @@ export function createApp({ db, apiToken, kioskToken, build = 'dev', distDir = n
         now,
     });
     const stores = {
-        tasks: createTaskStore(db, { log }),
+        tasks: createTaskStore(db, { log, now: () => new Date(now()) }),
+        areas: createAreaStore(db, { log }),
         countdowns: createCountdownStore(db, { log, now: () => new Date(now()) }),
         goals: createGoalStore(db, { log }),
         habits: createHabitStore(db, { now: () => new Date(now()), log, weekStart: () => settings.get('week_start') }),
@@ -106,6 +108,7 @@ export function createApp({ db, apiToken, kioskToken, build = 'dev', distDir = n
     };
     const { events, birthdays } = calendarRouters(calendar);
     app.use('/api/tasks', tasksRouter(stores.tasks));
+    app.use('/api/areas', areasRouter(stores.areas));
     app.use('/api/countdowns', countdownsRouter(stores.countdowns));
     app.use('/api/goals', goalsRouter(stores.goals));
     app.use('/api/habits', habitsRouter(stores.habits));

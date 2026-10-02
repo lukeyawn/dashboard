@@ -126,6 +126,22 @@
     font-weight: 600;
 }
 
+/* controls side by side within one field, such as "every 2 weeks" */
+.editor-inline {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    gap: calc(var(--e-gap) * 0.5);
+}
+
+.editor-field .editor-inline input, .editor-field .editor-inline select {
+    min-width: 0;
+}
+
+.editor-field input.editor-short {
+    width: 4em;
+}
+
 .editor-error {
     margin: 0;
     color: var(--urgent);

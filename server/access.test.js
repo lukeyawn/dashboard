@@ -54,8 +54,11 @@ describe('a chat connector token on the API', () => {
         const asClaude = await start();
         expect((await asClaude('/api/today')).status).toBe(200);
         const task = (await asClaude('/api/tasks', { method: 'POST', body: { name: 'From a chat' } })).body;
-        expect((await asClaude(`/api/tasks/${task.id}`, { method: 'PATCH', body: { priority: 'high' } })).status).toBe(200);
+        expect((await asClaude(`/api/tasks/${task.id}`, { method: 'PATCH', body: { priority: 'now' } })).status).toBe(200);
+        // areas are read-only: Claude chooses from them (docs/BLOCKS.md §3)
+        expect((await asClaude('/api/areas')).status).toBe(200);
         const refused = [
+            ['POST', '/api/areas'], ['PATCH', '/api/areas/1'], ['DELETE', '/api/areas/1'],
             ['DELETE', `/api/tasks/${task.id}`], ['GET', '/api/export'], ['GET', '/api/changes'], ['POST', '/api/changes/1/undo'],
             ['POST', '/api/changes/undo-since'], ['GET', '/api/connections'], ['PUT', '/api/connectors/chat'], ['GET', '/api/status'],
             ['GET', '/api/session'], ['PUT', '/api/location/kiosk'],

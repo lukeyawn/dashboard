@@ -29,7 +29,7 @@ describe('the migration to richer tasks', () => {
         migrate(db, migrations.slice(0, 7));
         db.prepare("INSERT INTO deadlines (name, due, course, done_at) VALUES ('Pset 4', '2026-10-01', 'M 340L', NULL), ('Old essay', '2026-09-01', NULL, '2026-09-01T12:00:00.000Z')").run();
         db.prepare("INSERT INTO tasks (name) VALUES ('Do laundry')").run();
-        migrate(db, migrations);
+        migrate(db, migrations.slice(0, 8));
         expect(db.prepare('SELECT name, due, area, done_at, priority FROM tasks ORDER BY id').all()).toEqual([
             { name: 'Do laundry', due: null, area: null, done_at: null, priority: 'normal' },
             { name: 'Pset 4', due: '2026-10-01', area: 'M 340L', done_at: null, priority: 'normal' },
@@ -43,14 +43,14 @@ describe('the change record', () => {
     it('records every write with who made it and the row before and after', async () => {
         const request = await start();
         const task = (await request('/api/tasks', { method: 'POST', body: { name: 'Buy milk' } })).body;
-        await request(`/api/tasks/${task.id}`, { method: 'PATCH', body: { priority: 'high' }, token: KIOSK_TOKEN });
+        await request(`/api/tasks/${task.id}`, { method: 'PATCH', body: { priority: 'now' }, token: KIOSK_TOKEN });
         await request(`/api/tasks/${task.id}`, { method: 'DELETE', headers: { 'x-dashboard-client': 'claude' } });
 
         const [deleted, updated, created] = await changes(request);
         expect(created).toMatchObject({ actor: 'owner', resource: 'tasks', item_id: String(task.id), action: 'create', before: null });
-        expect(created.after).toMatchObject({ name: 'Buy milk', priority: 'normal' });
+        expect(created.after).toMatchObject({ name: 'Buy milk', priority: 'soon' });
         expect(updated).toMatchObject({ actor: 'kiosk', action: 'update' });
-        expect([updated.before.priority, updated.after.priority]).toEqual(['normal', 'high']);
+        expect([updated.before.priority, updated.after.priority]).toEqual(['soon', 'now']);
         expect(deleted).toMatchObject({ actor: 'claude', action: 'delete', after: null });
         expect(created.at).toBe(new Date(NOW).toISOString());
     });
@@ -100,11 +100,11 @@ describe('undo', () => {
     it('puts an edited item back as it was, and records the undo', async () => {
         const request = await start();
         const task = (await request('/api/tasks', { method: 'POST', body: { name: 'Buy milk' } })).body;
-        await request(`/api/tasks/${task.id}`, { method: 'PATCH', body: { name: 'Buy oat milk', priority: 'low' } });
+        await request(`/api/tasks/${task.id}`, { method: 'PATCH', body: { name: 'Buy oat milk', priority: 'someday' } });
         const [edit] = await changes(request);
         const res = await undo(request, edit.id);
         expect(res.status).toBe(200);
-        expect((await request('/api/tasks')).body[0]).toMatchObject({ name: 'Buy milk', priority: 'normal' });
+        expect((await request('/api/tasks')).body[0]).toMatchObject({ name: 'Buy milk', priority: 'soon' });
         const [undone] = await changes(request);
         expect(undone).toMatchObject({ action: 'update', actor: 'owner' });
 
@@ -115,7 +115,7 @@ describe('undo', () => {
 
     it('removes a created item, and restores a deleted one under its old id', async () => {
         const request = await start();
-        const keep = (await request('/api/tasks', { method: 'POST', body: { name: 'Keep', area: 'home' } })).body;
+        const keep = (await request('/api/tasks', { method: 'POST', body: { name: 'Keep', area_id: 4, repeat: { every: 1, unit: 'week' }, due: '2026-10-04' } })).body;
         await request('/api/tasks', { method: 'POST', body: { name: 'Mistake' } });
         await undo(request, (await changes(request))[0].id);
         expect((await request('/api/tasks')).body.map(t => t.name)).toEqual(['Keep']);
@@ -123,6 +123,48 @@ describe('undo', () => {
         await request(`/api/tasks/${keep.id}`, { method: 'DELETE' });
         await undo(request, (await changes(request))[0].id);
         expect((await request('/api/tasks')).body).toEqual([keep]);
+    });
+
+    it('takes back a recurring task rolled forward, in one step (docs/BLOCKS.md §3)', async () => {
+        const request = await start();
+        const task = (await request('/api/tasks', { method: 'POST', body: { name: 'Laundry', due: '2026-09-27', repeat: { every: 1, unit: 'week' } } })).body;
+        await request(`/api/tasks/${task.id}`, { method: 'PATCH', body: { done_at: '2026-09-30T17:00:00.000Z' } });
+        const [rolled] = await changes(request);
+        expect([rolled.before.due, rolled.after.due]).toEqual(['2026-09-27', '2026-10-04']);
+        expect((await undo(request, rolled.id)).status).toBe(200);
+        expect((await request('/api/tasks')).body[0]).toMatchObject({ due: '2026-09-27', last_done_at: null, done_at: null });
+    });
+
+    it('brings a deleted area back onto the tasks it was cleared from', async () => {
+        const request = await start();
+        const pset = (await request('/api/tasks', { method: 'POST', body: { name: 'Pset', area_id: 1 } })).body;
+        const moved = (await request('/api/tasks', { method: 'POST', body: { name: 'Essay', area_id: 1 } })).body;
+        await request('/api/areas/1', { method: 'DELETE' });
+        const [deleted, ...cleared] = await changes(request);
+        expect(deleted.before).toMatchObject({ name: 'School', _tasks: [pset.id, moved.id] });
+        expect(cleared.slice(0, 2).map(c => [c.resource, c.after.area_id])).toEqual([['tasks', null], ['tasks', null]]);
+
+        // a cleared task can't go back on an area that's gone
+        const refused = await undo(request, cleared[0].id);
+        expect(refused.status).toBe(409);
+        expect(refused.body.error.message).toMatch(/area has been deleted/);
+
+        // one task gets another area meanwhile, and keeps it
+        await request(`/api/tasks/${moved.id}`, { method: 'PATCH', body: { area_id: 4 } });
+        expect((await undo(request, deleted.id)).status).toBe(200);
+        const area = async id => (await request('/api/tasks')).body.find(t => t.id === id).area;
+        expect([await area(pset.id), await area(moved.id)]).toEqual(['School', 'Home']);
+        expect((await request('/api/areas')).body[0]).toMatchObject({ id: 1, name: 'School', position: 0 });
+    });
+
+    it("won't remove an added area that tasks now use", async () => {
+        const request = await start();
+        const music = (await request('/api/areas', { method: 'POST', body: { name: 'Music' } })).body;
+        const [created] = await changes(request);
+        await request('/api/tasks', { method: 'POST', body: { name: 'Practice', area_id: music.id } });
+        const refused = await undo(request, created.id);
+        expect(refused.status).toBe(409);
+        expect(refused.body.error.message).toBe('Tasks use that area now. Delete it from Areas instead.');
     });
 
     it('brings back a deleted habit with its history', async () => {
@@ -228,6 +270,34 @@ describe('the migration to countdown times (docs/BLOCKS.md §4)', () => {
     });
 });
 
+describe('the migration to task areas (docs/BLOCKS.md §3)', () => {
+    it('maps priorities and areas, drops effort, and rewrites older changes so they can still be undone', () => {
+        const db = new Database(':memory:');
+        const migrations = loadMigrations();
+        migrate(db, migrations.slice(0, 13));
+        const log = createChangeLog(db);
+        const raw = id => db.prepare('SELECT * FROM tasks WHERE id = ?').get(id);
+        const { id } = db.prepare("INSERT INTO tasks (name, priority, effort, area) VALUES ('Pset', 'high', 'big', 'school') RETURNING id").get();
+        log.record({ resource: 'tasks', itemId: id, action: 'create', after: raw(id) });
+        const before = raw(id);
+        db.prepare("UPDATE tasks SET priority = 'low', area = 'M 340L', updated_at = '2026-09-30T12:00:00.000Z' WHERE id = ?").run(id);
+        log.record({ resource: 'tasks', itemId: id, action: 'update', before, after: raw(id) });
+
+        migrate(db, migrations);
+        // an area matching a seeded one by name, ignoring case, is kept; a course code isn't one
+        expect(raw(id)).toMatchObject({ priority: 'someday', area_id: null, minutes: null, repeat: null });
+        expect(raw(id)).not.toHaveProperty('effort');
+        const [updated, created] = log.list();
+        expect(created.after).toMatchObject({ priority: 'now', area_id: 1 });
+        expect(Object.keys(updated.after).slice(-4)).toEqual(['area_id', 'minutes', 'repeat', 'last_done_at']);
+
+        const undo = createUndo(db, log);
+        expect(undo(updated.id)).toMatchObject({ priority: 'now', area_id: 1 });
+        expect(undo(created.id)).toBeNull();
+        expect(raw(id)).toBeUndefined();
+    });
+});
+
 describe('createChangeLog', () => {
     it('records outside a request as the system, and keeps entries over a year old (docs/BLOCKS.md §7)', () => {
         const db = new Database(':memory:');
@@ -279,7 +349,7 @@ describe("Claude's changes (docs/CONNECTOR.md §6)", () => {
         const since = new Date(NOW + 60_000).toISOString();
         await add(asClaude, 'bad 1');
         const edited = await add(asClaude, 'bad but edited');
-        await asClaude(`/api/tasks/${before.id}`, { method: 'PATCH', body: { priority: 'high' } });
+        await asClaude(`/api/tasks/${before.id}`, { method: 'PATCH', body: { priority: 'now' } });
         await add(asClaudeCode, 'good laptop work');
         await request(`/api/tasks/${edited.id}`, { method: 'PATCH', body: { name: 'kept by me' } });
 
@@ -290,7 +360,7 @@ describe("Claude's changes (docs/CONNECTOR.md §6)", () => {
         expect(res.body.skipped[0].change.after.name).toBe('bad but edited');
         expect(res.body.skipped[0].reason).toMatch(/changed since/);
         expect(await names(request)).toEqual(['before the run', 'good laptop work', 'kept by me']);
-        expect((await request('/api/tasks')).body.find(t => t.id === before.id).priority).toBe('normal');
+        expect((await request('/api/tasks')).body.find(t => t.id === before.id).priority).toBe('soon');
         // the undo is the owner's, and can itself be undone
         const [latest] = await changes(request);
         expect(latest.actor).toBe('owner');

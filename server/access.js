@@ -13,7 +13,8 @@ export const ALLOWED = {
     // claude.ai chats: read, add and change, but never delete, export, undo,
     // or touch connections, the kill switches or the kiosk's location
     chat: [
-        ['GET', new RegExp(`^/(today|${RESOURCES}|events|birthdays|settings|night)${end}`)],
+        // areas are read-only: Claude chooses from them, and only the owner edits them
+        ['GET', new RegExp(`^/(today|${RESOURCES}|areas|events|birthdays|settings|night)${end}`)],
         ['POST', new RegExp(`^/(${RESOURCES})${end}`)],
         ['POST', new RegExp(`^/goals/\\d+/increment${end}`)],
         ['POST', new RegExp(`^/applications/\\d+/advance${end}`)],

@@ -1,9 +1,10 @@
 // One change from the record (DESIGN §5.5) as a line a person reads in History:
 // "Completed task "Pset 4"", "Claude added task "Buy milk"".
 import { parseDate } from '../../shared/dates';
+import { describeRepeat } from '../../shared/repeat';
 
 const NOUNS = {
-    tasks: 'task', countdowns: 'countdown', goals: 'goal', habits: 'habit', applications: 'application',
+    tasks: 'task', areas: 'area', countdowns: 'countdown', goals: 'goal', habits: 'habit', applications: 'application',
 };
 
 export const ACTOR_LABELS = { owner: 'You', kiosk: 'Kiosk', claude: 'Claude', agent: 'Agent', system: 'System' };
@@ -30,11 +31,19 @@ function shortDate(date) {
     return parseDate(date).toLocaleDateString('en-US', { month: 'short', day: 'numeric' });
 }
 
-const show = value => (value === null || value === '' ? 'nothing' : String(value));
+// the next occurrence of a recurring task, such as "Sun, Oct 4"
+const weekdayOrDate = date => parseDate(date).toLocaleDateString('en-US', { weekday: 'short', month: 'short', day: 'numeric' });
+
+const show = (key, value) => {
+    if (value === null || value === '' || value === undefined) return 'nothing';
+    return key === 'repeat' ? describeRepeat(typeof value === 'string' ? JSON.parse(value) : value) : String(value);
+};
 
 function describeUpdate(noun, before, after) {
     const name = `${noun} "${nameOf(after)}"`;
     if (!before.done_at && after.done_at) return `Completed ${name}`;
+    // a recurring task moves to its next due date when completed (docs/BLOCKS.md §3)
+    if (after.last_done_at && before.last_done_at !== after.last_done_at) return `Completed ${name}, next ${weekdayOrDate(after.due)}`;
     if (before.done_at && !after.done_at) return `Restored ${name}`;
     if (!before.archived_at && after.archived_at) return `Archived ${name}`;
     if (before.archived_at && !after.archived_at) return `Unarchived ${name}`;
@@ -43,7 +52,7 @@ function describeUpdate(noun, before, after) {
     if (noun === 'application' && before.status !== after.status) return `Moved ${name} to ${after.status}`;
     const changed = Object.keys(after).filter(k => !QUIET.has(k) && before[k] !== after[k]);
     if (changed.length === 0) return `Changed ${name}`;
-    return `Changed ${name}: ${changed.map(k => `${k.replace('_', ' ')} ${show(before[k])} → ${show(after[k])}`).join(', ')}`;
+    return `Changed ${name}: ${changed.map(k => `${k.replace('_', ' ')} ${show(k, before[k])} → ${show(k, after[k])}`).join(', ')}`;
 }
 
 function describeSetting(change) {
