@@ -410,3 +410,25 @@ describe("Claude's changes (docs/CONNECTOR.md §6)", () => {
         expect((await changes(request, '?resource=tasks')).map(c => [c.item_id, c.action])).toEqual([[String(task.id), 'create']]);
     });
 });
+
+describe('the migration to the assignments area (docs/BLOCKS.md §3)', () => {
+    const setting = db => db.prepare("SELECT value FROM settings WHERE key = 'assignments_area'").get()?.value ?? null;
+
+    it("stores School's id, so renaming School later doesn't move the tile", () => {
+        const db = new Database(':memory:');
+        const migrations = loadMigrations();
+        migrate(db, migrations.slice(0, 14));
+        db.prepare("UPDATE areas SET name = 'school' WHERE name = 'School'").run();
+        migrate(db, migrations);
+        expect(JSON.parse(setting(db))).toBe(db.prepare("SELECT id FROM areas WHERE name = 'school'").get().id);
+    });
+
+    it('stores nothing without a School', () => {
+        const db = new Database(':memory:');
+        const migrations = loadMigrations();
+        migrate(db, migrations.slice(0, 14));
+        db.prepare("DELETE FROM areas WHERE name = 'School'").run();
+        migrate(db, migrations);
+        expect(setting(db)).toBeNull();
+    });
+});

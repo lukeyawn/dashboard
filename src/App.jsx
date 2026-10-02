@@ -9,8 +9,8 @@ import { request } from './lib/api';
 import Dashboard from './components/Dashboard';
 import WidgetShell from './components/WidgetShell';
 import Dock from './components/Dock';
+import AssignmentsWidget from './widgets/assignments/AssignmentsWidget';
 import CountdownWidget from './widgets/countdown/CountdownWidget';
-import DueSoonWidget from './widgets/due/DueSoonWidget';
 import GoalsWidget from './widgets/goals/GoalsWidget';
 import HabitsWidget from './widgets/habits/HabitsWidget';
 import JobWidget from './widgets/job/JobWidget';
@@ -53,8 +53,8 @@ export default function App() {
                 <WidgetShell area="timeline">
                     <TimelineWidget />
                 </WidgetShell>
-                <WidgetShell area="due">
-                    <DueSoonWidget />
+                <WidgetShell area="assignments">
+                    <AssignmentsWidget />
                 </WidgetShell>
                 <WidgetShell area="wotd">
                     <WordOfTheDayWidget />

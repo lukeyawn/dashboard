@@ -261,12 +261,14 @@ describe('applications', () => {
 describe('settings and night mode', () => {
     it('show defaults, and accept only valid times for the user keys', async () => {
         const { request } = await start();
-        expect((await request('/api/settings')).body).toEqual({ night_start: '22:00', night_end: '06:30', week_start: 'sunday' });
+        expect((await request('/api/settings')).body).toEqual({ night_start: '22:00', night_end: '06:30', week_start: 'sunday', assignments_area: 1 });
         expect((await request('/api/settings', { method: 'PATCH', body: { week_start: 'monday' } })).body.week_start).toBe('monday');
         expect((await request('/api/settings', { method: 'PATCH', body: { week_start: 'friday' } })).status).toBe(400);
         expect((await request('/api/settings', { method: 'PATCH', body: { night_start: '23:15' } })).body.night_start).toBe('23:15');
         expect((await request('/api/settings', { method: 'PATCH', body: { night_start: '24:00' } })).status).toBe(400);
         expect((await request('/api/settings', { method: 'PATCH', body: { kiosk_location: {} } })).status).toBe(400);
+        expect((await request('/api/settings', { method: 'PATCH', body: { assignments_area: 3 } })).body.assignments_area).toBe(3);
+        expect((await request('/api/settings', { method: 'PATCH', body: { assignments_area: 99 } })).status).toBe(400);
     });
 
     it('start early until the next night end, and cancel', async () => {
@@ -364,9 +366,11 @@ describe('today', () => {
     it('gathers the day for the agent', async () => {
         const { request } = await start({ calendar, weatherAt });
         await request('/api/tasks', { method: 'POST', body: { name: 'Do laundry' } });
-        await request('/api/tasks', { method: 'POST', body: { name: 'Overdue', due: '2026-09-29' } });
-        await request('/api/tasks', { method: 'POST', body: { name: 'Soon', due: '2026-10-05' } });
-        await request('/api/tasks', { method: 'POST', body: { name: 'Far off', due: '2026-12-01', priority: 'now' } });
+        // School (area 1) is the assignments area until one is chosen
+        await request('/api/tasks', { method: 'POST', body: { name: 'Overdue', due: '2026-09-29', area_id: 1 } });
+        await request('/api/tasks', { method: 'POST', body: { name: 'Paper', due: '2026-12-01', area_id: 1 } });
+        await request('/api/tasks', { method: 'POST', body: { name: 'Reading', area_id: 1 } });
+        await request('/api/tasks', { method: 'POST', body: { name: 'Rent', due: '2026-10-05', priority: 'now', area_id: 4 } });
         await request('/api/countdowns', { method: 'POST', body: { label: 'Break', target_date: '2026-11-25' } });
         await request('/api/countdowns', { method: 'POST', body: { label: 'Flight', target_date: '2026-10-02', target_time: '14:00', detail: 'hours' } });
         await request('/api/countdowns', { method: 'POST', body: { label: 'Out of class', target_date: '2026-10-02' } });
@@ -378,8 +382,8 @@ describe('today', () => {
         expect(body.date).toBe('2026-09-30');
         expect(body.events.map(e => e.title)).toEqual(['Algorithms lecture (moved)', 'Office hours']);
         expect(body.birthdays_this_week.map(b => b.title)).toEqual(["Mom's birthday"]);
-        expect(body.due_soon.map(t => [t.name, t.days_left])).toEqual([['Overdue', -1], ['Soon', 5]]);
-        expect(body.tasks.map(t => t.name)).toEqual(['Far off', 'Do laundry']);
+        expect(body.assignments.map(t => [t.name, t.days_left])).toEqual([['Overdue', -1], ['Paper', 62]]);
+        expect(body.tasks.map(t => t.name)).toEqual(['Rent', 'Do laundry', 'Reading']);
         expect(body.habits).toEqual([expect.objectContaining({ name: 'Read', done_today: true, streak: 1 })]);
         // nearest first, one without a time before one with a time on the same day
         expect(body.countdowns.map(c => [c.label, c.days_left])).toEqual([['Out of class', 2], ['Flight', 2], ['Break', 56]]);

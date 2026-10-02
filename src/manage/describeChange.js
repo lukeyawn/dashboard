@@ -59,6 +59,8 @@ function describeSetting(change) {
     const key = change.item_id;
     if (key === 'night_early_until') return change.after ? 'Started night mode early' : 'Cancelled early night mode';
     if (CONNECTOR_SWITCHES[key]) return `Switched ${CONNECTOR_SWITCHES[key]} ${change.after?.value === false ? 'off' : 'on'}`;
+    // an area id means nothing to read
+    if (key === 'assignments_area') return change.after ? 'Changed the Assignments area' : 'Reset the Assignments area';
     const label = key.replace('_', ' ');
     return change.after ? `Set ${label} to ${change.after.value}` : `Reset ${label}`;
 }

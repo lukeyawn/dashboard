@@ -64,7 +64,7 @@ export function registerTools(server, call, now = () => new Date(), { omit = [] 
     };
 
     tool('get_today', 'read',
-        `A snapshot of today: today's events (classes tagged routine), birthdays this week, tasks due within 14 days (with overdue ones) and the other open tasks, goals, habits (whether each is done today, and how many days this week), the nearest countdowns, application counts, the weather and night mode. Start here. ${ROUTINE}`,
+        `A snapshot of today: today's events (classes tagged routine), birthdays this week, assignments (tasks with a due date in the assignments area, nearest first, as the Assignments tile shows them) and every other open task, in the Tasks tile's order, goals, habits (whether each is done today, and how many days this week), the nearest countdowns, application counts, the weather and night mode. Start here. ${ROUTINE}`,
         {}, () => call('GET', '/today'));
 
     // Areas are a list the owner edits; Claude chooses one by name and can't
@@ -99,7 +99,7 @@ export function registerTools(server, call, now = () => new Date(), { omit = [] 
         },
         update: { id, name: t.name.optional(), done_at: t.done_at.optional(), ...Object.fromEntries(Object.entries(taskFields).map(([key, field]) => [key, field.optional()])) },
         toApi: areaToId,
-        notes: " One list for to-dos and deadlines; a task with a due date is a deadline. When adding one, fill in due, priority, area and minutes whenever the request or its context makes them clear, and leave them out when it doesn't. Plan work as time blocks in Google Calendar (\"work on problem set 4\"), not as dates on tasks.",
+        notes: " One list for to-dos and deadlines; a task with a due date is a deadline. When adding one, fill in due, priority, area and minutes whenever the request or its context makes them clear, and leave them out when it doesn't. Tasks with a due date in the assignments_area setting's area (School unless changed) go on the Assignments tile; every other task is on the Tasks tile. Plan work as time blocks in Google Calendar (\"work on problem set 4\"), not as dates on tasks.",
     });
     tool('complete_task', 'write', 'Mark a task (or deadline) done. A recurring task moves to its next due date instead, and stays open. A done task can be restored with update_task and done_at: null.', { id },
         ({ id: taskId }) => call('PATCH', `/tasks/${taskId}`, { done_at: now().toISOString() }));
@@ -161,7 +161,7 @@ export function registerTools(server, call, now = () => new Date(), { omit = [] 
     tool('list_birthdays', 'read', `Birthdays between two dates: yearly all-day events in Google Calendar. ${CALENDAR} A birthday is created as an all-day event repeating yearly.`,
         { from: schemas.date, to: schemas.date }, args => call('GET', `/birthdays${query(args)}`));
 
-    tool('get_settings', 'read', 'The user\'s settings: night_start and night_end, the night-mode hours, and week_start, the day weeks start on (sunday or monday).', {}, () => call('GET', '/settings'));
+    tool('get_settings', 'read', 'The user\'s settings: night_start and night_end, the night-mode hours, week_start, the day weeks start on (sunday or monday), and assignments_area, the id of the area whose tasks with a due date go on the Assignments tile (null when none is chosen).', {}, () => call('GET', '/settings'));
     tool('update_settings', 'write', 'Change the night-mode hours, or the day weeks start on. Hours wrap past midnight when the start is later than the end.',
         { night_start: schemas.time.optional(), night_end: schemas.time.optional(), week_start: z.enum(WEEK_STARTS).optional() }, args => call('PATCH', '/settings', args));
     tool('start_night', 'write', 'Turn on night mode now, on the kiosk too, until the next night_end.', {}, () => call('POST', '/night/start'));

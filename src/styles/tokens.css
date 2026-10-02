@@ -12,6 +12,9 @@
     --interview: hsl(40, 90%, 65%);
     --offer: hsl(140, 60%, 62%);
     --rejected: hsl(0, 0%, 65%);
+    /* a task's time chip: 15 minutes or less, and over an hour (docs/BLOCKS.md §3) */
+    --quick: hsl(140, 60%, 62%);
+    --long: hsl(270, 75%, 80%);
 
     /* fonts (DESIGN §8) */
     --font-sans: "Inter", system-ui, "Segoe UI", Roboto, "Noto Sans", "DejaVu Sans", Arial, sans-serif;

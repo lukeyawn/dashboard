@@ -53,9 +53,9 @@ test.describe('the ✎ modal', () => {
 test.describe('/manage on a phone', () => {
     test.use({ viewport: { width: 390, height: 844 }, isMobile: true, hasTouch: true });
 
-    test('fits the width, and a deadline added there shows on the dashboard', async ({ page }) => {
-        const name = `Phone deadline ${Date.now()}`;
-        // due within the next two weeks, so it lands in the Due soon tile
+    test('fits the width, and an assignment added there shows on the dashboard', async ({ page }) => {
+        const name = `Phone assignment ${Date.now()}`;
+        // due, and in School, so it lands in the Assignments tile
         const due = new Date(Date.now() + 3 * 86_400_000).toLocaleDateString('en-CA');
         await page.goto('/manage');
         for (const heading of ['Tasks and deadlines', 'Countdowns', 'Goals', 'Habits', 'Job applications', 'Settings', 'History']) {
@@ -69,11 +69,12 @@ test.describe('/manage on a phone', () => {
         await section.locator('summary', { hasText: 'Add a task' }).click();
         await section.locator('.editor-add').getByLabel('Task').fill(name);
         await section.locator('.editor-add').getByLabel('Due').fill(due);
+        await section.locator('.editor-add').getByRole('combobox', { name: 'Area', exact: true }).first().selectOption({ label: 'School' });
         await section.getByRole('button', { name: 'Add task' }).click();
         await expect(section.locator('.editor-item', { hasText: name })).toBeVisible();
 
         await page.setViewportSize({ width: 1920, height: 1080 });
         await page.goto('/');
-        await expect(page.locator('.due', { hasText: name })).toBeVisible();
+        await expect(page.locator('.assignment', { hasText: name })).toBeVisible();
     });
 });

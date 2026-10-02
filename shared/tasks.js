@@ -1,11 +1,18 @@
-// How tasks are split and ordered (DESIGN §10), shared by the tiles and /api/today.
-import { daysBetween } from './dates.js';
+// How tasks are split and ordered (docs/BLOCKS.md §3), shared by the tiles
+// and /api/today.
 
-export const DUE_SOON_DAYS = 14;
+// The Assignments tile's tasks: a due date, in the assignments_area setting's
+// area. Every other open task is in Tasks, so none is on two tiles.
+export function isAssignment(task, assignmentsArea) {
+    return Boolean(task.due) && assignmentsArea != null && task.area_id === assignmentsArea;
+}
 
-// overdue, or due within the next two weeks: the Due soon tile's tasks
-export function isDueSoon(task, todayDate) {
-    return Boolean(task.due) && daysBetween(todayDate, task.due) <= DUE_SOON_DAYS;
+// open tasks → { assignments, tasks }, each in its tile's default order
+export function splitTasks(open, assignmentsArea) {
+    return {
+        assignments: open.filter(t => isAssignment(t, assignmentsArea)).sort(compareDue),
+        tasks: open.filter(t => !isAssignment(t, assignmentsArea)).sort(compareTasks),
+    };
 }
 
 const PRIORITY_ORDER = { now: 0, soon: 1, someday: 2 };
@@ -20,7 +27,7 @@ export function compareTasks(a, b) {
         || a.id - b.id;
 }
 
-// the Due soon tile's order: soonest first, then by priority
+// the Assignments tile's order: soonest first, then by priority
 export function compareDue(a, b) {
     return a.due.localeCompare(b.due) || byPriority(a, b) || a.id - b.id;
 }
