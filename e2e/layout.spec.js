@@ -80,6 +80,12 @@ for (const [width, height] of RESOLUTIONS) {
             await page.locator('.timeline-event').first().waitFor();
             await page.locator('.upcoming-event').first().waitFor();
             await page.evaluate(() => document.fonts.ready);
+            // the lists that fold what doesn't fit into "+N" work it out again
+            // once the fonts are in, so none is left cutting off a row
+            const clipped = () => page.evaluate(() => [...document.querySelectorAll('.upcoming-body, .tasks-list, .assignment-list, .timeline')]
+                .filter(el => el.scrollHeight > el.clientHeight + 1)
+                .map(el => el.className));
+            await expect.poll(clipped, { message: 'lists cutting off a row' }).toEqual([]);
             await page.screenshot({ path: `test-results/screens/${width}x${height}.png` });
 
             const m = await page.evaluate(measure);
