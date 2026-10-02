@@ -37,8 +37,9 @@ export function viaOf(change) {
     return change.actor === 'claude' ? 'claude-code' : null;
 }
 
-const YEAR_MS = 365 * 24 * 60 * 60 * 1000;
-const DAY_MS = 24 * 60 * 60 * 1000;
+// how long the ✦ mark stays on an item Claude created. The record itself is
+// kept for good, for a year in review (docs/BLOCKS.md §7).
+const MARK_MS = 365 * 24 * 60 * 60 * 1000;
 
 const parse = text => (text === null ? null : JSON.parse(text));
 const fromDb = row => row && { ...row, before: parse(row.before), after: parse(row.after), via: viaOf(row) };
@@ -48,8 +49,9 @@ export function createChangeLog(db, { now = Date.now } = {}) {
         INSERT INTO changes (at, actor, resource, item_id, action, before, after, connection_id)
         VALUES (@at, @actor, @resource, @item_id, @action, @before, @after, @connection_id)`);
     const getStatement = db.prepare('SELECT * FROM changes WHERE id = ?');
-    const pruneStatement = db.prepare('DELETE FROM changes WHERE at < ?');
-    let lastPrune = 0;
+    const creationsStatement = db.prepare(`
+        SELECT id, item_id, at, actor, connection_id, json_extract(after, '$.created_at') AS created
+        FROM changes WHERE resource = ? AND action = 'create' AND actor IN ('claude', 'agent') AND at >= ?`);
 
     function select({ actor, resource, via, since }, limit) {
         const where = [];
@@ -77,15 +79,9 @@ export function createChangeLog(db, { now = Date.now } = {}) {
         return db.prepare(sql).all(limit ? { ...params, limit } : params).map(fromDb);
     }
 
-    function prune() {
-        lastPrune = now();
-        pruneStatement.run(new Date(now() - YEAR_MS).toISOString());
-    }
-
     return {
         // before and after are whole rows (or null), stored as JSON
         record({ resource, itemId, action, before = null, after = null }) {
-            if (now() - lastPrune > DAY_MS) prune();
             insert.run({
                 at: new Date(now()).toISOString(),
                 actor: currentActor(),
@@ -123,14 +119,10 @@ export function createChangeLog(db, { now = Date.now } = {}) {
 
         // The rows of a table that Claude created, keyed by "id|created_at" so
         // a reused id doesn't inherit the mark: { id, at, actor, via } of the
-        // create change. Kept as long as the change record is (a year).
+        // create change. Only creations from the last year, so marks fade.
         claudeCreations(resource) {
-            const rows = db.prepare(`
-                SELECT id, item_id, at, actor, connection_id, json_extract(after, '$.created_at') AS created
-                FROM changes WHERE resource = ? AND action = 'create' AND actor IN ('claude', 'agent')`).all(resource);
+            const rows = creationsStatement.all(resource, new Date(now() - MARK_MS).toISOString());
             return new Map(rows.map(r => [`${r.item_id}|${r.created}`, { id: r.id, at: r.at, actor: r.actor, via: viaOf(r) }]));
         },
-
-        prune,
     };
 }
