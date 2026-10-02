@@ -1,6 +1,7 @@
 /* each day cell is a full-height tap target, a little narrower than --hit so
    seven fit; the streak sits under the name to leave the name more room (DESIGN §6.1) */
 .habit-grid {
+    --habit-gap: calc(var(--cell) * 0.015);
     flex: 1;
     min-height: 0;
     display: grid;
@@ -8,7 +9,18 @@
     align-content: space-evenly;
     align-items: center;
     justify-items: center;
-    column-gap: calc(var(--cell) * 0.015);
+    column-gap: var(--habit-gap);
+}
+
+/* a thin line where the week starts (docs/BLOCKS.md §2), in the gap before
+   that day's column, from the day labels down through the last habit */
+.habit-week-divider {
+    justify-self: start;
+    align-self: stretch;
+    width: 1px;
+    margin-left: calc(var(--habit-gap) / -2 - 0.5px);
+    background-color: hsla(0, 0%, 100%, 0.2);
+    pointer-events: none;
 }
 
 .habit-name {
@@ -34,10 +46,15 @@
     overflow-wrap: anywhere;
 }
 
-.habit-streak {
+.habit-streak, .habit-week {
     font-size: var(--fs-small);
     font-variant-numeric: tabular-nums;
     color: var(--text-muted);
+}
+
+/* in accent once the week's target is met */
+.habit-week.met {
+    color: var(--accent);
 }
 
 .habit-day-label {

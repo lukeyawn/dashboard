@@ -1,6 +1,7 @@
 // The dashboard's tools for a Claude agent (DESIGN §5). Input schemas come from
 // shared/schemas.js, the same ones the API validates with.
 import { z } from 'zod';
+import { WEEK_STARTS } from '../shared/dates.js';
 import * as schemas from '../shared/schemas.js';
 import { query } from './client.js';
 
@@ -60,7 +61,7 @@ export function registerTools(server, call, now = () => new Date(), { omit = [] 
     };
 
     tool('get_today', 'read',
-        "A snapshot of today: today's events, birthdays this week, tasks due within 14 days (with overdue ones) and the other open tasks, goals, habits and whether each is done today, the nearest countdowns, application counts, the weather and night mode. Start here.",
+        "A snapshot of today: today's events, birthdays this week, tasks due within 14 days (with overdue ones) and the other open tasks, goals, habits (whether each is done today, and how many days this week), the nearest countdowns, application counts, the weather and night mode. Start here.",
         {}, () => call('GET', '/today'));
 
     const t = schemas.shapes.task;
@@ -98,8 +99,12 @@ export function registerTools(server, call, now = () => new Date(), { omit = [] 
     crud('habits', 'habit', 'habits', {
         listInput: { days: z.number().int().min(1).max(366).optional().describe('How many recent days of checks to include; 7 if left out') },
         listQuery: ({ days }) => ({ days }),
-        createInput: { name: schemas.shapes.habit.name, position: schemas.shapes.habit.position.optional() },
-        notes: ' Habits are daily. Archive one by setting archived_at to the current time.',
+        createInput: {
+            name: schemas.shapes.habit.name,
+            position: schemas.shapes.habit.position.optional(),
+            per_week: schemas.shapes.habit.per_week.optional().describe('Days a week the habit is meant for, 1 to 7; 7 (daily) if left out'),
+        },
+        notes: " per_week is a habit's weekly target; 7 is daily. week_count is how many days it's been done this calendar week, and weeks start on the week_start setting. A daily habit's streak counts days in a row; below 7 a week, it counts weeks in a row that met the target. A chore that has to get done, such as laundry, is a task, not a habit. Archive a habit by setting archived_at to the current time.",
     });
     tool('check_habit', 'write', 'Mark a habit done or not done on a day. Both are idempotent. A future day cannot be marked done.',
         { habit_id: id, date: schemas.date, done: z.boolean() },
@@ -126,9 +131,9 @@ export function registerTools(server, call, now = () => new Date(), { omit = [] 
     tool('list_birthdays', 'read', `Birthdays between two dates: yearly all-day events in Google Calendar. ${CALENDAR} A birthday is created as an all-day event repeating yearly.`,
         { from: schemas.date, to: schemas.date }, args => call('GET', `/birthdays${query(args)}`));
 
-    tool('get_settings', 'read', 'The user\'s settings: night_start and night_end, the night-mode hours.', {}, () => call('GET', '/settings'));
-    tool('update_settings', 'write', 'Change the night-mode hours. Hours wrap past midnight when the start is later than the end.',
-        { night_start: schemas.time.optional(), night_end: schemas.time.optional() }, args => call('PATCH', '/settings', args));
+    tool('get_settings', 'read', 'The user\'s settings: night_start and night_end, the night-mode hours, and week_start, the day weeks start on (sunday or monday).', {}, () => call('GET', '/settings'));
+    tool('update_settings', 'write', 'Change the night-mode hours, or the day weeks start on. Hours wrap past midnight when the start is later than the end.',
+        { night_start: schemas.time.optional(), night_end: schemas.time.optional(), week_start: z.enum(WEEK_STARTS).optional() }, args => call('PATCH', '/settings', args));
     tool('start_night', 'write', 'Turn on night mode now, on the kiosk too, until the next night_end.', {}, () => call('POST', '/night/start'));
     tool('cancel_night', 'write', 'Cancel an early start of night mode.', {}, () => call('POST', '/night/cancel'));
 

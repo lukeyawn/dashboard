@@ -1,7 +1,7 @@
 // Request schemas shared by the API, the frontend and the MCP server, so every
 // way of putting data in goes through the same validation (DESIGN §4, §5).
 import { z } from 'zod';
-import { daysBetween, isDateString } from './dates.js';
+import { WEEK_STARTS, daysBetween, isDateString } from './dates.js';
 
 const text = (max, label = 'Name') => z.string().trim()
     .min(1, `${label} is required`)
@@ -90,9 +90,11 @@ export const goalIncrement = z.strictObject({ by: z.number().min(-1e6).max(1e6).
 const habit = {
     name: text(60),
     position: z.number().int().min(0).max(10_000),
+    // days a week the habit is meant for; 7 is daily (docs/BLOCKS.md §2)
+    per_week: z.number().int().min(1, 'At least once a week').max(7, 'At most 7 times a week'),
     archived_at: timestamp.nullable(),
 };
-export const habitCreate = z.strictObject({ name: habit.name, position: habit.position.optional() });
+export const habitCreate = z.strictObject({ name: habit.name, position: habit.position.optional(), per_week: habit.per_week.optional() });
 export const habitUpdate = partial(habit);
 export const habitQuery = z.strictObject({
     days: z.coerce.number().int().min(1).max(366).default(7),
@@ -124,7 +126,8 @@ export const applicationQuery = z.strictObject({ status: z.enum(STATUSES).option
 
 // settings, night mode, location
 
-export const settingsUpdate = partial({ night_start: time, night_end: time });
+// the night hours, and the day weeks start on for habits and Upcoming
+export const settingsUpdate = partial({ night_start: time, night_end: time, week_start: z.enum(WEEK_STARTS) });
 
 export const kioskLocation = z.strictObject({
     lat: z.number().min(-90).max(90),

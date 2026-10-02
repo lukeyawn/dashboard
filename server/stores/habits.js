@@ -1,24 +1,46 @@
-import { addDays, today as todayOf } from '../../shared/dates.js';
+import { addDays, startOfWeek, today as todayOf } from '../../shared/dates.js';
 import { createStore } from '../crud.js';
 
-// Consecutive done days ending today, or ending yesterday if today isn't
-// done yet, so the streak doesn't read 0 every morning (DESIGN §10, Habits).
-// dates: the habit's checked dates, newest first.
-export function streak(dates, today) {
-    const done = new Set(dates);
-    let day = done.has(today) ? today : addDays(today, -1);
+// how many of the dates fall in the week starting on `from`
+const countInWeek = (dates, from) => {
+    const to = addDays(from, 6);
+    return dates.filter(d => d >= from && d <= to).length;
+};
+
+// A daily habit (7 a week): consecutive done days ending today, or ending
+// yesterday if today isn't done yet, so the streak doesn't read 0 every
+// morning (DESIGN §10, Habits).
+// Below 7 a week: calendar weeks in a row that met the target, ending with
+// this week if it's already met and with last week otherwise, so the streak
+// doesn't drop to 0 at the start of every week (docs/BLOCKS.md §2).
+// dates: the habit's checked dates. Worked out on every read, so changing
+// week_start or per_week loses nothing.
+export function streak(dates, today, perWeek = 7, weekStart = 'sunday') {
     let count = 0;
-    while (done.has(day)) {
+    if (perWeek >= 7) {
+        const done = new Set(dates);
+        let day = done.has(today) ? today : addDays(today, -1);
+        while (done.has(day)) {
+            count++;
+            day = addDays(day, -1);
+        }
+        return count;
+    }
+    const thisWeek = startOfWeek(today, weekStart);
+    let week = countInWeek(dates, thisWeek) >= perWeek ? thisWeek : addDays(thisWeek, -7);
+    // ends at the first week short of the target, at the latest the week before the first check
+    while (countInWeek(dates, week) >= perWeek) {
         count++;
-        day = addDays(day, -1);
+        week = addDays(week, -7);
     }
     return count;
 }
 
-export function createHabitStore(db, { now = () => new Date(), log } = {}) {
+// weekStart: returns the week_start setting, 'sunday' or 'monday'
+export function createHabitStore(db, { now = () => new Date(), log, weekStart = () => 'sunday' } = {}) {
     const store = createStore(db, {
         table: 'habits',
-        columns: ['name', 'position', 'archived_at'],
+        columns: ['name', 'position', 'per_week', 'archived_at'],
         orderBy: 'position, id',
         filters: { archived: { true: 'archived_at IS NOT NULL', false: 'archived_at IS NULL' } },
         log,
@@ -27,16 +49,19 @@ export function createHabitStore(db, { now = () => new Date(), log } = {}) {
     const check = db.prepare('INSERT OR IGNORE INTO habit_checks (habit_id, date) VALUES (?, ?)');
     const uncheck = db.prepare('DELETE FROM habit_checks WHERE habit_id = ? AND date = ?');
 
-    // the habit, with its checked dates in the last `days` days (oldest first) and its streak
+    // the habit, with its checked dates in the last `days` days (oldest first),
+    // how many days it's been done this calendar week, and its streak
     function withChecks(habit, days) {
         if (!habit) return null;
         const today = todayOf(now());
         const since = addDays(today, 1 - days);
         const dates = checksOf.all(habit.id).map(row => row.date);
+        const start = weekStart();
         return {
             ...habit,
             checks: dates.filter(d => d >= since && d <= today).reverse(),
-            streak: streak(dates, today),
+            week_count: countInWeek(dates, startOfWeek(today, start)),
+            streak: streak(dates, today, habit.per_week, start),
         };
     }
 

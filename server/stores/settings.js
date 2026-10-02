@@ -1,7 +1,7 @@
-// Settings are key → JSON value rows (DESIGN §3). Users change night_start and
-// night_end; the system keeps night_early_until and kiosk_location.
+// Settings are key → JSON value rows (DESIGN §3). Users change night_start,
+// night_end and week_start; the system keeps night_early_until and kiosk_location.
 
-export const DEFAULTS = { night_start: '22:00', night_end: '06:30' };
+export const DEFAULTS = { night_start: '22:00', night_end: '06:30', week_start: 'sunday' };
 const USER_KEYS = Object.keys(DEFAULTS);
 
 // Kept out of the change record: the kiosk reports it daily, so it's noise

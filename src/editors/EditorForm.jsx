@@ -5,6 +5,7 @@ import { useState } from 'react';
 // sends only the fields that changed.
 //
 // fields: [{ key, label, type: 'text' | 'textarea' | 'date' | 'time' | 'number' | 'select' | 'checkbox', options, placeholder, optional, omitEmpty }]
+// a select whose options are numbers sends a number; labels: { option: 'shown as' }
 // optional: empty means null (cleared); omitEmpty: empty means left out, for the server to fill in
 // onSubmit(values) resolves to something truthy when saved, or null when it failed.
 export default function EditorForm({ fields, schema, initial = {}, onlyChanges = false, submitLabel, onSubmit, onCancel }) {
@@ -56,7 +57,7 @@ function Input({ field, value, onChange }) {
             return <textarea rows={3} {...common} />;
         case 'select':
             // an empty option reads as "not set"
-            return <select {...common}>{field.options.map(o => <option key={o} value={o}>{o || '—'}</option>)}</select>;
+            return <select {...common}>{field.options.map(o => <option key={o} value={o}>{field.labels?.[o] ?? (o || '—')}</option>)}</select>;
         case 'checkbox':
             return <input type="checkbox" checked={value} onChange={event => onChange(event.target.checked)} />;
         case 'number':
@@ -80,6 +81,7 @@ function toInput(field, value) {
 function fromInput(field, value) {
     if (field.type === 'checkbox') return value;
     if (field.type === 'number') return value.trim() === '' ? undefined : Number(value);
+    if (field.type === 'select' && typeof field.options[0] === 'number') return Number(value);
     // an empty required field is sent as '', so the schema names the problem
     if (value.trim() === '') return field.omitEmpty ? undefined : field.optional ? null : '';
     return value;

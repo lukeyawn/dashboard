@@ -75,6 +75,7 @@ describe('the tools', () => {
 
     it('check habits, increment goals and set application statuses', async () => {
         await connect();
+        expect((await use('add_habit', { name: 'Gym', per_week: 3 })).value.per_week).toBe(3);
         const habit = (await use('add_habit', { name: 'Read' })).value;
         expect((await use('check_habit', { habit_id: habit.id, date: '2026-09-30', done: true })).value.streak).toBe(1);
         expect((await use('check_habit', { habit_id: habit.id, date: '2026-09-30', done: false })).value.streak).toBe(0);
@@ -99,6 +100,7 @@ describe('the tools', () => {
     it('change settings and night mode', async () => {
         await connect();
         expect((await use('update_settings', { night_start: '23:00' })).value.night_start).toBe('23:00');
+        expect((await use('update_settings', { week_start: 'monday' })).value.week_start).toBe('monday');
         expect((await use('start_night')).value.active).toBe(true);
         expect((await use('cancel_night')).value.active).toBe(false);
     });

@@ -3,6 +3,7 @@ import * as schemas from '../../shared/schemas';
 import { parseDate } from '../../shared/dates';
 import { compareTasks } from '../../shared/tasks';
 import { formatNumber } from '../lib/format';
+import { streakText } from '../widgets/habits/habitText';
 import ResourceEditor from './ResourceEditor';
 
 const now = () => new Date().toISOString();
@@ -107,14 +108,18 @@ export function HabitsEditor() {
             resource="habits"
             noun="habit"
             params={{ days: 7 }}
-            fields={[{ key: 'name', label: 'Habit' }]}
+            fields={[
+                { key: 'name', label: 'Habit' },
+                // a weekly target (docs/BLOCKS.md §2)
+                { key: 'per_week', label: 'Days a week (7 is daily)', type: 'select', options: [7, 6, 5, 4, 3, 2, 1], default: '7' },
+            ]}
             createSchema={schemas.habitCreate}
             updateSchema={schemas.habitUpdate}
             sections={rows => [
                 { title: null, rows: rows.filter(h => !h.archived_at) },
                 { title: 'Archived', rows: rows.filter(h => h.archived_at).sort(recentFirst) },
             ]}
-            describe={h => ({ title: h.name, detail: h.streak > 0 ? `${h.streak}-day streak` : null })}
+            describe={h => ({ title: h.name, detail: [h.per_week < 7 && `${h.per_week} a week`, streakText(h)].filter(Boolean).join(' · ') || null })}
             actions={h => [h.archived_at ? { label: 'Unarchive', changes: { archived_at: null } } : { label: 'Archive', changes: { archived_at: now() } }]}
         />
     );

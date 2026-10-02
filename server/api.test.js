@@ -143,7 +143,9 @@ describe('applications', () => {
 describe('settings and night mode', () => {
     it('show defaults, and accept only valid times for the user keys', async () => {
         const { request } = await start();
-        expect((await request('/api/settings')).body).toEqual({ night_start: '22:00', night_end: '06:30' });
+        expect((await request('/api/settings')).body).toEqual({ night_start: '22:00', night_end: '06:30', week_start: 'sunday' });
+        expect((await request('/api/settings', { method: 'PATCH', body: { week_start: 'monday' } })).body.week_start).toBe('monday');
+        expect((await request('/api/settings', { method: 'PATCH', body: { week_start: 'friday' } })).status).toBe(400);
         expect((await request('/api/settings', { method: 'PATCH', body: { night_start: '23:15' } })).body.night_start).toBe('23:15');
         expect((await request('/api/settings', { method: 'PATCH', body: { night_start: '24:00' } })).status).toBe(400);
         expect((await request('/api/settings', { method: 'PATCH', body: { kiosk_location: {} } })).status).toBe(400);
