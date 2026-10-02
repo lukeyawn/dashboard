@@ -73,13 +73,16 @@ export const EVENTS = [
 const chicagoDate = iso => new Date(iso).toLocaleDateString('en-CA', { timeZone: 'America/Chicago' });
 const eventsBetween = (from, to) => EVENTS.filter(e => (e.all_day ? e.start <= to && e.end >= from : chicagoDate(e.start) >= from && chicagoDate(e.start) <= to));
 
+// nearest deadline first, as the server lists them: one behind its pace, a
+// step, progress this week, a milestone, and a dream the tile leaves out
 export const GOALS = rows([
-    { name: 'Read 12 books', current: 7, target: 12, unit: 'books' },
-    { name: 'Run 100 miles', current: 64.5, target: 100, unit: 'mi' },
-    { name: 'LeetCode problems before internship season', current: 92, target: 150, unit: null },
-    { name: 'Internship applications', current: 40, target: 40, unit: null },
+    { name: 'Run 100 miles', current: 30, target: 100, unit: 'mi', step: 2.5, started: '2026-08-01', deadline: '2026-10-31', week_gain: 7.5 },
+    { name: 'Get an internship offer before the end of the year', kind: 'milestone', current: null, target: null, step: null, deadline: '2026-12-31' },
+    { name: 'LeetCode problems before internship season', current: 92, target: 150, unit: null, started: '2026-09-01', deadline: '2027-01-15' },
+    { name: 'Internship applications', current: 40, target: 40, unit: null, achieved_at: stamp },
     { name: 'Learn 500 hanzi', current: 212, target: 500, unit: null },
-].map(g => ({ ...g, archived_at: null })));
+    { name: 'See the northern lights', kind: 'milestone', current: null, target: null, step: null, dream: true },
+].map(g => ({ kind: 'progress', unit: null, step: 1, deadline: null, started: '2026-09-01', achieved_at: null, dream: false, week_gain: g.kind === 'milestone' ? null : 0, ...g, archived_at: null })));
 
 const week = ['2026-09-24', '2026-09-25', '2026-09-26', '2026-09-27', '2026-09-28', '2026-09-29', '2026-09-30'];
 const pick = pattern => week.filter((_, i) => pattern[i] === 'x');
@@ -112,7 +115,7 @@ const FIXTURES = {
     '/api/tasks': () => TASKS,
     '/api/countdowns': () => COUNTDOWNS,
     '/api/areas': () => AREAS,
-    '/api/goals': () => GOALS,
+    '/api/goals': q => GOALS.filter(g => q.get('dream') !== 'false' || !g.dream),
     '/api/habits': () => HABITS,
     '/api/settings': () => SETTINGS,
     '/api/applications': () => APPLICATIONS,

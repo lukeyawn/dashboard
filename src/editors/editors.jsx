@@ -129,26 +129,65 @@ export function CountdownsEditor() {
     );
 }
 
-export function GoalsEditor() {
-    const fields = [
-        { key: 'name', label: 'Goal' },
-        { key: 'current', label: 'Progress so far', type: 'number', default: '0' },
-        { key: 'target', label: 'Target', type: 'number' },
-        { key: 'unit', label: 'Unit', optional: true, placeholder: 'e.g. books, mi' },
+// Goals and milestones (docs/BLOCKS.md §5); the fields follow the kind, which
+// is chosen when the goal is made
+const isProgress = values => values.kind !== 'milestone';
+const GOAL_FIELDS = [
+    { key: 'name', label: 'Goal' },
+    { key: 'current', label: 'Progress so far', type: 'number', default: '0', when: isProgress },
+    { key: 'target', label: 'Target', type: 'number', when: isProgress },
+    { key: 'unit', label: 'Unit', optional: true, placeholder: 'e.g. books, mi', when: isProgress },
+    { key: 'step', label: 'Each + adds', type: 'number', placeholder: '1', when: isProgress },
+    { key: 'deadline', label: 'Deadline', type: 'date', optional: true },
+    { key: 'started', label: 'Counting from', type: 'date', omitEmpty: true, when: isProgress },
+];
+const KIND_FIELD = { key: 'kind', label: 'Kind', type: 'choice', options: schemas.GOAL_KINDS, labels: { progress: 'Progress', milestone: 'Milestone' }, default: 'progress' };
+
+// "12/50 books · by Dec 31", "Milestone · by Dec 31", "Achieved Oct 1"
+function describeGoal(g) {
+    const parts = [
+        g.kind === 'milestone' ? 'Milestone' : `${formatNumber(g.current)}/${formatNumber(g.target)}${g.unit ? ` ${g.unit}` : ''}`,
+        g.deadline && `by ${shortDate(g.deadline)}`,
+        g.achieved_at && `Achieved ${new Date(g.achieved_at).toLocaleDateString('en-US', { month: 'short', day: 'numeric' })}`,
     ];
+    return { title: g.name, detail: parts.filter(Boolean).join(' · ') };
+}
+
+export function GoalsEditor() {
     return (
         <ResourceEditor
             resource="goals"
             noun="goal"
-            fields={fields}
+            params={{ dream: false }}
+            fields={GOAL_FIELDS}
+            createFields={[KIND_FIELD, ...GOAL_FIELDS]}
             createSchema={schemas.goalCreate}
             updateSchema={schemas.goalUpdate}
             sections={rows => [
                 { title: null, rows: rows.filter(g => !g.archived_at) },
                 { title: 'Archived', rows: rows.filter(g => g.archived_at).sort(recentFirst) },
             ]}
-            describe={g => ({ title: g.name, detail: `${formatNumber(g.current)}/${formatNumber(g.target)}${g.unit ? ` ${g.unit}` : ''}` })}
+            describe={describeGoal}
             actions={g => [g.archived_at ? { label: 'Unarchive', changes: { archived_at: null } } : { label: 'Archive', changes: { archived_at: now() } }]}
+        />
+    );
+}
+
+// Long-horizon goals, kept off the tile until one is made a goal
+export function DreamsEditor() {
+    return (
+        <ResourceEditor
+            resource="goals"
+            noun="dream"
+            params={{ dream: true }}
+            fields={GOAL_FIELDS}
+            createFields={[KIND_FIELD, ...GOAL_FIELDS.filter(f => f.key !== 'deadline')]}
+            createValues={{ dream: true }}
+            createSchema={schemas.goalCreate}
+            updateSchema={schemas.goalUpdate}
+            sections={rows => [{ title: null, rows }]}
+            describe={describeGoal}
+            actions={() => [{ label: 'Make it a goal', changes: { dream: false } }]}
         />
     );
 }

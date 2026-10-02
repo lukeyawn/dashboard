@@ -6,14 +6,20 @@
     justify-content: space-evenly;
 }
 
-/* the +1 (and undo) sit to the right of the name and the bar, spanning both */
+/* the + (and undo) sit to the right of the name, the bar and the line under it */
 .goal {
-    display: grid;
-    grid-template-columns: minmax(0, 1fr) auto auto;
-    grid-template-rows: auto auto;
+    position: relative;
+    display: flex;
     align-items: center;
-    column-gap: var(--row-gap);
-    row-gap: calc(var(--cell) * 0.045);
+    gap: var(--row-gap);
+}
+
+.goal-body {
+    flex: 1;
+    min-width: 0;
+    display: flex;
+    flex-direction: column;
+    gap: calc(var(--cell) * 0.045);
 }
 
 .goal-header {
@@ -43,11 +49,37 @@
 }
 
 .progress-track {
-    grid-row: 2;
+    position: relative;
     height: calc(var(--cell) * 0.05);
     border-radius: 999px;
     background-color: var(--track);
+}
+
+/* where steady progress toward the deadline would be today */
+.progress-tick {
+    position: absolute;
+    top: -60%;
+    bottom: -60%;
+    width: max(1.5px, calc(2 * var(--px)));
+    margin-left: calc(max(1.5px, calc(2 * var(--px))) / -2);
+    border-radius: 999px;
+    background-color: var(--text);
+}
+
+/* more than 10% of the target behind the tick */
+.goal.behind .progress-fill {
+    background-color: var(--behind);
+}
+
+/* the time left and this week's progress, or a milestone's deadline */
+.goal-meta {
+    min-width: 0;
+    font-size: var(--fs-small);
+    font-variant-numeric: tabular-nums;
+    color: var(--text-muted);
+    white-space: nowrap;
     overflow: hidden;
+    text-overflow: ellipsis;
 }
 
 .progress-fill {
@@ -58,7 +90,7 @@
 }
 
 .goal-plus, .goal-undo {
-    grid-row: 1 / 3;
+    flex-shrink: 0;
     min-width: var(--hit);
     min-height: var(--hit);
     padding: 0 calc(var(--cell) * 0.04);
@@ -71,12 +103,7 @@
     font-weight: 600;
 }
 
-.goal-plus {
-    grid-column: 3;
-}
-
 .goal-undo {
-    grid-column: 2;
     border-color: transparent;
     background: none;
     color: var(--accent);
@@ -84,6 +111,29 @@
 
 .goal-plus:active, .goal-undo:active {
     filter: brightness(1.4);
+}
+
+/* a milestone's Done waits 5 seconds: crossed out, with the shrinking timer line (DESIGN §6.2) */
+.goal.pending .goal-name {
+    text-decoration: line-through;
+    color: var(--text-muted);
+}
+
+.goal-done[aria-pressed="true"] {
+    border-color: var(--accent);
+    color: var(--accent);
+}
+
+.goal.pending::after {
+    content: '';
+    position: absolute;
+    left: 0;
+    bottom: calc(var(--cell) * -0.02);
+    width: 100%;
+    height: max(1px, calc(2 * var(--px)));
+    background-color: var(--accent);
+    transform-origin: left;
+    animation: pending-timer var(--pending-ms) linear forwards;
 }
 
 .goals-more {

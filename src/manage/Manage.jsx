@@ -1,4 +1,4 @@
-import { ApplicationsEditor, AreasEditor, CountdownsEditor, GoalsEditor, HabitsEditor, TasksEditor } from '../editors/editors';
+import { ApplicationsEditor, AreasEditor, CountdownsEditor, DreamsEditor, GoalsEditor, HabitsEditor, TasksEditor } from '../editors/editors';
 import SettingsEditor from '../editors/SettingsEditor';
 import Claude from './Claude';
 import History from './History';
@@ -9,6 +9,7 @@ const SECTIONS = [
     ['areas', 'Task areas', AreasEditor],
     ['countdowns', 'Countdowns', CountdownsEditor],
     ['goals', 'Goals', GoalsEditor],
+    ['dreams', 'Dreams', DreamsEditor],
     ['habits', 'Habits', HabitsEditor],
     ['applications', 'Job applications', ApplicationsEditor],
     ['settings', 'Settings', SettingsEditor],

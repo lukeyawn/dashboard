@@ -13,15 +13,19 @@ import { useState } from 'react';
 // check(values, before): problems the schema can't see, such as a date that has
 // passed, as { field: message } or null; before is the item being edited, or null
 // optional: empty means null (cleared); omitEmpty: empty means left out, for the server to fill in
+// when(values): shown and sent only while true, such as a goal's target for a progress goal;
+// values include the item being edited, so a field can depend on one that isn't in the form
 // onSubmit(values) resolves to something truthy when saved, or null when it failed.
 export default function EditorForm({ fields, schema, initial = {}, onlyChanges = false, submitLabel, onSubmit, onCancel, check }) {
     const [values, setValues] = useState(() => Object.fromEntries(fields.map(f => [f.key, toInput(f, initial[f.key])])));
     const [errors, setErrors] = useState({});
     const [saving, setSaving] = useState(false);
 
+    const shown = fields.filter(f => !f.when || f.when({ ...initial, ...values }));
+
     async function submit(event) {
         event.preventDefault();
-        let payload = Object.fromEntries(fields.map(f => [f.key, fromInput(f, values[f.key])]).filter(([, v]) => v !== undefined));
+        let payload = Object.fromEntries(shown.map(f => [f.key, fromInput(f, values[f.key])]).filter(([, v]) => v !== undefined));
         if (onlyChanges) {
             payload = Object.fromEntries(Object.entries(payload).filter(([key, value]) => !same(value, initial[key])));
             if (Object.keys(payload).length === 0) return onCancel?.();
@@ -45,7 +49,7 @@ export default function EditorForm({ fields, schema, initial = {}, onlyChanges =
 
     return (
         <form className="editor-form" onSubmit={submit} noValidate>
-            {fields.map(f => {
+            {shown.map(f => {
                 // a row of buttons, or a custom input with several controls, can't sit in one label
                 const group = f.type === 'choice' || f.type === 'custom';
                 const Field = group ? 'div' : 'label';

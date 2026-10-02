@@ -2,7 +2,7 @@
 import { act, fireEvent, render, screen, waitFor, within } from '@testing-library/react';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import { fakeServer } from '../testing/fakeApi';
-import { ApplicationsEditor, AreasEditor, CountdownsEditor, GoalsEditor, TasksEditor } from './editors';
+import { ApplicationsEditor, AreasEditor, CountdownsEditor, DreamsEditor, GoalsEditor, TasksEditor } from './editors';
 
 let rows;
 let nextId;
@@ -85,7 +85,7 @@ describe('adding', () => {
         fireEvent.change(field(addForm(), 'Target'), { target: { value: '12' } });
         fireEvent.click(screen.getByText('Add goal'));
         await screen.findByText('Books');
-        expect(api.writes()[0].body).toEqual({ name: 'Books', current: 0, target: 12, unit: null });
+        expect(api.writes()[0].body).toEqual({ kind: 'progress', name: 'Books', current: 0, target: 12, unit: null, deadline: null });
     });
 
     it('leaves out an empty applied date, so the server uses today', async () => {
@@ -299,5 +299,50 @@ describe('task areas, time and repeating (docs/BLOCKS.md §3)', () => {
         expect(within(rowOf('Home')).queryByText('↓')).toBeNull();
         fireEvent.click(within(rowOf('Home')).getByText('↑'));
         await waitFor(() => expect(api.writes()).toEqual([{ method: 'PATCH', url: '/api/areas/4', body: { position: 0 } }]));
+    });
+});
+
+describe('goals, milestones and dreams (docs/BLOCKS.md §5)', () => {
+    const goal = (id, fields) => ({ id, name: `goal ${id}`, kind: 'progress', current: 0, target: 10, unit: null, step: 1, deadline: null, started: '2026-09-01', achieved_at: null, archived_at: null, dream: false, ...fields });
+
+    it('adds a milestone without a count, and a progress goal with a step and a deadline', async () => {
+        const api = serve('goals', []);
+        render(<GoalsEditor />);
+        await screen.findByText('Nothing here yet.');
+        fireEvent.click(within(addForm()).getByRole('button', { name: 'Milestone' }));
+        expect(within(addForm()).queryByLabelText('Target', { exact: false })).toBeNull();
+        fireEvent.change(field(addForm(), 'Goal'), { target: { value: 'Internship offer' } });
+        fireEvent.change(field(addForm(), 'Deadline'), { target: { value: '2026-12-31' } });
+        fireEvent.click(screen.getByText('Add goal'));
+        await screen.findByText('Internship offer');
+        expect(api.writes()[0].body).toEqual({ kind: 'milestone', name: 'Internship offer', deadline: '2026-12-31' });
+
+        fireEvent.click(within(addForm()).getByRole('button', { name: 'Progress' }));
+        fireEvent.change(field(addForm(), 'Goal'), { target: { value: 'Pages' } });
+        fireEvent.change(field(addForm(), 'Target'), { target: { value: '300' } });
+        fireEvent.change(field(addForm(), 'Each + adds'), { target: { value: '10' } });
+        fireEvent.click(screen.getByText('Add goal'));
+        await waitFor(() => expect(api.writes()[1].body).toEqual({ kind: 'progress', name: 'Pages', current: 0, target: 300, unit: null, step: 10, deadline: null }));
+    });
+
+    it("edits a milestone's name and deadline only", async () => {
+        serve('goals', [goal(1, { name: 'Offer', kind: 'milestone', current: null, target: null, step: null })]);
+        render(<GoalsEditor />);
+        fireEvent.click(await screen.findByText('Edit'));
+        const form = document.querySelector('.editor-item .editor-form');
+        expect([...form.querySelectorAll('.editor-label')].map(l => l.firstChild.textContent)).toEqual(['Goal', 'Deadline']);
+    });
+
+    it('adds dreams on their own, and makes one a goal', async () => {
+        const api = serve('goals', [goal(1, { name: 'Northern lights', kind: 'milestone', current: null, target: null, step: null, dream: true })]);
+        render(<DreamsEditor />);
+        await screen.findByText('Northern lights');
+        expect(api.requests[0].url).toBe('/api/goals?dream=true');
+        fireEvent.click(screen.getByText('Make it a goal'));
+        await waitFor(() => expect(api.writes()).toEqual([{ method: 'PATCH', url: '/api/goals/1', body: { dream: false } }]));
+        fireEvent.click(within(addForm()).getByRole('button', { name: 'Milestone' }));
+        fireEvent.change(field(addForm(), 'Goal'), { target: { value: 'Learn to sail' } });
+        fireEvent.click(screen.getByText('Add dream'));
+        await waitFor(() => expect(api.writes()[1].body).toEqual({ kind: 'milestone', name: 'Learn to sail', dream: true }));
     });
 });

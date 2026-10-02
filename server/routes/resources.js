@@ -31,6 +31,13 @@ export function goalsRouter(store) {
                 if (!goal) throw notFound(id);
                 res.json(goal);
             });
+            // Done, for a milestone: achieved and archived
+            router.post('/:id/achieve', (req, res) => {
+                const id = idParam(req);
+                const goal = store.achieve(id);
+                if (!goal) throw notFound(id);
+                res.json(goal);
+            });
         },
     });
 }

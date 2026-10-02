@@ -12,6 +12,14 @@ describe('describeChange', () => {
             .toBe('Changed task "Pset 4": priority soon → now, due nothing → 2026-10-01');
     });
 
+    it('reads goals achieved, milestones done, and dreams made goals (docs/BLOCKS.md §5)', () => {
+        const goal = fields => ({ id: 1, name: 'Books', current: 11, target: 12, achieved_at: null, archived_at: null, dream: 0, ...fields });
+        expect(describeChange(change('goals', 'update', goal(), goal({ current: 12, achieved_at: 'x' })))).toBe('Achieved goal "Books"');
+        expect(describeChange(change('goals', 'update', goal({ current: null }), goal({ current: null, achieved_at: 'x', archived_at: 'x' })))).toBe('Achieved goal "Books"');
+        expect(describeChange(change('goals', 'update', goal({ dream: 1 }), goal()))).toBe('Made dream "Books" a goal');
+        expect(describeChange(change('goals', 'update', goal(), goal({ current: 12 })))).toBe('goal "Books": 11 → 12');
+    });
+
     it('reads a recurring task rolled forward, and its rule in words (docs/BLOCKS.md §3)', () => {
         const laundry = fields => task({ name: 'Laundry', due: '2026-09-27', repeat: '{"every":1,"unit":"week"}', ...fields });
         expect(describeChange(change('tasks', 'update', laundry(), laundry({ due: '2026-10-04', last_done_at: 'x' })))).toBe('Completed task "Laundry", next Sun, Oct 4');
