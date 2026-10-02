@@ -321,6 +321,8 @@ Changes the agent makes show up on the kiosk within one polling interval (§6).
 
 ### 5.1 An autonomous agent (planned)
 
+> **Updated Oct 2 ([AGENT.md](AGENT.md)):** the agent's connector adds and changes directly (no deleting, 30 a day, recorded as `agent`) instead of suggesting, and a dock chip lists what it did, with Undo. Where §5.1–5.5 and phase 9 below mention suggestions, AGENT.md is newer.
+
 The owner's goal: a Claude agent that runs on a schedule, without him, reads his email and calendar, and keeps the dashboard current. It turns emails into tasks, notices application updates, and writes a morning briefing.
 
 **It runs in Anthropic's cloud,** as a scheduled Claude agent on the owner's Claude plan, not on the VM.
@@ -831,7 +833,7 @@ The rule is **one complete vertical slice before any breadth**: a few real widge
 | **5. Touch and editing** | The touch rules (§6.1), pending actions for deadlines and jobs, the inline add row, shared editors, the `/manage` page, and the dashboard modal with ✎ buttons. |
 | **6. Kiosk** | Everything in §11.2: Chromium flags and startup, kiosk login, squeekboard, night mode with the moon button, and the reload rules (§6.4). |
 | **7. Agent-ready data** | Deadlines merged into tasks, with priority, effort, area, notes, link and source; the Due soon and Tasks tiles; the change record with History and Undo; sources and no duplicates; the status line. (§5.5) |
-| **8. The public door** | Three PRs ([CONNECTOR.md §14](CONNECTOR.md#14-how-its-built-three-pull-requests-one-after-another)): the credential allow-lists, OAuth with approval on the tailnet, the public listener and the chat connector, Claude's changes with Undo everything since; then go-live on Funnel port 443, with the dashboard moved to 8443; then suggestions, the agent connector and the review modal. (§5.2–5.4) |
+| **8. The public door** | Three PRs ([CONNECTOR.md §14](CONNECTOR.md#14-how-its-built-three-pull-requests-one-after-another)): the credential allow-lists, OAuth with approval on the tailnet, the public listener and the chat connector, Claude's changes with Undo everything since; then go-live on Funnel port 443, with the dashboard moved to 8443; then the agent's connector, which writes, and the chip listing its changes ([AGENT.md §6](AGENT.md#6-phase-8s-last-pr-rescoped)). (§5.2–5.4) |
 | **9. The agent** | Its standing instructions and schedule, with its Gmail and Calendar connectors read-only; run reports in the status line, including a warning for any direct write through the chat connector during a run; the daily briefing. (§5.1, [CONNECTOR.md §2](CONNECTOR.md#2-two-connectors-and-what-the-second-one-doesnt-guarantee)) |
 | **Later** | Click-to-focus with container-query condensing; a daily background photo from Unsplash (below); an assistant widget on the dashboard; sunrise gradient; an idle photo-album mode; a wins log; recurring tasks. |
 
@@ -980,11 +982,11 @@ Each of these caused a real bug or near-miss, or is a known trap. Keep them in m
 | 2026-10-01 | A daily background photo from an owner-curated Unsplash collection goes on the Later list. The bundled photo stays for v1. |
 | 2026-10-01 | `main` takes rebase merges only (not squash), so stacked PRs update cleanly after each merge |
 | 2026-10-01 | An autonomous Claude agent is planned, running in Anthropic's cloud on the owner's plan (no API bill; Claude's own Gmail and Calendar connectors) |
-| 2026-10-01 | Prompt injection: the agent only ever suggests; the server enforces its limits; everything is recorded and undoable; its Gmail and Calendar access is read-only (§5.2) |
+| 2026-10-01 | Prompt injection: ~~the agent only ever suggests~~ (superseded Oct 2: it writes through its own connector, [AGENT.md](AGENT.md)); the server enforces its limits; everything is recorded and undoable; its Gmail and Calendar access is read-only (§5.2) |
 | 2026-10-01 | Deadlines become tasks with a due date. Tasks gain optional priority, effort, area, notes, link and source, filled in by Claude. |
 | 2026-10-01 | Every write is recorded with its actor, and can be undone from `/manage` |
 | 2026-10-01 | No command palette: everything is already on the screen |
-| 2026-10-01 | Two claude.ai connectors: chats add and change directly (no deleting), the agent suggests. Because connectors are account-wide, the agent can reach both; the owner accepts that, with Claude's changes and Undo everything since as the safety net. |
+| 2026-10-01 | Two claude.ai connectors: chats add and change directly (no deleting), the agent suggests (superseded Oct 2: the agent writes too, capped at 30 a day, [AGENT.md](AGENT.md)). Because connectors are account-wide, the agent can reach both; the owner accepts that, with Claude's changes and Undo everything since as the safety net. |
 | 2026-10-01 | The public door is Funnel on port 8443 to a separate listener with only the MCP and sign-in routes. Sign-ins are approved on the tailnet. |
 | 2026-10-01 | The public door moves to port 443 and the dashboard to tailnet-only 8443: claude.ai only connects to port 443. |
 | 2026-10-01 | Links from connectors must be `https` and are shown with their domain. Text from connectors is cleaned of characters that disguise it. |
