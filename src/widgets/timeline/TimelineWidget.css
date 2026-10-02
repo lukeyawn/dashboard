@@ -80,19 +80,3 @@
     flex-wrap: wrap;
     gap: calc(var(--cell) * 0.04);
 }
-
-.chip {
-    max-width: 100%;
-    padding: calc(var(--cell) * 0.02) calc(var(--cell) * 0.065);
-    border-radius: 999px;
-    background-color: hsla(0, 0%, 100%, 0.1);
-    font-size: var(--fs-small);
-    white-space: nowrap;
-    overflow: hidden;
-    text-overflow: ellipsis;
-}
-
-.chip.birthday {
-    background-color: var(--accent-glow);
-    color: var(--accent);
-}

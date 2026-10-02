@@ -7,7 +7,7 @@ export const ROWS = 5;
 
 // col and row are inclusive [first, last] track numbers, counted from 1
 export const AREAS = {
-    calendar: { col: [1, 4], row: [1, 2] },
+    upcoming: { col: [1, 4], row: [1, 2] },
     job: { col: [5, 8], row: [1, 2] },
     goals: { col: [9, 11], row: [1, 2] },
     timeline: { col: [1, 2], row: [3, 5] },

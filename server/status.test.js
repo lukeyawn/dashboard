@@ -29,6 +29,12 @@ describe('problems', () => {
         expect(problems(failing(CALENDAR_FAILING_MS + 1000), NOW)[0].kind).toBe('calendar');
         expect(problems({ calendar: { configured: false, failing_since: ago(CALENDAR_FAILING_MS * 2) } }, NOW)).toEqual([]);
     });
+
+    it('reports the classes calendar on its own', () => {
+        const routine = since => ({ calendar: { configured: true, failing_since: null, routine: { configured: true, failing_since: ago(since) } } });
+        expect(problems(routine(CALENDAR_FAILING_MS - 1000), NOW)).toEqual([]);
+        expect(problems(routine(CALENDAR_FAILING_MS + 1000), NOW)).toEqual([{ kind: 'calendar-routine', message: "The classes calendar isn't updating" }]);
+    });
 });
 
 describe('readBackupStatus', () => {

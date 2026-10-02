@@ -9,7 +9,6 @@ import { request } from './lib/api';
 import Dashboard from './components/Dashboard';
 import WidgetShell from './components/WidgetShell';
 import Dock from './components/Dock';
-import CalendarWidget from './widgets/calendar/CalendarWidget';
 import CountdownWidget from './widgets/countdown/CountdownWidget';
 import DueSoonWidget from './widgets/due/DueSoonWidget';
 import GoalsWidget from './widgets/goals/GoalsWidget';
@@ -17,6 +16,7 @@ import HabitsWidget from './widgets/habits/HabitsWidget';
 import JobWidget from './widgets/job/JobWidget';
 import TasksWidget from './widgets/tasks/TasksWidget';
 import TimelineWidget from './widgets/timeline/TimelineWidget';
+import UpcomingWidget from './widgets/upcoming/UpcomingWidget';
 import WordOfTheDayWidget from './widgets/wotd/WordOfTheDayWidget';
 
 export default function App() {
@@ -41,8 +41,8 @@ export default function App() {
         // long-press menus are suppressed on the kiosk (DESIGN §6.1)
         <Page onContextMenu={event => event.preventDefault()}>
             <Dashboard>
-                <WidgetShell area="calendar">
-                    <CalendarWidget />
+                <WidgetShell area="upcoming">
+                    <UpcomingWidget />
                 </WidgetShell>
                 <WidgetShell area="job">
                     <JobWidget />

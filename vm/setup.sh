@@ -48,6 +48,7 @@ if [ ! -f "$APP/.env" ]; then
 API_TOKEN=$(token)
 KIOSK_TOKEN=$(token)
 GCAL_ICS_URL=
+GCAL_ROUTINE_ICS_URL=
 TZ=America/Chicago
 PORT=3000
 HOST=127.0.0.1

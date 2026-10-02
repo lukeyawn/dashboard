@@ -30,6 +30,18 @@ function measure() {
 
     const dock = document.querySelector('.dock').getBoundingClientRect();
 
+    // Upcoming's day boxes line up with the grid's first 4 columns (docs/BLOCKS.md §1):
+    // how far, in reference pixels, each box's edges are from its column's
+    const grid = document.querySelector('.dashboard');
+    const gridLeft = grid.getBoundingClientRect().left + parseFloat(getComputedStyle(grid).paddingLeft);
+    const tracks = getComputedStyle(grid).gridTemplateColumns.split(' ').map(parseFloat);
+    const gap = parseFloat(getComputedStyle(grid).columnGap);
+    const dayOffsets = [...document.querySelectorAll('.upcoming-day')].map((box, i) => {
+        const left = gridLeft + tracks.slice(0, i).reduce((sum, w) => sum + w + gap, 0);
+        const rect = box.getBoundingClientRect();
+        return Math.round(Math.max(Math.abs(rect.left - left), Math.abs(rect.right - (left + tracks[i]))) / px);
+    });
+
     const bodySizes = [...document.querySelectorAll('.widget')]
         .map(el => parseFloat(getComputedStyle(el).fontSize));
 
@@ -50,6 +62,7 @@ function measure() {
         pageScrolls: root.scrollWidth > root.clientWidth || root.scrollHeight > root.clientHeight,
         shells,
         dockInside: dock.top >= 0 && dock.bottom <= innerHeight + 0.5 && dock.height > 0,
+        dayOffsets,
         bodySizes,
         smallTargets,
     };
@@ -65,6 +78,7 @@ for (const [width, height] of RESOLUTIONS) {
             await page.locator('.task').first().waitFor();
             await page.locator('.dock-weather').waitFor();
             await page.locator('.timeline-event').first().waitFor();
+            await page.locator('.upcoming-event').first().waitFor();
             await page.evaluate(() => document.fonts.ready);
             await page.screenshot({ path: `test-results/screens/${width}x${height}.png` });
 
@@ -76,6 +90,8 @@ for (const [width, height] of RESOLUTIONS) {
             expect(m.shells.filter(s => s.overflowing).map(s => s.area), 'widgets whose content overflows').toEqual([]);
             expect(m.shells.filter(s => !s.inside).map(s => s.area), 'widgets off screen').toEqual([]);
             expect(m.dockInside, 'the dock is on screen').toBe(true);
+            expect(m.dayOffsets, "Upcoming's days, off their columns (reference px)").toHaveLength(4);
+            expect(m.dayOffsets.filter(d => d > 8), "Upcoming's days, off their columns (reference px)").toEqual([]);
             expect(m.smallTargets, 'tap targets smaller than --hit').toEqual([]);
 
             // body text is the same size in every widget (DESIGN §9)

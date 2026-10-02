@@ -1,5 +1,5 @@
 // The health of the parts that run on their own (DESIGN §5.5): the nightly
-// backup, the calendar feed, and the claude.ai connectors. The dock shows a
+// backup, the calendar feeds, and the claude.ai connectors. The dock shows a
 // warning only for a problem.
 import fs from 'node:fs';
 
@@ -24,9 +24,9 @@ export function problems({ backup, calendar, connectors = [] }, now) {
     } else if (backup && now - Date.parse(backup.at) > BACKUP_STALE_MS) {
         found.push({ kind: 'backup', message: 'No backup in over a day' });
     }
-    if (calendar?.configured && calendar.failing_since && now - Date.parse(calendar.failing_since) > CALENDAR_FAILING_MS) {
-        found.push({ kind: 'calendar', message: 'The calendar isn\'t updating' });
-    }
+    const failing = feed => feed?.configured && feed.failing_since && now - Date.parse(feed.failing_since) > CALENDAR_FAILING_MS;
+    if (failing(calendar)) found.push({ kind: 'calendar', message: 'The calendar isn\'t updating' });
+    if (failing(calendar?.routine)) found.push({ kind: 'calendar-routine', message: 'The classes calendar isn\'t updating' });
     // a connection that ended without the owner ending it: expired, or revoked
     // because its token was copied (docs/CONNECTOR.md §4)
     for (const c of connectors) {

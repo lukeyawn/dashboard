@@ -1,5 +1,6 @@
-import { useLayoutEffect, useRef, useState } from 'react';
+import { useRef } from 'react';
 import { today } from '../../../shared/dates';
+import { useHiddenCount } from '../../hooks/useHiddenCount';
 import { useNow } from '../../hooks/useNow';
 import { useResource } from '../../hooks/useResource';
 import { formatTime } from '../../lib/format';
@@ -24,7 +25,7 @@ export default function TimelineWidget() {
     });
     const pastCount = timed.filter(e => e.status === 'past').length;
     const listRef = useRef(null);
-    const folded = useFoldedCount(listRef, `${todayDate}|${timed.map(e => `${e.id}:${e.status}`).join(',')}`, pastCount);
+    const folded = useHiddenCount(listRef, `${todayDate}|${timed.map(e => `${e.id}:${e.status}`).join(',')}`, pastCount);
 
     if (events.loading) return <Frame><p className="widget-message">Loading…</p></Frame>;
     if (!events.data) return <Frame><p className="widget-message">Couldn't load today's events.</p></Frame>;
@@ -65,21 +66,4 @@ function Frame({ children }) {
             {children}
         </div>
     );
-}
-
-// How many of the earliest past events to fold away so the rest fit. Starts
-// from 0 whenever the events or their statuses change, then folds one more
-// after each render that still overflows, up to the number of past events.
-function useFoldedCount(listRef, key, max) {
-    const [fold, setFold] = useState({ key, count: 0 });
-    const count = fold.key === key ? fold.count : 0;
-
-    useLayoutEffect(() => {
-        const list = listRef.current;
-        if (list && count < max && list.scrollHeight > list.clientHeight + 1) {
-            setFold({ key, count: count + 1 });
-        }
-    }, [listRef, key, count, max]);
-
-    return count;
 }

@@ -1,4 +1,4 @@
-// Reads Google Calendar's private iCal feed (DESIGN §4, Google Calendar).
+// Reads Google Calendar's private iCal feeds (DESIGN §4, Google Calendar).
 // Events are expanded into occurrences here, so the dashboard and the agent
 // always agree, and yearly all-day events are treated as birthdays.
 import fs from 'node:fs';
@@ -68,15 +68,44 @@ export function occurrences({ calendar, events }, from, to) {
         }
     }
 
+    return sorted(found);
+}
+
+// all-day events first, then by start; birthdays by date
+function sorted({ events, birthdays }) {
     const byStart = (a, b) => (a.start ?? a.date).localeCompare(b.start ?? b.date) || a.title.localeCompare(b.title);
-    found.events.sort((a, b) => Number(b.all_day) - Number(a.all_day) || byStart(a, b));
-    found.birthdays.sort(byStart);
-    return found;
+    events.sort((a, b) => Number(b.all_day) - Number(a.all_day) || byStart(a, b));
+    birthdays.sort(byStart);
+    return { events, birthdays };
+}
+
+// The main calendar and the optional routine one (classes), read as one
+// (docs/BLOCKS.md §1). Every event is tagged with which it came from: routine
+// events are on Today and in Claude's answers, but not on Upcoming. Birthdays
+// come from the main calendar only.
+export function combineFeeds(main, routine = null) {
+    const feeds = [main, routine].filter(Boolean);
+    return {
+        refresh: () => Promise.all(feeds.map(f => f.refresh())),
+        start: () => feeds.forEach(f => f.start()),
+        stop: () => feeds.forEach(f => f.stop()),
+        // the routine feed's health travels with the main one's, for the dock
+        status: () => ({ ...main.status(), routine: routine?.status() ?? null }),
+        between(from, to) {
+            const { events, birthdays } = main.between(from, to);
+            const classes = routine?.between(from, to).events ?? [];
+            return sorted({
+                events: [...events.map(e => ({ ...e, routine: false })), ...classes.map(e => ({ ...e, routine: true }))],
+                birthdays,
+            });
+        },
+    };
 }
 
 // Fetches the feed every 10 minutes and keeps the last good copy on disk, so
 // a failed fetch or an offline restart still serves events.
-export function createCalendarFeed({ url, cacheFile, fetch = globalThis.fetch, now = Date.now, log = console } = {}) {
+// name says which feed failed, in the log
+export function createCalendarFeed({ url, cacheFile, name = 'Calendar', fetch = globalThis.fetch, now = Date.now, log = console } = {}) {
     let feed = { calendar: null, events: [] };
     // failing_since: when fetches started failing, so a brief outage isn't a problem
     let status = { configured: Boolean(url), last_success: null, last_error: null, failing_since: null };
@@ -86,7 +115,7 @@ export function createCalendarFeed({ url, cacheFile, fetch = globalThis.fetch, n
         try {
             feed = parseFeed(fs.readFileSync(cacheFile, 'utf8'));
         } catch (err) {
-            log.error(`Ignoring an unreadable calendar cache: ${err.message}`);
+            log.error(`Ignoring an unreadable ${name.toLowerCase()} cache: ${err.message}`);
         }
     }
 
@@ -106,7 +135,7 @@ export function createCalendarFeed({ url, cacheFile, fetch = globalThis.fetch, n
         } catch (err) {
             // never log the URL itself: it's a password (DESIGN §2)
             status = { ...status, last_error: err.message, failing_since: status.failing_since ?? new Date(now()).toISOString() };
-            log.error(`Calendar refresh failed: ${err.message}`);
+            log.error(`${name} refresh failed: ${err.message}`);
         }
     }
 
