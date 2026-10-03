@@ -108,16 +108,17 @@
 
 .job-company {
     font-weight: 600;
+    color: var(--text);
 }
 
 .job-role {
     color: var(--text-muted);
 }
 
-/* applied ones are muted */
-.job-row.spare .job-name, .job-row.spare .job-company {
+/* applied ones are quieter: the company in a lighter weight, but white like
+   every company; the role, date and pill are muted on every row */
+.job-row.spare .job-company {
     font-weight: 400;
-    color: var(--text-muted);
 }
 
 .job-row.spare .status-pill {

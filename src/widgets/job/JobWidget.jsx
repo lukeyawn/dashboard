@@ -21,7 +21,7 @@ import './JobWidget.css';
 // Three lists, and a panel once an application is tapped (docs/BLOCKS.md §6).
 // Needs action: every OA and offer, and anything with a next step from today
 // on, by that step. To apply: saved to apply to, by the day to apply by.
-// Waiting on: the rest, interviews first, applied ones muted. Rejected and
+// Waiting on: the rest, interviews first, applied ones quieter. Rejected and
 // withdrawn are archived, in the editor only. Until a row is tapped, the rows
 // use the whole tile; the panel closes with ✕, a second tap on its row, or
 // on the kiosk after 5 idle minutes.
