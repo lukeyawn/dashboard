@@ -315,3 +315,17 @@ Choices made while building, where [DESIGN.md](DESIGN.md) left room or turned ou
 | The area rename clash names the area from the change's `before`, the name the undo was putting back. | It's the name that's taken. |
 | The skip summaries in the agent's modal and Claude's changes share `describeSkipped` in `describeChange.js`, a file UNDO.md §4 didn't list. Each item is "what it was (the server's reason)". | Two places said the same thing in slightly different words; the server's reason is what History already shows for a single undo. |
 | The reused-id and `updated_at` tests pass on the old code too. | They guard rules that already hold, so a later change can't break them unnoticed. The other new tests fail on the old code. |
+
+## Docs consolidation
+
+[V2_IDEAS.md idea 6](V2_IDEAS.md#6-consolidate-the-design-docs), Oct 3. Docs only.
+
+| Choice | Why |
+|---|---|
+| BLOCKS.md stays at `docs/BLOCKS.md`, marked as built, instead of moving to `archive/`. | About 80 files cite `docs/BLOCKS.md §n` in comments and test names, eight of them migrations, which are never edited. In place, every citation still leads to the reasons. |
+| AGENT.md keeps §2, §3 and §6, and CONNECTOR.md points to them rather than absorbing them. | Code cites them (the allow-list, the chip, the PR's files). Each doc now covers its own part with no "newer than" overlap: CONNECTOR.md what both connectors share, AGENT.md what's particular to the agent. |
+| CONNECTOR.md is rewritten in place with the first version's section numbers; §7 is now the text and link rules and §8 the agent's changes in the dock. The first version is `archive/CONNECTOR-v1.md`, whole. | Code cites §2–§15 by number. Archiving the whole first version keeps the suggestions design readable as it was. |
+| CONNECTOR.md §7's length limits are now the ones the code enforces: the shared schemas' for text, and 500 characters for links. | The first version listed per-field connector limits (notes 1,000, dates within two years) that were never built. |
+| DESIGN.md's repo layout lists directories and key files only, and points to each directory's README. | The full file list went stale with every PR; the READMEs are already updated in each PR that changes a directory. |
+| BLOCKS.md §10's merging rules moved into DESIGN.md §12, for every PR. | They were written for the block redesign but are how all PRs work now. |
+

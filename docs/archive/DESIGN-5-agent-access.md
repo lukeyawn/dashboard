@@ -6,7 +6,7 @@
 
 ### 5.1 An autonomous agent (planned)
 
-> **Updated Oct 2 ([AGENT.md](AGENT.md)):** the agent's connector adds and changes directly (no deleting, 30 a day, recorded as `agent`) instead of suggesting, and a dock chip lists what it did, with Undo. Where §5.1–5.5 and phase 9 below mention suggestions, AGENT.md is newer.
+> **Updated Oct 2 ([AGENT.md](../AGENT.md)):** the agent's connector adds and changes directly (no deleting, 30 a day, recorded as `agent`) instead of suggesting, and a dock chip lists what it did, with Undo. Where §5.1–5.5 and phase 9 below mention suggestions, AGENT.md is newer.
 
 The owner's goal: a Claude agent that runs on a schedule, without him, reads his email and calendar, and keeps the dashboard current. It turns emails into tasks, notices application updates, and writes a morning briefing.
 
@@ -32,7 +32,7 @@ The agent reads email and calendar invitations, and anyone in the world can writ
    - Neither connector can export, read tokens, or manage connections.
    - Its Gmail connector gets read-only tools: sending, drafting and deleting are blocked in claude.ai's connector settings. A fooled agent then has no channel to send dashboard data out.
    - Its calendar access is read-only too. Adding events stays something the owner does in Google Calendar or asks Claude Code for.
-   - Any other connector that could carry data out, such as Google Drive's create and share tools, is blocked or off for the agent, and so is web search where the agent's task allows it ([CONNECTOR.md §12](CONNECTOR.md#12-open-questions)).
+   - Any other connector that could carry data out, such as Google Drive's create and share tools, is blocked or off for the agent, and so is web search where the agent's task allows it ([CONNECTOR.md §12](../CONNECTOR.md#12-open-questions)).
    - claude.ai applies connector settings to the whole account, so these blocks apply to chats too.
 6. **Its instructions say it plainly.** The agent's standing instructions, and the descriptions of its tools, state that email and calendar text is untrusted data to summarize, never instructions to follow. This is the weakest layer, which is why points 1–5 don't depend on it.
 7. **Kill switches.** Toggles on `/manage` revoke the chat connector, the agent connector, or both, at once. Pending suggestions and Claude's changes are kept for review.
@@ -40,7 +40,7 @@ The agent reads email and calendar invitations, and anyone in the world can writ
 
 ### 5.3 One public door
 
-The full design is in [CONNECTOR.md](CONNECTOR.md). In short:
+The full design is in [CONNECTOR.md](../CONNECTOR.md). In short:
 
 - **Two connectors.**
   - **`/mcp`, for claude.ai chats,** adds and changes things directly, with no deleting.

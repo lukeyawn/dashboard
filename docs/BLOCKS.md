@@ -2,9 +2,9 @@
 
 Oct 2, 2026 · Luke (owner, design and review) · Claude (implementation)
 
-After a few days of using the live dashboard, Luke went through it block by block. This doc records what each block becomes, and why. Where this doc and [DESIGN.md](DESIGN.md) differ, this doc is newer. Each code PR updates DESIGN.md to describe what it built (§10's widget specs, §3's data model and so on), so DESIGN.md stays the description of what exists.
+> **Built (Oct 2–3, PRs #27–#31, #34–#37, #39).** [DESIGN.md](DESIGN.md) describes what exists, and where the build differed from this doc, DESIGN.md and [DECISIONS.md](DECISIONS.md) say so. This doc stays as the record of **why** each block is the way it is, including what was rejected. It isn't moved to `archive/` because code comments and migrations cite its sections.
 
-The build order is in §10. DESIGN.md describes the parts already built.
+After a few days of using the live dashboard, Luke went through it block by block. This doc records what each block became, and why.
 
 **In short,** every block on the grid, and what happens to it:
 
@@ -549,12 +549,14 @@ The clock already ticks every second but shows only hours and minutes.
 - **A stats or "wrapped" page** (steps, a year in review): a separate page on the same server, like `/manage`, reading the change record. Not on the grid.
 - **Habits derived from data** ("applied to a job today"), and polling LeetCode or GitHub.
 - **Logging habits from the phone** (§2).
-- **The daily briefing:** its content, and where it goes on the grid, are decided when the agent is designed.
+- **The daily briefing:** its content, and where it goes on the grid, are decided when the agent is designed. (Since planned for the center of the dock: [V2_IDEAS.md idea 7](V2_IDEAS.md#7-the-daily-briefing-in-the-center-of-the-dock).)
+
+These are on DESIGN.md §12's Later list.
 
 ### Open questions
 
-- **claude.ai's prefilled prompt.** Prepare (§6) assumes `claude.ai/new?q=…` opens a new chat with the text filled in. Check before building on it.
-- **How fresh Google's secret iCal feed is** (already in DESIGN §16). It matters more now that planning is done with time blocks. Create an event and time how long it takes to appear.
+- ~~**claude.ai's prefilled prompt.**~~ Answered: `claude.ai/new?q=…` fills the chat box (DECISIONS.md, the block redesign), and Luke confirmed it works.
+- **How fresh Google's secret iCal feed is:** still open, in DESIGN §16.
 
 ---
 
@@ -579,7 +581,4 @@ Each step is its own PR off `main`, never stacked. They go in three rounds: a PR
 
 **Migrations and Undo.** Replaced by [UNDO.md](UNDO.md) (Oct 3): Undo compares column by column, so most migrations no longer rewrite the change record. The rule is in DESIGN.md §14.
 
-**Merging:**
-- **Several PRs touch `shared/schemas.js`, and most add a migration,** so migration numbers are given out in merge order: a PR renames its file when it's rebased.
-- **Each PR description names the other PRs touching the same files,** so they're merged in a sensible order.
-- **Each PR updates DESIGN.md** (its §3, §10 and the rest) to describe what it built, and the README of each directory it changes.
+**Merging:** these rules now apply to every PR, and are in DESIGN.md §12 (*How work reaches `main`*).
