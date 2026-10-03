@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { describeChange, whoMade } from './describeChange';
+import { describeChange, describeSkipped, whoMade } from './describeChange';
 
 const task = fields => ({ id: 1, name: 'Pset 4', done_at: null, priority: 'soon', due: null, repeat: null, last_done_at: null, updated_at: 'a', ...fields });
 const change = (resource, action, before, after, item_id = '1') => ({ resource, action, before, after, item_id });
@@ -54,6 +54,16 @@ describe('describeChange', () => {
     it('reads the connector switches', () => {
         expect(describeChange(change('settings', 'create', null, { value: false }, 'connector_chat_enabled'))).toBe('Switched the claude.ai connector off');
         expect(describeChange(change('settings', 'update', { value: false }, { value: true }, 'connector_agent_enabled'))).toBe("Switched the agent's connector on");
+    });
+});
+
+describe('describeSkipped', () => {
+    it('names each change with the reason it was kept', () => {
+        const skipped = [
+            { change: change('tasks', 'create', null, { name: 'Reply' }), reason: 'It has changed since.' },
+            { change: change('countdowns', 'update', { label: 'A', pinned: 1 }, { label: 'A', pinned: 0 }), reason: 'Another countdown is pinned now.' },
+        ];
+        expect(describeSkipped(skipped)).toBe('Couldn\'t undo 2: Added task "Reply" (It has changed since.); Unpinned countdown "A" (Another countdown is pinned now.)');
     });
 });
 

@@ -1,7 +1,7 @@
 import { useState } from 'react';
 import Modal from '../components/Modal';
 import { request } from '../lib/api';
-import { describeChange } from '../manage/describeChange';
+import { describeChange, describeSkipped } from '../manage/describeChange';
 import '../editors/editors.css';
 
 const when = at => new Date(at).toLocaleString('en-US', { weekday: 'short', hour: 'numeric', minute: '2-digit' });
@@ -32,7 +32,7 @@ export default function AgentChanges({ changes, onClose }) {
     }
 
     // the existing undo-since, for the agent only, from the oldest change
-    // listed; a change Luke has edited since is skipped and named
+    // listed; a change that can't be undone is skipped and named, with why
     async function undoAll() {
         if (!armed) return setArmed(true);
         setArmed(false);
@@ -44,7 +44,7 @@ export default function AgentChanges({ changes, onClose }) {
             });
             markUndone(done.map(c => c.id));
             const parts = [`Undid ${done.length} ${done.length === 1 ? 'change' : 'changes'}.`];
-            if (skipped.length) parts.push(`Kept ${skipped.length} you've changed since: ${skipped.map(s => describeChange(s.change)).join('; ')}.`);
+            if (skipped.length) parts.push(describeSkipped(skipped));
             setMessage(parts.join(' '));
         } catch (err) {
             setMessage(`Couldn't undo. ${err.message}`);

@@ -303,3 +303,15 @@ Choices made while building, where [DESIGN.md](DESIGN.md) left room or turned ou
 | Job search: the panel's notes are a text box. They're saved with Save, 30 seconds (`NOTES_SAVE_MS`) after the last keystroke, or when the panel closes or moves on. With nothing unsaved, the box follows the stored notes, so a summary Claude adds appears; with unsaved edits, saving replaces it (Undo can bring it back). A failed save keeps the edit and offers Save again. | Luke asked for Save or a 30-second autosave; saving on close means a closed panel never drops an edit. Merging two edits to free text isn't worth it for one person's notes. |
 | `OpenLink` (`src/components`) is the one way a stored link is opened: a new tab with `noopener noreferrer`, a ✦ on Claude's links, and the question before opening one. | CONNECTOR.md §7 and AGENT.md §2 ask for this wherever a stored link becomes clickable. |
 | Colors: `--oa` is orchid (`hsl(300,55%,78%)`), between applied's blue and interview's amber; `--withdrawn` a darker gray than rejected. | The violet already used for long tasks would have read as the same thing. |
+
+## Undo across migrations
+
+[UNDO.md](UNDO.md), built Oct 3.
+
+| Choice | Why |
+|---|---|
+| A copy is checked for columns the table lacks before anything else, and for an update both `before` and `after` are checked. | `before` is what gets written back, so a renamed column in it would be lost as surely as one in `after`. |
+| The constraint message is chosen from SQLite's own error text (`UNIQUE constraint failed: countdowns.pinned`). An unknown UNIQUE gets the general *"would leave it inconsistent"*. | SQLite gives no index name to match on. A clash nobody planned for still refuses instead of failing. |
+| The area rename clash names the area from the change's `before`, the name the undo was putting back. | It's the name that's taken. |
+| The skip summaries in the agent's modal and Claude's changes share `describeSkipped` in `describeChange.js`, a file UNDO.md §4 didn't list. Each item is "what it was (the server's reason)". | Two places said the same thing in slightly different words; the server's reason is what History already shows for a single undo. |
+| The reused-id and `updated_at` tests pass on the old code too. | They guard rules that already hold, so a later change can't break them unnoticed. The other new tests fail on the old code. |

@@ -26,7 +26,7 @@ Every `x.test.js` tests the `x.js` beside it. The exceptions are noted below.
 | `access.js` | What a claude.ai connector's token may do: an allow-list of routes per connector, and each one's daily cap, 100 writes for chats and 30 for the agent (docs/CONNECTOR.md §5, docs/AGENT.md §2). |
 | `clean.js` | Cleans text written through a connector (invisible and reordering characters) and refuses links that aren't https. |
 | `limits.js` | Rate limits: the dashboard's login lockout, and the public listener's split limits, by connection, by visitor and per kind of traffic. |
-| `undo.js` | Undoes one change, but only if the item is still exactly as that change left it; otherwise it answers 409. `undo.since` undoes everything matching since a time, skipping items edited since. `changes.test.js` covers it. |
+| `undo.js` | Undoes one change, but only if the item is still exactly as that change left it, compared column by column (columns added since are ignored, and a copy with a column the table no longer has is refused); otherwise it answers 409. A clash with another row (two pinned countdowns, a taken name or source) is a 409 too. `undo.since` undoes everything matching since a time, skipping what it can't undo. `changes.test.js` covers it. |
 
 ## Features
 

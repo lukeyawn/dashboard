@@ -362,7 +362,7 @@ Each can be revoked on its own: the tokens by changing them in `.env`, and each 
 
 ### 5.5 Records that make an agent trustworthy
 
-- **The change record** (`changes`, §3): every write, from anyone, with the actor (`owner`, `kiosk`, `claude`, `agent`), the time, and the row before and after. Writes through the stdio MCP server are recorded as `claude`. It's kept for good. `/manage`'s **History** lists recent changes, filterable by who made them, each with **Undo**.
+- **The change record** (`changes`, §3): every write, from anyone, with the actor (`owner`, `kiosk`, `claude`, `agent`), the time, and the row before and after. Writes through the stdio MCP server are recorded as `claude`. It's kept for good. `/manage`'s **History** lists recent changes, filterable by who made them, each with **Undo**. Undo refuses whenever the item has changed in any way since; it compares column by column, so a migration that adds a column doesn't block older changes ([UNDO.md](UNDO.md)).
 - **Sources and no duplicates.** An item created from an email carries `source` (`gmail:<message id>`), and the server never creates a second item with the same source, so an agent re-reading the inbox every morning can't pile up copies.
 - **Richer tasks** (§3): due date, priority, area, time estimate, notes and a link back to the email, filled in by Claude.
 - **A status line** (`GET /api/status`): the last nightly backup and the calendar feed now, and the agent's runs later. The dock shows a warning only when something is wrong, such as no successful backup in 36 hours, or a calendar feed (main or classes) failing for over an hour.
@@ -973,6 +973,12 @@ Each of these caused a real bug or near-miss, or is a known trap. Keep them in m
 - **Behind `tailscale serve`, every request comes from `localhost`.** Never skip the token check based on where a request comes from, and don't rate-limit per address.
 - **Polls versus taps:** a poll sent before a local change can arrive after it. Drop responses older than the last change, or an optimistic update flickers back.
 - **SQLite and sync folders:** never put the live database in Drive, Dropbox or OneDrive; it gets corrupted. Copies are made only with Litestream and `VACUUM INTO`.
+- **Migrations and the change record** ([UNDO.md §3](UNDO.md#3-migrations-from-now-on)): Undo compares a change's copy of a row column by column, and refuses a copy with a column the table no longer has. So a migration that:
+  - adds a column that stands on its own, or rebuilds a table: does nothing to the copies in `changes`;
+  - adds a column filled from other columns, or tied to them by a CHECK: sets it in `before` and `after`, as for the rows. Forgetting this isn't refused, so the migration's test undoes an older change and checks the row it leaves;
+  - drops or renames a column: `json_remove`s or renames the key in `before` and `after`. Forgetting means older changes are refused;
+  - changes stored values: maps them in `before` and `after`.
+- **Every write to a row sets `updated_at`** (`tasks`, `areas`, `countdowns`, `goals`, `habits`, `applications`). Undo relies on it to notice an edit to a column added since the change was recorded, so a raw `UPDATE` that skips it would let Undo overwrite that edit silently. A test checks every write path ([UNDO.md §2](UNDO.md#2-the-change-compare-column-by-column)).
 - **React state:** replace arrays and objects, never mutate them. Use the updater form (`setX(prev => …)`) whenever the new value depends on the old. Filtered views are computed at render time, not stored in state.
 - **Effects:**
   - An effect callback can't be `async`; declare an async function inside it and call it.
