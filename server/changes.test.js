@@ -538,6 +538,13 @@ describe('the migration to application steps (docs/BLOCKS.md §6)', () => {
         expect(raw(id)).toBeUndefined();
     });
 
+    it('takes to_apply without a date applied, and nothing else without one', () => {
+        const db = new Database(':memory:');
+        migrate(db);
+        expect(() => db.prepare("INSERT INTO applications (company, role, status, applied_on) VALUES ('a', 'r', 'to_apply', NULL)").run()).not.toThrow();
+        expect(() => db.prepare("INSERT INTO applications (company, role, status, applied_on) VALUES ('a', 'r', 'applied', NULL)").run()).toThrow(/CHECK/);
+    });
+
     it('takes oa and withdrawn, keeps source unique, and refuses a time without a date', () => {
         const db = new Database(':memory:');
         migrate(db);

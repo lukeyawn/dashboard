@@ -301,6 +301,16 @@ describe('applications', () => {
         expect((await request(`/api/applications/${app.id}/advance`, { method: 'POST' })).status).toBe(404);
     });
 
+    it('keep one to apply to without a date applied, and fill in today once it moves on', async () => {
+        const { request } = await start();
+        const saved = await request('/api/applications', { method: 'POST', body: { company: 'Anthropic', role: 'Intern', status: 'to_apply', next_on: '2026-10-09' } });
+        expect(saved.body).toMatchObject({ status: 'to_apply', applied_on: null });
+        const sent = await request(`/api/applications/${saved.body.id}`, { method: 'PATCH', body: { status: 'applied', next_on: null } });
+        expect(sent.body).toMatchObject({ status: 'applied', applied_on: '2026-09-30', next_on: null });
+        expect((await request(`/api/applications/${saved.body.id}`, { method: 'PATCH', body: { applied_on: null } })).status).toBe(400);
+        expect((await request('/api/applications', { method: 'POST', body: { company: 'a', role: 'r', applied_on: null } })).status).toBe(400);
+    });
+
     it('refuse a next step time without a date', async () => {
         const { request } = await start();
         expect((await request('/api/applications', { method: 'POST', body: { company: 'a', role: 'r', next_time: '14:00' } })).status).toBe(400);
@@ -451,8 +461,9 @@ describe('today', () => {
         // nearest first, one without a time before one with a time on the same day
         expect(body.countdowns.map(c => [c.label, c.days_left])).toEqual([['Out of class', 2], ['Flight', 2], ['Break', 56]]);
         expect(body.countdowns[1]).toMatchObject({ target_time: '14:00', detail: 'hours' });
-        expect(body.applications.counts).toEqual({ applied: 1, oa: 1, interview: 1, offer: 0, rejected: 0, withdrawn: 0 });
-        expect(body.applications.active.map(a => a.company)).toEqual(['Figma', 'Ramp']);
+        expect(body.applications.counts).toEqual({ to_apply: 0, applied: 1, oa: 1, interview: 1, offer: 0, rejected: 0, withdrawn: 0 });
+        expect(body.applications.to_apply).toEqual([]);
+        expect(body.applications.needs_action.map(a => a.company)).toEqual(['Figma', 'Ramp']);
         expect(body.weather).toMatchObject({ temperature: 82, location: { source: 'default' } });
         expect(body.night.active).toBe(false);
     });

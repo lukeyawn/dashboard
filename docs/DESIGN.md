@@ -196,7 +196,7 @@ Everything lives on the VM, except events, which are Google's.
 | `goals` | `name`, `current?`, `target?`, `unit?`, `archived_at`, `kind`, `deadline?`, `started`, `step?`, `achieved_at?`, `dream` | `kind` is `progress` (a count toward `target`, by `step`, 1 by default) or `milestone` (done once; no current, target, unit or step). `started` is where the pace toward a `deadline` begins, the day the goal is made by default. `achieved_at` is set when a progress goal reaches its target (and cleared if it drops back below), or when a milestone is done. A `dream` is a long-horizon goal kept off the tile. The API adds `week_gain`: how much `current` went up this calendar week, summed from the change record ([BLOCKS.md §5](BLOCKS.md#5-goals)). |
 | `habits` | `name`, `position`, `per_week`, `archived_at` | `per_week` is the weekly target, 1 to 7, defaulting to 7 (daily) ([BLOCKS.md §2](BLOCKS.md#2-habits-a-weekly-target)). |
 | `habit_checks` | `habit_id`, `date` | Primary key is `(habit_id, date)`. A row exists means the habit was done that day. Deleting a habit deletes its checks. |
-| `applications` | `company`, `role`, `status`, `applied_on`, `url?`, `notes?`, `source?`, `next_on?`, `next_time?` | `status` is one of `applied`, `oa`, `interview`, `offer`, `rejected`, `withdrawn`; the last two are archived, off the tile. `next_on` and `next_time` are the next step: the OA's due date, the interview's day and time, or the day an offer needs a reply by. A time needs a date, and clearing the date clears it. The API adds `url_by_claude`: true when the change record shows Claude wrote the current `url` ([BLOCKS.md §6](BLOCKS.md#6-job-search)). |
+| `applications` | `company`, `role`, `status`, `applied_on`, `url?`, `notes?`, `source?`, `next_on?`, `next_time?` | `status` is one of `to_apply`, `applied`, `oa`, `interview`, `offer`, `rejected`, `withdrawn`; the last two are archived, off the tile. `applied_on` is empty only while it's `to_apply`, and filled in with today when it moves on. `next_on` and `next_time` are the next step: the day to apply by, the OA's due date, the interview's day and time, or the day an offer needs a reply by. A time needs a date, and clearing the date clears it. The API adds `url_by_claude`: true when the change record shows Claude wrote the current `url` ([BLOCKS.md §6](BLOCKS.md#6-job-search)). |
 | `changes` | `at`, `actor`, `resource`, `item_id`, `action`, `before?`, `after?` | Every write, from anyone, in the same transaction as the write itself (§5.5). `action` is `create`, `update` or `delete`; `before` and `after` are the whole row as JSON. Kept for good, for a year in review ([BLOCKS.md §7](BLOCKS.md#7-the-change-record-kept-for-good)). |
 | `settings` | `key`, `value` (JSON) | Keys you can change: `night_start` (default `"22:00"`), `night_end` (default `"06:30"`), `week_start` (`"sunday"`, the default, or `"monday"`), the day weeks start on for habits, and `assignments_area`, the id of the area the Assignments tile shows (School's, stored by migration 015; read as `null` once that area is deleted; an unknown id is refused). Keys the system sets: `night_early_until` (§6.4) and `kiosk_location`, `{ lat, lon, name, reported_at }` (§10, Dock). |
 
@@ -246,7 +246,7 @@ The resources are `tasks`, `countdowns`, `goals`, `habits` and `applications`.
 | `POST /api/night/start` / `POST /api/night/cancel` | Start night mode early, or cancel an early start (§6.4). |
 | `GET /api/weather?lat&lon` | Current weather and today's high and low: `{ location: { lat, lon, name, source }, temperature, condition, high, low }`. `source` is `device`, `kiosk` or `default` (§10, Dock). |
 | `PUT /api/location/kiosk` | The kiosk reports its location. Accepted only with the kiosk token. |
-| `GET /api/today` | A snapshot of today: today's events, open tasks split as the tiles show them (`assignments`, nearest first, and `tasks`), goals, each habit's status today and count this week, the nearest countdowns, application counts and the `active` applications (OA, interview, offer) in the tile's order, and the weather at the kiosk. This is mainly for the agent. |
+| `GET /api/today` | A snapshot of today: today's events, open tasks split as the tiles show them (`assignments`, nearest first, and `tasks`), goals, each habit's status today and count this week, the nearest countdowns, application counts, and the tile's `needs_action` and `to_apply` lists, and the weather at the kiosk. This is mainly for the agent. |
 | `GET /api/export` | A full JSON dump of every table. |
 | `POST /api/login` `{ token }` | Checks a token and sets the login cookie (see Access). |
 | `GET /api/health` | `200` with no body. Needs no token and reveals nothing; the kiosk uses it to check the server is reachable before loading or reloading. |
@@ -403,7 +403,7 @@ The kiosk is a touchscreen, and it's used standing at a wall.
 | Assignments | The whole row |
 | Habits | Each day cell: at least `0.92 × --hit` wide (the tile is too narrow for seven full-width cells) and the full row height. Habit names truncate to make room. |
 | Goals | The **+** button (it reads its step, "+1", "+10") and a milestone's **Done**, `--hit` |
-| Job | Each row (it selects the application), Stage ▾, ↗ Posting and Prepare, each `--hit` tall |
+| Job | Each row (it opens the panel), its ↗ and Prepare, ✕, Stage ▾, Save, ↗ Posting and Prepare, each `--hit` tall |
 | Any editable widget | The ✎ button, `--hit` |
 
 **No hover on touch:**
@@ -550,7 +550,7 @@ The panel is very low opacity with **no hue**, so the photo shows through almost
 | `--urgent` | `hsl(0,85%,72%)` | Due dates within 2 days, or overdue; the now marker |
 | `--behind` | `hsl(40,90%,65%)` | A goal's bar when it's more than 10% of the target behind its pace. Never red. |
 | `--quick`, `--long` | `hsl(140,60%,62%)`, `hsl(270,75%,80%)` | A task's time chip: 15 minutes or less, and over an hour |
-| `--applied` / `--oa` / `--interview` / `--offer` / `--rejected` / `--withdrawn` | blue / orchid / amber / green / gray / darker gray | Job stages |
+| `--to-apply` / `--applied` / `--oa` / `--interview` / `--offer` / `--rejected` / `--withdrawn` | teal / blue / orchid / amber / green / gray / darker gray | Job stages |
 
 ### Widget titles
 
@@ -695,15 +695,16 @@ Replaced the month calendar, which repeated the dock's date and other tiles' dea
 - **Source:** Google Calendar (§4), read-only. No tap actions and no ✎, like Today.
 
 ### Job search (4×2)
-A list of what's next, and a panel for the selected application ([BLOCKS.md §6](BLOCKS.md#6-job-search)).
+Three lists, and a panel once an application is tapped ([BLOCKS.md §6](BLOCKS.md#6-job-search)).
 
-- **The list (about 55%):** one row per application: the company, the stage pill and the next step's date ("due Fri", "Tue 2 PM", "by Oct 20"), in `--urgent` within 2 days. OA, interview and offer applications come first, by the next step's date and time (none last). The most recently applied ones fill the spare rows, muted, with the day they were sent. Rejected and withdrawn never show. What doesn't fit folds into "+N more" (`useHiddenCount`). No stage counts.
-- **Tapping a row selects it;** the pill is only a label. The top row is selected until then, and again on the kiosk after `IDLE_MS` without a touch.
-- **The panel (about 45%):** the company and role, the next step in full ("Interview · Tue, Oct 6, 2:00 PM", "Offer · reply by Tue, Oct 20"), the date applied, **Stage ▾**, the notes (scrolling inside the panel), and **↗ Posting** and **Prepare**.
+- **Sections:** **Needs action** (every OA and offer, and anything sent with a next step from today on, by that step), **To apply** (by the day to apply by, then the newest) and **Waiting on** (the rest, interviews first, then the most recent; applied ones muted). Rejected and withdrawn never show. What doesn't fit folds into "+N more" from the end (`useHiddenCount`); a section with no row showing has no heading. No stage counts.
+- **Each row, on one line:** "Company · Role" (cut off with "…"), ↗ to the posting and ✦ just after it, then in aligned columns **Prepare** (OA and interview), the date ("by Fri", "due Fri", "Tue 2 PM", "by Oct 20", `--urgent` within 2 days, or the date applied) and the stage pill on the right. The pill is only a label; a tap elsewhere on the row opens the panel.
+- **The panel (about 45%)** opens only on a tap, and closes with ✕, a second tap on the row, or on the kiosk after `IDLE_MS`. The rows then keep everything but Prepare. It shows the company and role, the next step in full ("Interview · Tue, Oct 6, 2:00 PM", "Offer · reply by Tue, Oct 20"), the date applied (or "Not applied yet"), **Stage ▾**, the notes in a text box, **↗ Posting** and **Prepare**.
+- **Notes** are saved with **Save**, 30 seconds after the last keystroke (`NOTES_SAVE_MS`), or when the panel closes. With nothing unsaved, the box follows the stored notes.
 - **Stage ▾** is the shared menu with every stage. A choice goes through the 5-second pending action (the row crossed out, "→ Interview · Cancel" in the panel) and then clears the next step, which belonged to the old stage. Rejected and withdrawn are reached the same way, so no single tap can archive an application.
-- **↗ Posting** opens the link in a new tab. A link Claude wrote carries a ✦ and asks first: *"Open evil.example? Claude added this link."* (`OpenLink`, [AGENT.md §2](AGENT.md)).
+- **↗ and ↗ Posting** open the link in a new tab. A link Claude wrote carries a ✦ and asks first: *"Open evil.example? Claude added this link."* (`OpenLink`, [AGENT.md §2](AGENT.md)).
 - **Prepare** (OA and interview only) opens `claude.ai/new?q=…` with a prompt: the request first, naming none of the application's fields; then the fields in one quoted block, every line starting with `> `, introduced as information, not instructions. It asks for one write: a summary added to this application's notes.
-- **On the kiosk, ↗ Posting and Prepare are hidden:** it has no tabs or back button, and isn't signed in to claude.ai.
+- **On the kiosk, ↗, ↗ Posting and Prepare are hidden:** it has no tabs or back button, and isn't signed in to claude.ai.
 - **Editor:** the stage, the next step's date and time (the time only with a date), the link and notes. A **Show** filter starts on Open; Archived lists rejected and withdrawn.
 
 ### Goals (3×2)

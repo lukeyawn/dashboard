@@ -69,8 +69,8 @@ export function habitsRouter(store) {
 export function applicationsRouter(store, now = Date.now) {
     return crudRouter(store, {
         noun: 'application',
-        // applied today, in the dashboard's time zone
-        defaults: () => ({ applied_on: today(new Date(now())) }),
+        // applied today, in the dashboard's time zone, unless it's still to apply to
+        defaults: values => (values.status === 'to_apply' ? {} : { applied_on: today(new Date(now())) }),
         create: schemas.applicationCreate,
         update: schemas.applicationUpdate,
         query: schemas.applicationQuery,

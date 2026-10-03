@@ -1,6 +1,6 @@
 // The editor for each resource, configuring ResourceEditor (DESIGN §6.3).
 import { useState } from 'react';
-import { STAGE_NAMES, compareApplications, isArchived } from '../../shared/applications';
+import { STAGE_NAMES, isArchived } from '../../shared/applications';
 import { DETAILS, countdownProblems, formatClock } from '../../shared/countdowns';
 import * as schemas from '../../shared/schemas';
 import { parseDate } from '../../shared/dates';
@@ -224,8 +224,9 @@ export function ApplicationsEditor() {
         { key: 'company', label: 'Company' },
         { key: 'role', label: 'Role' },
         { key: 'status', label: 'Stage', type: 'select', options: schemas.STATUSES, labels: STAGE_NAMES, default: 'applied' },
+        // empty for one to apply to
         { key: 'applied_on', label: 'Applied on', type: 'date', optional: true },
-        // the OA's due date, the interview's day, or the day an offer needs a reply by
+        // the day to apply by, the OA's due date, the interview's day, or the day an offer needs a reply by
         { key: 'next_on', label: 'Next step date', type: 'date', optional: true },
         { key: 'next_time', label: 'Next step time', type: 'time', optional: true, when: values => Boolean(values.next_on) },
         { key: 'url', label: 'Link', optional: true, placeholder: 'https://' },
@@ -236,19 +237,19 @@ export function ApplicationsEditor() {
             resource="applications"
             noun="application"
             fields={fields}
-            // applied_on is left out of a new one when empty, so the server fills in today
+            // applied_on is left out of a new one when empty, so the server fills in today (or nothing, to apply to)
             createFields={fields.map(f => (f.key === 'applied_on' ? { ...f, optional: false, omitEmpty: true } : f))}
             createSchema={schemas.applicationCreate}
             updateSchema={schemas.applicationUpdate}
             filters={[{ key: 'archived', label: 'Show', options: ['Open', 'Archived'], value: a => (isArchived(a) ? 'Archived' : 'Open'), initial: 'Open' }]}
             sorts={[
-                { label: 'As on the tile', compare: compareApplications },
                 { label: 'Recently applied', compare: (a, b) => b.applied_on.localeCompare(a.applied_on) || b.id - a.id },
+                { label: 'Next step', compare: (a, b) => (a.next_on ?? '9999').localeCompare(b.next_on ?? '9999') || b.id - a.id },
             ]}
             sections={rows => [{ title: null, rows }]}
             describe={a => ({
                 title: `${a.company} · ${a.role}`,
-                detail: [STAGE_NAMES[a.status], stepWhen(a), `applied ${shortDate(a.applied_on)}`].filter(Boolean).join(' · '),
+                detail: [STAGE_NAMES[a.status], stepWhen(a), a.applied_on && `applied ${shortDate(a.applied_on)}`].filter(Boolean).join(' · '),
             })}
         />
     );

@@ -1,6 +1,6 @@
 // GET /api/today: everything about today in one answer, mainly for the agent
 // (DESIGN §4). Built from the same stores the widgets read.
-import { boardApplications, isActive } from '../shared/applications.js';
+import { jobSections } from '../shared/applications.js';
 import { addDays, daysBetween, today as todayOf } from '../shared/dates.js';
 import { STATUSES } from '../shared/schemas.js';
 import { splitTasks } from '../shared/tasks.js';
@@ -19,6 +19,7 @@ export async function todaySnapshot({ stores, settings, calendar, weatherAt, now
     }
 
     const applications = stores.applications.list();
+    const jobs = jobSections(applications, date);
     const { assignments, tasks } = splitTasks(stores.tasks.list({ done: false }), settings.get('assignments_area'));
     return {
         date,
@@ -40,8 +41,10 @@ export async function todaySnapshot({ stores, settings, calendar, weatherAt, now
             .map(c => ({ ...c, days_left: daysBetween(date, c.target_date) })),
         applications: {
             counts: Object.fromEntries(STATUSES.map(s => [s, applications.filter(a => a.status === s).length])),
-            // the OAs, interviews and offers, by their next step, as the tile lists them (docs/BLOCKS.md §6)
-            active: boardApplications(applications).filter(isActive),
+            // the tile's Needs action list: OAs, offers and upcoming steps, by the next step (docs/BLOCKS.md §6)
+            needs_action: jobs.needsAction,
+            // saved to apply to, by the day to apply by
+            to_apply: jobs.toApply,
         },
         weather,
         night: nightState(now, {
