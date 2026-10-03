@@ -9,9 +9,12 @@
     --on-accent: hsl(200, 50%, 12%);
     --urgent: hsl(0, 85%, 72%);
     --applied: hsl(210, 80%, 75%);
+    /* an online assessment, between applied and interview (docs/BLOCKS.md §6) */
+    --oa: hsl(300, 55%, 78%);
     --interview: hsl(40, 90%, 65%);
     --offer: hsl(140, 60%, 62%);
     --rejected: hsl(0, 0%, 65%);
+    --withdrawn: hsl(0, 0%, 50%);
     /* a task's time chip: 15 minutes or less, and over an hour (docs/BLOCKS.md §3) */
     --quick: hsl(140, 60%, 62%);
     --long: hsl(270, 75%, 80%);

@@ -17,6 +17,12 @@
     filter: brightness(1.4);
 }
 
+/* the ✦ on a link Claude wrote (OpenLink): only a sign, the link is the button */
+.open-link-mark {
+    font-size: 0.8em;
+    opacity: 0.85;
+}
+
 .claude-card p {
     margin: 0;
 }

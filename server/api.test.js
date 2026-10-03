@@ -291,15 +291,23 @@ describe('habits', () => {
 });
 
 describe('applications', () => {
-    it('default to applied today, and advance to an offer', async () => {
+    it('default to applied today, and take a stage and the next step', async () => {
         const { request } = await start();
         const app = (await request('/api/applications', { method: 'POST', body: { company: 'Stripe', role: 'Backend Intern' } })).body;
-        expect(app).toMatchObject({ status: 'applied', applied_on: '2026-09-30', url: null, notes: null });
-        expect((await request(`/api/applications/${app.id}/advance`, { method: 'POST' })).body.status).toBe('interview');
-        expect((await request(`/api/applications/${app.id}/advance`, { method: 'POST' })).body.status).toBe('offer');
-        const stuck = await request(`/api/applications/${app.id}/advance`, { method: 'POST' });
-        expect(stuck.status).toBe(409);
-        expect((await request('/api/applications/99/advance', { method: 'POST' })).status).toBe(404);
+        expect(app).toMatchObject({ status: 'applied', applied_on: '2026-09-30', url: null, notes: null, next_on: null, next_time: null, url_by_claude: false });
+        const moved = await request(`/api/applications/${app.id}`, { method: 'PATCH', body: { status: 'interview', next_on: '2026-10-06', next_time: '14:00' } });
+        expect(moved.body).toMatchObject({ status: 'interview', next_on: '2026-10-06', next_time: '14:00' });
+        // the stage menu replaced advancing (docs/BLOCKS.md §6)
+        expect((await request(`/api/applications/${app.id}/advance`, { method: 'POST' })).status).toBe(404);
+    });
+
+    it('refuse a next step time without a date', async () => {
+        const { request } = await start();
+        expect((await request('/api/applications', { method: 'POST', body: { company: 'a', role: 'r', next_time: '14:00' } })).status).toBe(400);
+        const app = (await request('/api/applications', { method: 'POST', body: { company: 'a', role: 'r' } })).body;
+        expect((await request(`/api/applications/${app.id}`, { method: 'PATCH', body: { next_time: '14:00' } })).status).toBe(400);
+        expect((await request(`/api/applications/${app.id}`, { method: 'PATCH', body: { next_on: null, next_time: '14:00' } })).status).toBe(400);
+        expect((await request(`/api/applications/${app.id}`, { method: 'PATCH', body: { next_time: '2 PM' } })).status).toBe(400);
     });
 
     it('filter by status, and reject unknown ones', async () => {
@@ -430,6 +438,8 @@ describe('today', () => {
         const habit = (await request('/api/habits', { method: 'POST', body: { name: 'Read' } })).body;
         await request(`/api/habits/${habit.id}/checks/2026-09-30`, { method: 'PUT' });
         await request('/api/applications', { method: 'POST', body: { company: 'Stripe', role: 'Intern' } });
+        await request('/api/applications', { method: 'POST', body: { company: 'Ramp', role: 'Intern', status: 'oa', next_on: '2026-10-02' } });
+        await request('/api/applications', { method: 'POST', body: { company: 'Figma', role: 'Intern', status: 'interview', next_on: '2026-10-01' } });
 
         const { body } = await request('/api/today');
         expect(body.date).toBe('2026-09-30');
@@ -441,7 +451,8 @@ describe('today', () => {
         // nearest first, one without a time before one with a time on the same day
         expect(body.countdowns.map(c => [c.label, c.days_left])).toEqual([['Out of class', 2], ['Flight', 2], ['Break', 56]]);
         expect(body.countdowns[1]).toMatchObject({ target_time: '14:00', detail: 'hours' });
-        expect(body.applications.counts).toEqual({ applied: 1, interview: 0, offer: 0, rejected: 0 });
+        expect(body.applications.counts).toEqual({ applied: 1, oa: 1, interview: 1, offer: 0, rejected: 0, withdrawn: 0 });
+        expect(body.applications.active.map(a => a.company)).toEqual(['Figma', 'Ramp']);
         expect(body.weather).toMatchObject({ temperature: 82, location: { source: 'default' } });
         expect(body.night.active).toBe(false);
     });

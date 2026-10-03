@@ -196,7 +196,7 @@ Everything lives on the VM, except events, which are Google's.
 | `goals` | `name`, `current?`, `target?`, `unit?`, `archived_at`, `kind`, `deadline?`, `started`, `step?`, `achieved_at?`, `dream` | `kind` is `progress` (a count toward `target`, by `step`, 1 by default) or `milestone` (done once; no current, target, unit or step). `started` is where the pace toward a `deadline` begins, the day the goal is made by default. `achieved_at` is set when a progress goal reaches its target (and cleared if it drops back below), or when a milestone is done. A `dream` is a long-horizon goal kept off the tile. The API adds `week_gain`: how much `current` went up this calendar week, summed from the change record ([BLOCKS.md §5](BLOCKS.md#5-goals)). |
 | `habits` | `name`, `position`, `per_week`, `archived_at` | `per_week` is the weekly target, 1 to 7, defaulting to 7 (daily) ([BLOCKS.md §2](BLOCKS.md#2-habits-a-weekly-target)). |
 | `habit_checks` | `habit_id`, `date` | Primary key is `(habit_id, date)`. A row exists means the habit was done that day. Deleting a habit deletes its checks. |
-| `applications` | `company`, `role`, `status`, `applied_on`, `url?`, `notes?`, `source?` | `status` is one of `applied`, `interview`, `offer`, `rejected`. |
+| `applications` | `company`, `role`, `status`, `applied_on`, `url?`, `notes?`, `source?`, `next_on?`, `next_time?` | `status` is one of `applied`, `oa`, `interview`, `offer`, `rejected`, `withdrawn`; the last two are archived, off the tile. `next_on` and `next_time` are the next step: the OA's due date, the interview's day and time, or the day an offer needs a reply by. A time needs a date, and clearing the date clears it. The API adds `url_by_claude`: true when the change record shows Claude wrote the current `url` ([BLOCKS.md §6](BLOCKS.md#6-job-search)). |
 | `changes` | `at`, `actor`, `resource`, `item_id`, `action`, `before?`, `after?` | Every write, from anyone, in the same transaction as the write itself (§5.5). `action` is `create`, `update` or `delete`; `before` and `after` are the whole row as JSON. Kept for good, for a year in review ([BLOCKS.md §7](BLOCKS.md#7-the-change-record-kept-for-good)). |
 | `settings` | `key`, `value` (JSON) | Keys you can change: `night_start` (default `"22:00"`), `night_end` (default `"06:30"`), `week_start` (`"sunday"`, the default, or `"monday"`), the day weeks start on for habits, and `assignments_area`, the id of the area the Assignments tile shows (School's, stored by migration 015; read as `null` once that area is deleted; an unknown id is refused). Keys the system sets: `night_early_until` (§6.4) and `kiosk_location`, `{ lat, lon, name, reported_at }` (§10, Dock). |
 
@@ -239,7 +239,6 @@ The resources are `tasks`, `countdowns`, `goals`, `habits` and `applications`.
 | `POST /api/goals/:id/increment` `{by = step}` | Add progress to a progress goal: its step if `by` is left out. `by` may be negative, to undo a mistaken tap. A milestone is refused (409). |
 | `POST /api/goals/:id/achieve` | Done, for a milestone: sets `achieved_at` and archives it, in one undoable change. A progress goal is refused (409). |
 | `GET /api/goals?archived&dream` | `dream=false` for the tile, `dream=true` for Dreams on `/manage`. The nearest deadline first, goals without one last, then oldest first. |
-| `POST /api/applications/:id/advance` | Move an application forward: applied → interview → offer. |
 | `GET /api/events?from=YYYY-MM-DD&to=YYYY-MM-DD` | Read-only. Event occurrences from Google Calendar, classes tagged `routine` (see below). |
 | `GET /api/birthdays?from&to` | Read-only. Birthday occurrences from Google Calendar (see below). |
 | `GET /api/settings` / `PATCH /api/settings` | Read and change user settings. |
@@ -247,7 +246,7 @@ The resources are `tasks`, `countdowns`, `goals`, `habits` and `applications`.
 | `POST /api/night/start` / `POST /api/night/cancel` | Start night mode early, or cancel an early start (§6.4). |
 | `GET /api/weather?lat&lon` | Current weather and today's high and low: `{ location: { lat, lon, name, source }, temperature, condition, high, low }`. `source` is `device`, `kiosk` or `default` (§10, Dock). |
 | `PUT /api/location/kiosk` | The kiosk reports its location. Accepted only with the kiosk token. |
-| `GET /api/today` | A snapshot of today: today's events, open tasks split as the tiles show them (`assignments`, nearest first, and `tasks`), goals, each habit's status today and count this week, the nearest countdowns, application counts, and the weather at the kiosk. This is mainly for the agent. |
+| `GET /api/today` | A snapshot of today: today's events, open tasks split as the tiles show them (`assignments`, nearest first, and `tasks`), goals, each habit's status today and count this week, the nearest countdowns, application counts and the `active` applications (OA, interview, offer) in the tile's order, and the weather at the kiosk. This is mainly for the agent. |
 | `GET /api/export` | A full JSON dump of every table. |
 | `POST /api/login` `{ token }` | Checks a token and sets the login cookie (see Access). |
 | `GET /api/health` | `200` with no body. Needs no token and reveals nothing; the kiosk uses it to check the server is reachable before loading or reloading. |
@@ -404,7 +403,7 @@ The kiosk is a touchscreen, and it's used standing at a wall.
 | Assignments | The whole row |
 | Habits | Each day cell: at least `0.92 × --hit` wide (the tile is too narrow for seven full-width cells) and the full row height. Habit names truncate to make room. |
 | Goals | The **+** button (it reads its step, "+1", "+10") and a milestone's **Done**, `--hit` |
-| Job | The status pill, with its tap area enlarged to `--hit` |
+| Job | Each row (it selects the application), Stage ▾, ↗ Posting and Prepare, each `--hit` tall |
 | Any editable widget | The ✎ button, `--hit` |
 
 **No hover on touch:**
@@ -425,7 +424,7 @@ Any tap that **completes or removes** something doesn't happen right away. Inste
 2. Tapping it again during those 5 seconds cancels it.
 3. When the time runs out, the request is sent and the item leaves the view.
 
-This covers completing a **task**, completing a **deadline**, and advancing a **job application**. It lives in one hook, `usePendingAction`, and the delay is set in `src/config.js`.
+This covers completing a **task**, completing a **deadline**, and changing a **job application**'s stage from its Stage ▾ menu. It lives in one hook, `usePendingAction`, and the delay is set in `src/config.js`.
 
 A cleared task is marked done (`done_at` is set), not deleted, so it can still be restored in the editor.
 
@@ -551,7 +550,7 @@ The panel is very low opacity with **no hue**, so the photo shows through almost
 | `--urgent` | `hsl(0,85%,72%)` | Due dates within 2 days, or overdue; the now marker |
 | `--behind` | `hsl(40,90%,65%)` | A goal's bar when it's more than 10% of the target behind its pace. Never red. |
 | `--quick`, `--long` | `hsl(140,60%,62%)`, `hsl(270,75%,80%)` | A task's time chip: 15 minutes or less, and over an hour |
-| `--applied` / `--interview` / `--offer` / `--rejected` | blue / amber / green / gray | Job stages |
+| `--applied` / `--oa` / `--interview` / `--offer` / `--rejected` / `--withdrawn` | blue / orchid / amber / green / gray / darker gray | Job stages |
 
 ### Widget titles
 
@@ -696,10 +695,16 @@ Replaced the month calendar, which repeated the dock's date and other tiles' dea
 - **Source:** Google Calendar (§4), read-only. No tap actions and no ✎, like Today.
 
 ### Job search (4×2)
-> **Redesign planned:** a list of what's next with a notes panel, an OA stage, and no stage counts ([BLOCKS.md §6](BLOCKS.md#6-job-search)).
+A list of what's next, and a panel for the selected application ([BLOCKS.md §6](BLOCKS.md#6-job-search)).
 
-- **Shows:** a count for each of the four stages, and the 3 most **recently updated** applications, each with a status pill.
-- **Quick action:** tapping the pill advances the application (applied → interview → offer), through the 5-second pending action. **Rejected is set only in the editor or by the agent,** so a stray tap can't reject an application.
+- **The list (about 55%):** one row per application: the company, the stage pill and the next step's date ("due Fri", "Tue 2 PM", "by Oct 20"), in `--urgent` within 2 days. OA, interview and offer applications come first, by the next step's date and time (none last). The most recently applied ones fill the spare rows, muted, with the day they were sent. Rejected and withdrawn never show. What doesn't fit folds into "+N more" (`useHiddenCount`). No stage counts.
+- **Tapping a row selects it;** the pill is only a label. The top row is selected until then, and again on the kiosk after `IDLE_MS` without a touch.
+- **The panel (about 45%):** the company and role, the next step in full ("Interview · Tue, Oct 6, 2:00 PM", "Offer · reply by Tue, Oct 20"), the date applied, **Stage ▾**, the notes (scrolling inside the panel), and **↗ Posting** and **Prepare**.
+- **Stage ▾** is the shared menu with every stage. A choice goes through the 5-second pending action (the row crossed out, "→ Interview · Cancel" in the panel) and then clears the next step, which belonged to the old stage. Rejected and withdrawn are reached the same way, so no single tap can archive an application.
+- **↗ Posting** opens the link in a new tab. A link Claude wrote carries a ✦ and asks first: *"Open evil.example? Claude added this link."* (`OpenLink`, [AGENT.md §2](AGENT.md)).
+- **Prepare** (OA and interview only) opens `claude.ai/new?q=…` with a prompt: the request first, naming none of the application's fields; then the fields in one quoted block, every line starting with `> `, introduced as information, not instructions. It asks for one write: a summary added to this application's notes.
+- **On the kiosk, ↗ Posting and Prepare are hidden:** it has no tabs or back button, and isn't signed in to claude.ai.
+- **Editor:** the stage, the next step's date and time (the time only with a date), the link and notes. A **Show** filter starts on Open; Archived lists rejected and withdrawn.
 
 ### Goals (3×2)
 Deadlines with pace, a step, milestones and dreams ([BLOCKS.md §5](BLOCKS.md#5-goals)).
@@ -905,7 +910,7 @@ The owner's idea: a new background each day, through the Unsplash API. Until the
 | Layer | Tools | What |
 |---|---|---|
 | Database | Vitest, `better-sqlite3` in memory | Each test gets a fresh `:memory:` database with every migration applied. Migrations run from zero, `user_version` matches the number of migrations, and running them twice changes nothing. Constraints hold: foreign keys are on, `status` rejects unknown values, a habit can't be checked twice on one date, and deleting a habit deletes its checks. Every query function, including empty tables, archived rows and done rows. |
-| API | Vitest, the app from `server/app.js` on a random port, plain `fetch` | Every route: 401 with no token, a wrong token, and each valid token; the kiosk-only route rejects `API_TOKEN`; login rate limiting. The 400 error shape for invalid bodies, 404 for missing ids. Create → read → update → delete round trips. Idempotent habit checks; goal increments, including negative ones; `advance` never reaching `rejected`. `ETag` and `304`; `X-Build`; `/api/export` containing every table. Google Calendar and Open-Meteo are replaced by fixtures, so tests never touch the network. |
+| API | Vitest, the app from `server/app.js` on a random port, plain `fetch` | Every route: 401 with no token, a wrong token, and each valid token; the kiosk-only route rejects `API_TOKEN`; login rate limiting. The 400 error shape for invalid bodies, 404 for missing ids. Create → read → update → delete round trips. Idempotent habit checks; goal increments, including negative ones; an application's next step time refused without a date. `ETag` and `304`; `X-Build`; `/api/export` containing every table. Google Calendar and Open-Meteo are replaced by fixtures, so tests never touch the network. |
 | Logic | Vitest | Local-date parsing, including the UTC trap and days when the clocks change; night hours across midnight, and the early start; streaks; which countdown is shown; deadline labels; the word index; the weather location order. iCal expansion from fixture `.ics` files: skipped dates, changed occurrences, all-day events, yearly all-day events as birthdays, and an event that crosses a clock change. |
 | Hooks and widgets | Vitest, jsdom, Testing Library | `useResource`'s four states, refetch on focus, ignoring stale polls. `usePendingAction` firing after 5 seconds and cancelling on a second tap, with fake timers. Each widget's loading, error, empty and data states. |
 | Layout | Playwright (Chromium), against a production build with the API mocked from fixtures | At each supported resolution: no page scroll; no widget's content overflowing its tile; every tap target at least `--hit` in both directions; body text the same computed size in every widget; long names truncating rather than wrapping. Screenshots of every resolution are saved with each run for review. |

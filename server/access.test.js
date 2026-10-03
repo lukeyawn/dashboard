@@ -21,7 +21,7 @@ describe('isAllowed', () => {
     it('lets the chat connector read, add and change, but never delete', () => {
         const allowed = [
             ['GET', '/today'], ['GET', '/tasks'], ['GET', '/tasks/'], ['GET', '/settings'], ['GET', '/night'], ['GET', '/events'],
-            ['POST', '/tasks'], ['PATCH', '/tasks/12'], ['POST', '/goals/3/increment'], ['POST', '/applications/4/advance'],
+            ['POST', '/tasks'], ['PATCH', '/tasks/12'], ['POST', '/goals/3/increment'], ['PATCH', '/applications/4'],
             ['PATCH', '/settings'], ['POST', '/night/start'], ['POST', '/night/cancel'],
             ['PUT', '/habits/2/checks/2026-10-01'], ['DELETE', '/habits/2/checks/2026-10-01'],
         ];
@@ -30,7 +30,7 @@ describe('isAllowed', () => {
             ['POST', '/changes/undo-since'], ['GET', '/connectors'], ['PUT', '/connectors/chat'], ['GET', '/connections'],
             ['POST', '/connections/1/revoke'], ['GET', '/connect/x'], ['POST', '/connect/x/approve'], ['PUT', '/location/kiosk'],
             ['GET', '/session'], ['GET', '/status'], ['GET', '/weather'], ['POST', '/login'], ['GET', '/tasks/12/../../export'],
-            ['PATCH', '/tasks'], ['POST', '/tasks/12'], ['GET', '/nothing'], ['PATCH', '/goals/x'],
+            ['PATCH', '/tasks'], ['POST', '/tasks/12'], ['GET', '/nothing'], ['PATCH', '/goals/x'], ['POST', '/applications/4/advance'],
         ];
         for (const [method, path] of allowed) expect(isAllowed('chat', method, path), `${method} ${path}`).toBe(true);
         for (const [method, path] of refused) expect(isAllowed('chat', method, path), `${method} ${path}`).toBe(false);

@@ -33,7 +33,7 @@ const PRIVATE_ROUTES = [
     ['GET', '/api/health'], ['POST', '/api/login'], ['GET', '/api/session'], ['GET', '/api/status'], ['GET', '/api/today'], ['GET', '/api/export'],
     ['GET', '/api/tasks'], ['POST', '/api/tasks'], ['PATCH', '/api/tasks/1'], ['DELETE', '/api/tasks/1'],
     ['GET', '/api/countdowns'], ['GET', '/api/goals'], ['POST', '/api/goals/1/increment'], ['GET', '/api/habits'], ['PUT', '/api/habits/1/checks/2026-10-01'],
-    ['GET', '/api/applications'], ['POST', '/api/applications/1/advance'], ['GET', '/api/settings'], ['PATCH', '/api/settings'],
+    ['GET', '/api/applications'], ['PATCH', '/api/applications/1'], ['GET', '/api/settings'], ['PATCH', '/api/settings'],
     ['GET', '/api/night'], ['POST', '/api/night/start'], ['PUT', '/api/location/kiosk'], ['GET', '/api/weather'],
     ['GET', '/api/events?from=2026-10-01&to=2026-10-02'], ['GET', '/api/birthdays?from=2026-10-01&to=2026-10-02'],
     ['GET', '/api/changes'], ['POST', '/api/changes/1/undo'], ['POST', '/api/changes/undo-since'],
