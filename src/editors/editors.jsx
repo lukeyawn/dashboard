@@ -1,5 +1,6 @@
 // The editor for each resource, configuring ResourceEditor (DESIGN §6.3).
 import { useState } from 'react';
+import { STAGE_NAMES, compareApplications, isArchived } from '../../shared/applications';
 import { DETAILS, countdownProblems, formatClock } from '../../shared/countdowns';
 import * as schemas from '../../shared/schemas';
 import { parseDate } from '../../shared/dates';
@@ -7,6 +8,7 @@ import { describeRepeat } from '../../shared/repeat';
 import { compareTasks, minutesLabel } from '../../shared/tasks';
 import { formatNumber } from '../lib/format';
 import { streakText } from '../widgets/habits/habitText';
+import { stepWhen } from '../widgets/job/jobText';
 import { Choice } from './EditorForm';
 import ResourceEditor from './ResourceEditor';
 import { AreaInput, RepeatInput } from './taskFields';
@@ -215,12 +217,17 @@ export function HabitsEditor() {
     );
 }
 
+// Rejected and withdrawn are archived: off the tile, and behind the Show
+// filter here (docs/BLOCKS.md §6)
 export function ApplicationsEditor() {
     const fields = [
         { key: 'company', label: 'Company' },
         { key: 'role', label: 'Role' },
-        { key: 'status', label: 'Status', type: 'select', options: schemas.STATUSES, default: 'applied' },
+        { key: 'status', label: 'Stage', type: 'select', options: schemas.STATUSES, labels: STAGE_NAMES, default: 'applied' },
         { key: 'applied_on', label: 'Applied on', type: 'date', optional: true },
+        // the OA's due date, the interview's day, or the day an offer needs a reply by
+        { key: 'next_on', label: 'Next step date', type: 'date', optional: true },
+        { key: 'next_time', label: 'Next step time', type: 'time', optional: true, when: values => Boolean(values.next_on) },
         { key: 'url', label: 'Link', optional: true, placeholder: 'https://' },
         { key: 'notes', label: 'Notes', type: 'textarea', optional: true },
     ];
@@ -233,11 +240,16 @@ export function ApplicationsEditor() {
             createFields={fields.map(f => (f.key === 'applied_on' ? { ...f, optional: false, omitEmpty: true } : f))}
             createSchema={schemas.applicationCreate}
             updateSchema={schemas.applicationUpdate}
-            sections={rows => [
-                { title: null, rows: rows.filter(a => a.status !== 'rejected') },
-                { title: 'Rejected', rows: rows.filter(a => a.status === 'rejected') },
+            filters={[{ key: 'archived', label: 'Show', options: ['Open', 'Archived'], value: a => (isArchived(a) ? 'Archived' : 'Open'), initial: 'Open' }]}
+            sorts={[
+                { label: 'As on the tile', compare: compareApplications },
+                { label: 'Recently applied', compare: (a, b) => b.applied_on.localeCompare(a.applied_on) || b.id - a.id },
             ]}
-            describe={a => ({ title: `${a.company} · ${a.role}`, detail: `${a.status} · applied ${shortDate(a.applied_on)}` })}
+            sections={rows => [{ title: null, rows }]}
+            describe={a => ({
+                title: `${a.company} · ${a.role}`,
+                detail: [STAGE_NAMES[a.status], stepWhen(a), `applied ${shortDate(a.applied_on)}`].filter(Boolean).join(' · '),
+            })}
         />
     );
 }

@@ -63,10 +63,13 @@ seed('habits', habits, [
 });
 
 seed('applications', createApplicationStore(db), [
-    { company: 'Google', role: 'SWE Intern', status: 'interview', applied_on: day(-20) },
+    { company: 'Google', role: 'SWE Intern', status: 'interview', applied_on: day(-20), next_on: day(4), next_time: '14:00', url: 'https://careers.google.com/', notes: 'Recruiter: Dana. Two rounds: coding (LeetCode medium) and a project deep-dive.' },
+    { company: 'Ramp', role: 'Software Engineer Intern', status: 'oa', applied_on: day(-12), next_on: day(2) },
+    { company: 'Figma', role: 'Product Engineer Intern', status: 'offer', applied_on: day(-40), next_on: day(18) },
     { company: 'Stripe', role: 'Backend Intern', status: 'applied', applied_on: day(-10) },
     { company: 'Datadog', role: 'SRE Intern', status: 'applied', applied_on: day(-8) },
     { company: 'Jane Street', role: 'SWE Intern', status: 'rejected', applied_on: day(-30) },
+    { company: 'Notion', role: 'SWE Intern', status: 'withdrawn', applied_on: day(-25) },
 ]);
 
 db.close();

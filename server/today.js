@@ -1,5 +1,6 @@
 // GET /api/today: everything about today in one answer, mainly for the agent
 // (DESIGN §4). Built from the same stores the widgets read.
+import { boardApplications, isActive } from '../shared/applications.js';
 import { addDays, daysBetween, today as todayOf } from '../shared/dates.js';
 import { STATUSES } from '../shared/schemas.js';
 import { splitTasks } from '../shared/tasks.js';
@@ -39,7 +40,8 @@ export async function todaySnapshot({ stores, settings, calendar, weatherAt, now
             .map(c => ({ ...c, days_left: daysBetween(date, c.target_date) })),
         applications: {
             counts: Object.fromEntries(STATUSES.map(s => [s, applications.filter(a => a.status === s).length])),
-            recent: applications.slice(0, 5),
+            // the OAs, interviews and offers, by their next step, as the tile lists them (docs/BLOCKS.md §6)
+            active: boardApplications(applications).filter(isActive),
         },
         weather,
         night: nightState(now, {

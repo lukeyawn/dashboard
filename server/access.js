@@ -17,7 +17,6 @@ export const ALLOWED = {
         ['GET', new RegExp(`^/(today|${RESOURCES}|areas|events|birthdays|settings|night)${end}`)],
         ['POST', new RegExp(`^/(${RESOURCES})${end}`)],
         ['POST', new RegExp(`^/goals/\\d+/(increment|achieve)${end}`)],
-        ['POST', new RegExp(`^/applications/\\d+/advance${end}`)],
         ['POST', new RegExp(`^/night/(start|cancel)${end}`)],
         ['PATCH', new RegExp(`^/(${RESOURCES})/\\d+${end}`)],
         // only the night hours and week_start can be set through it (shared/schemas.js);

@@ -86,7 +86,9 @@ describe('the tools', () => {
 
         const app = (await use('add_application', { company: 'Stripe', role: 'Intern' })).value;
         expect(app.applied_on).toBe('2026-09-30');
-        expect((await use('set_application_status', { id: app.id, status: 'rejected' })).value.status).toBe('rejected');
+        expect((await use('set_application_status', { id: app.id, status: 'oa' })).value.status).toBe('oa');
+        expect((await use('update_application', { id: app.id, next_on: '2026-10-06', next_time: '14:00' })).value).toMatchObject({ next_on: '2026-10-06', next_time: '14:00' });
+        expect((await use('set_application_status', { id: app.id, status: 'withdrawn' })).value.status).toBe('withdrawn');
     });
 
     it('read the calendar and the day', async () => {

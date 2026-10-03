@@ -96,7 +96,7 @@ describe('adding', () => {
         fireEvent.change(field(addForm(), 'Role'), { target: { value: 'Intern' } });
         fireEvent.click(screen.getByText('Add application'));
         await waitFor(() => expect(api.writes()).toHaveLength(1));
-        expect(api.writes()[0].body).toEqual({ company: 'Stripe', role: 'Intern', status: 'applied', url: null, notes: null });
+        expect(api.writes()[0].body).toEqual({ company: 'Stripe', role: 'Intern', status: 'applied', next_on: null, url: null, notes: null });
     });
 });
 
@@ -344,5 +344,38 @@ describe('goals, milestones and dreams (docs/BLOCKS.md §5)', () => {
         fireEvent.change(field(addForm(), 'Goal'), { target: { value: 'Learn to sail' } });
         fireEvent.click(screen.getByText('Add dream'));
         await waitFor(() => expect(api.writes()[1].body).toEqual({ kind: 'milestone', name: 'Learn to sail', dream: true }));
+    });
+});
+
+describe('job applications (docs/BLOCKS.md §6)', () => {
+    const application = (id, fields) => ({ id, company: `company ${id}`, role: 'Intern', status: 'applied', applied_on: '2026-09-01', next_on: null, next_time: null, url: null, notes: null, source: null, ...fields });
+
+    it('keeps rejected and withdrawn under Archived', async () => {
+        serve('applications', [
+            application(1, { company: 'Stripe', status: 'interview', next_on: '2026-10-06', next_time: '14:00' }),
+            application(2, { company: 'Citadel', status: 'rejected' }),
+            application(3, { company: 'Palantir', status: 'withdrawn' }),
+        ]);
+        render(<ApplicationsEditor />);
+        await screen.findByText('Stripe · Intern');
+        expect(screen.getByText('Interview · Tue, Oct 6, 2:00 PM · applied Tue, Sep 1, 2026')).toBeTruthy();
+        expect(screen.queryByText('Citadel · Intern')).toBeNull();
+        fireEvent.change(screen.getByLabelText('Show'), { target: { value: 'Archived' } });
+        expect(screen.getByText('Citadel · Intern')).toBeTruthy();
+        expect(screen.getByText('Palantir · Intern')).toBeTruthy();
+        expect(screen.queryByText('Stripe · Intern')).toBeNull();
+    });
+
+    it('asks for the next step time only with a date, and clears both together', async () => {
+        const api = serve('applications', [application(1, { company: 'Stripe', status: 'oa', next_on: '2026-10-06', next_time: '09:00' })]);
+        render(<ApplicationsEditor />);
+        await screen.findByText('Stripe · Intern');
+        fireEvent.click(screen.getByText('Edit'));
+        const form = document.querySelector('.editor-item .editor-form');
+        expect(field(form, 'Next step time').value).toBe('09:00');
+        fireEvent.change(field(form, 'Next step date'), { target: { value: '' } });
+        expect(within(form).queryByLabelText('Next step time', { exact: false })).toBeNull();
+        fireEvent.click(within(form).getByText('Save'));
+        await waitFor(() => expect(api.writes()).toEqual([{ method: 'PATCH', url: '/api/applications/1', body: { next_on: null } }]));
     });
 });

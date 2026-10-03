@@ -56,19 +56,20 @@ describe('goals', () => {
 });
 
 describe('applications', () => {
-    it('advance applied → interview → offer, and no further', () => {
+    it('refuse a next step time without a date, and clear the time with the date', () => {
         const apps = createApplicationStore(db);
-        const app = apps.create({ company: 'Stripe', role: 'Intern', status: 'applied', applied_on: '2026-09-01' });
-        expect(apps.advance(app.id).status).toBe('interview');
-        expect(apps.advance(app.id).status).toBe('offer');
-        expect(apps.advance(app.id)).toBeUndefined();
-        expect(apps.advance(999)).toBeNull();
+        const app = apps.create({ company: 'Stripe', role: 'Intern', status: 'oa', applied_on: '2026-09-01' });
+        expect(() => apps.update(app.id, { next_time: '14:00' })).toThrow('A time needs a date.');
+        expect(apps.update(app.id, { next_on: '2026-10-06', next_time: '14:00' })).toMatchObject({ next_on: '2026-10-06', next_time: '14:00' });
+        expect(apps.update(app.id, { next_time: '09:00' }).next_time).toBe('09:00');
+        expect(apps.update(app.id, { next_on: null })).toMatchObject({ next_on: null, next_time: null });
+        expect(apps.update(999, { status: 'oa' })).toBeNull();
     });
 
-    it('never advance a rejection', () => {
+    it('take the two new statuses', () => {
         const apps = createApplicationStore(db);
-        const app = apps.create({ company: 'x', role: 'y', status: 'rejected', applied_on: '2026-09-01' });
-        expect(apps.advance(app.id)).toBeUndefined();
+        expect(apps.create({ company: 'x', role: 'y', status: 'withdrawn', applied_on: '2026-09-01' }).status).toBe('withdrawn');
+        expect(apps.list({ status: 'withdrawn' })).toHaveLength(1);
     });
 
     it('list the most recently updated first', () => {

@@ -97,14 +97,22 @@ export const HABITS = rows([
 
 export const SETTINGS = { night_start: '22:00', night_end: '06:30', week_start: 'sunday', assignments_area: 1 };
 
+// the selected (top) one has long notes, to prove they scroll inside the panel;
+// more applied ones than fit, to prove they fold into "+N more"
+const NOTES = 'Recruiter: Dana Whitfield. Two rounds: coding (LeetCode medium, arrays and graphs) and a project deep-dive on the OS shell. '.repeat(6);
 export const APPLICATIONS = rows([
-    { company: 'Google', role: 'Software Engineering Intern, Summer 2027', status: 'interview', updated_at: '2026-09-29T15:00:00.000Z', claude_change },
-    { company: 'Stripe', role: 'Backend Intern', status: 'applied', updated_at: '2026-09-28T15:00:00.000Z' },
-    { company: 'Datadog', role: 'SRE Intern', status: 'applied', updated_at: '2026-09-20T15:00:00.000Z' },
-    { company: 'Figma', role: 'Frontend Intern', status: 'applied', updated_at: '2026-09-18T15:00:00.000Z' },
-    { company: 'Jane Street', role: 'SWE Intern', status: 'rejected', updated_at: '2026-09-27T15:00:00.000Z' },
-    { company: 'Two Sigma', role: 'Quant Dev Intern', status: 'offer', updated_at: '2026-09-10T15:00:00.000Z' },
-].map(a => ({ applied_on: '2026-09-01', url: null, notes: null, ...a })));
+    { company: 'Google', role: 'Software Engineering Intern, Summer 2027', status: 'interview', next_on: '2026-10-01', next_time: '14:00', url: 'https://careers.google.com/jobs/1', notes: NOTES, claude_change },
+    { company: 'Jane Street', role: 'SWE Intern', status: 'oa', next_on: '2026-10-02' },
+    { company: 'Two Sigma Investments', role: 'Quant Dev Intern', status: 'offer', next_on: '2026-10-20', url_by_claude: true, url: 'https://evil.example/' },
+    { company: 'Stripe', role: 'Backend Intern', status: 'applied', applied_on: '2026-09-28' },
+    { company: 'Supercalifragilisticexpialidocious Corp', role: 'SRE Intern', status: 'applied', applied_on: '2026-09-27' },
+    { company: 'Figma', role: 'Frontend Intern', status: 'applied', applied_on: '2026-09-20' },
+    { company: 'Notion', role: 'SWE Intern', status: 'applied', applied_on: '2026-09-18' },
+    { company: 'Ramp', role: 'SWE Intern', status: 'applied', applied_on: '2026-09-15' },
+    { company: 'Datadog', role: 'SRE Intern', status: 'applied', applied_on: '2026-09-12' },
+    { company: 'Citadel', role: 'SWE Intern', status: 'rejected' },
+    { company: 'Palantir', role: 'FDE Intern', status: 'withdrawn' },
+].map(a => ({ applied_on: '2026-09-01', url: null, notes: null, next_on: null, next_time: null, url_by_claude: false, source: null, ...a })));
 
 export const WEATHER = {
     location: { lat: 30.27, lon: -97.74, name: 'Austin, TX', source: 'default' },

@@ -1,64 +1,69 @@
-import { useCallback } from 'react';
-import { NEXT_STATUS, STATUSES } from '../../../shared/schemas';
-import { usePendingAction } from '../../hooks/usePendingAction';
-import { useResource } from '../../hooks/useResource';
-import './JobWidget.css';
+import { useCallback, useRef, useState } from 'react';
+import { STAGE_NAMES, boardApplications } from '../../../shared/applications';
+import { today } from '../../../shared/dates';
+import { STATUSES } from '../../../shared/schemas';
 import ClaudeMark from '../../components/ClaudeMark';
 import EditButton from '../../components/EditButton';
+import Menu from '../../components/Menu';
+import OpenLink from '../../components/OpenLink';
+import { IDLE_MS } from '../../config';
 import { ApplicationsEditor } from '../../editors/editors';
+import { useHiddenCount } from '../../hooks/useHiddenCount';
+import { useIdle } from '../../hooks/useIdle';
+import { useIsKiosk } from '../../hooks/useKiosk';
+import { useNow } from '../../hooks/useNow';
+import { usePendingAction } from '../../hooks/usePendingAction';
+import { useResource } from '../../hooks/useResource';
+import { appliedText, nextStep, rowDate } from './jobText';
+import { PREPARE_STAGES, prepareUrl } from './prepare';
+import './JobWidget.css';
 
-const RECENT = 3;
-
-// A count for each stage and the most recently updated applications
-// (DESIGN §10, Job search). Tapping a pill advances it after 5 seconds;
-// rejected is only ever set in the editor, so a stray tap can't reject.
+// A list of what's next, and a panel for the selected application
+// (docs/BLOCKS.md §6). OAs, interviews and offers come first, by the next
+// step's date; the most recent applied ones fill the spare rows, muted.
+// Rejected and withdrawn are archived, in the editor only. Tapping a row
+// selects it; the top row is selected until then, and again on the kiosk
+// after 5 idle minutes, so the wall shows the next interview or OA.
 export default function JobWidget() {
     const apps = useResource('applications');
-    const { action } = apps;
-    const advance = useCallback(id => action(id, '/advance', {
-        optimistic: a => ({ ...a, status: NEXT_STATUS[a.status], updated_at: new Date().toISOString() }),
-    }), [action]);
-    const pending = usePendingAction(advance);
+    const isKiosk = useIsKiosk();
+    const todayDate = today(useNow());
+    const [selected, setSelected] = useSelection(isKiosk);
+    const { update } = apps;
 
-    const rows = apps.data ?? [];
-    const recent = [...rows]
-        .sort((a, b) => b.updated_at.localeCompare(a.updated_at) || b.id - a.id)
-        .slice(0, RECENT);
+    // the stage chosen from Stage ▾ for each application, waiting out the
+    // pending tap. A new stage clears the next step, which was the old one's.
+    const [chosen, setChosen] = useState({});
+    const move = useCallback(id => update(id, { status: chosen[id], next_on: null, next_time: null }), [update, chosen]);
+    const pending = usePendingAction(move);
+    function choose(app, status) {
+        if (status === app.status) return;
+        setChosen(c => ({ ...c, [app.id]: status }));
+        pending.toggle(app.id);
+    }
 
-    let list;
-    if (apps.loading) list = <p className="widget-message">Loading…</p>;
-    else if (!apps.data) list = <p className="widget-message">Couldn't load applications.</p>;
-    else if (rows.length === 0) list = <p className="widget-message">No applications yet.</p>;
+    const board = boardApplications(apps.data ?? []);
+    const current = board.find(a => a.id === selected) ?? board[0];
+    const listRef = useRef(null);
+    const hidden = useHiddenCount(listRef, board.map(a => `${a.id}:${a.status}:${a.next_on}`).join(','), board.length);
+
+    let body;
+    if (apps.loading) body = <p className="widget-message">Loading…</p>;
+    else if (!apps.data) body = <p className="widget-message">Couldn't load applications. {apps.error?.message}</p>;
+    else if (board.length === 0) body = <p className="widget-message">{apps.data.length ? 'Nothing open. Time to apply!' : 'No applications yet.'}</p>;
     else {
-        list = (
-            <ul className="job-list">
-                {recent.map(a => {
-                    const isPending = pending.isPending(a.id);
-                    return (
-                        <li key={a.id} className={isPending ? 'job-row pending' : 'job-row'} style={{'--pending-ms': `${pending.delayMs}ms`}}>
-                            <span className="job-company">
-                                <span className="job-company-name">{a.company}</span>
-                                {a.claude_change && <ClaudeMark change={a.claude_change} name={`${a.company} · ${a.role}`} onUndone={apps.refresh} />}
-                            </span>
-                            <span className="job-role">{a.role}</span>
-                            {NEXT_STATUS[a.status] ? (
-                                <button
-                                    type="button"
-                                    className="status-button"
-                                    data-tap
-                                    aria-pressed={isPending}
-                                    aria-label={`${a.company}: ${a.status}. Move to ${NEXT_STATUS[a.status]}`}
-                                    onClick={() => pending.toggle(a.id)}
-                                >
-                                    <span className={`status-pill ${a.status}`}>{a.status}</span>
-                                </button>
-                            ) : (
-                                <span className={`status-pill ${a.status}`}>{a.status}</span>
-                            )}
-                        </li>
-                    );
-                })}
-            </ul>
+        const shown = board.slice(0, board.length - hidden);
+        body = (
+            <div className="job-body">
+                <ul className="job-list" ref={listRef}>
+                    {shown.map(a => (
+                        <JobRow key={a.id} app={a} selected={a.id === current.id} pending={pending} todayDate={todayDate} onSelect={() => setSelected(a.id)} onUndone={apps.refresh} />
+                    ))}
+                    {hidden > 0 && <li className="job-more">+{hidden} more</li>}
+                </ul>
+                {/* keyed, so the notes start from the top for each application */}
+                <JobPanel key={current.id} app={current} isKiosk={isKiosk} pending={pending} waitingFor={chosen[current.id]} onChoose={status => choose(current, status)} />
+            </div>
         );
     }
 
@@ -68,16 +73,74 @@ export default function JobWidget() {
                 <p className="widget-title">Job search</p>
                 <EditButton title="Job search" editor={ApplicationsEditor} onClosed={apps.refresh} />
             </div>
-            <div className="job-stages">
-                {STATUSES.map(stage => (
-                    <div key={stage} className={`job-stage ${stage}`}>
-                        <div className="job-stage-count">{rows.filter(a => a.status === stage).length}</div>
-                        <div className="job-stage-label">{stage}</div>
-                    </div>
-                ))}
-            </div>
-            {list}
+            {body}
             {apps.saveError && <p className="widget-notice" role="status">Couldn't save. {apps.saveError.message}</p>}
         </div>
+    );
+}
+
+// The selected application's id, or null for the top row. On the kiosk it
+// goes back to the top row after 5 minutes without a touch.
+function useSelection(isKiosk) {
+    const [selected, setSelected] = useState(null);
+    const { idle } = useIdle(IDLE_MS);
+    // set while rendering, when idle starts, rather than in an effect
+    const [wasIdle, setWasIdle] = useState(idle);
+    if (idle !== wasIdle) {
+        setWasIdle(idle);
+        if (idle && isKiosk) setSelected(null);
+    }
+    return [selected, setSelected];
+}
+
+// The company, the stage pill (only a label) and the next step's date. The
+// whole row is one button that selects it.
+function JobRow({ app: a, selected, pending, todayDate, onSelect, onUndone }) {
+    const date = rowDate(a, todayDate);
+    const className = ['job-row', a.status === 'applied' && 'spare', selected && 'selected', pending.isPending(a.id) && 'pending'].filter(Boolean).join(' ');
+    return (
+        <li className={className} style={{'--pending-ms': `${pending.delayMs}ms`}}>
+            <button type="button" className="job-select" data-tap aria-pressed={selected} onClick={onSelect}>
+                <span className="job-company">{a.company}</span>
+                <span className={`status-pill ${a.status}`}>{STAGE_NAMES[a.status]}</span>
+                <span className={date?.urgent ? 'job-date urgent' : 'job-date'}>{date?.text}</span>
+            </button>
+            {a.claude_change && <ClaudeMark change={a.claude_change} name={`${a.company} · ${a.role}`} onUndone={onUndone} />}
+        </li>
+    );
+}
+
+// The company and role, the next step, the date applied, Stage ▾, the notes,
+// and ↗ Posting and Prepare, which the kiosk hides: it has no tabs and no
+// back button, and isn't signed in to claude.ai.
+function JobPanel({ app: a, isKiosk, pending, waitingFor, onChoose }) {
+    const step = nextStep(a);
+    const isPending = pending.isPending(a.id);
+    return (
+        <section className="job-panel" aria-label={`${a.company} · ${a.role}`}>
+            <p className="job-panel-title">{a.company} · {a.role}</p>
+            {step && <p className="job-panel-step">{step}</p>}
+            <div className="job-panel-stage">
+                <span className="job-panel-applied">{appliedText(a)}</span>
+                {isPending ? (
+                    <button type="button" className="job-moving" data-tap onClick={() => pending.toggle(a.id)}>
+                        → {STAGE_NAMES[waitingFor]} · Cancel
+                    </button>
+                ) : (
+                    <Menu label="Stage" sections={[{
+                        items: STATUSES.map(s => ({ key: s, label: STAGE_NAMES[s], checked: a.status === s, onSelect: () => onChoose(s) })),
+                    }]} />
+                )}
+            </div>
+            <div className="job-notes">{a.notes ?? <span className="job-no-notes">No notes yet.</span>}</div>
+            {!isKiosk && (a.url || PREPARE_STAGES.includes(a.status)) && (
+                <div className="job-links">
+                    {a.url && <OpenLink className="job-link" url={a.url} byClaude={a.url_by_claude}>↗ Posting</OpenLink>}
+                    {PREPARE_STAGES.includes(a.status) && (
+                        <a className="job-link" href={prepareUrl(a)} target="_blank" rel="noopener noreferrer" data-tap>Prepare</a>
+                    )}
+                </div>
+            )}
+        </section>
     );
 }
