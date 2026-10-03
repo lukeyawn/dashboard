@@ -32,12 +32,15 @@ export function problems({ backup, calendar, connectors = [] }, now) {
     for (const c of connectors) {
         const who = c.name === 'chat' ? 'claude.ai' : "claude.ai's agent connector";
         if (c.lost) found.push({ kind: `connector-${c.name}`, message: `${who} disconnected: reconnect` });
-        if (c.capped) found.push({ kind: `connector-${c.name}-limit`, message: `${who} used up today's changes` });
+        if (c.capped) {
+            const message = c.name === 'agent' ? `Today's limit of ${c.cap} agent changes is used up` : `${who} used up today's changes`;
+            found.push({ kind: `connector-${c.name}-limit`, message });
+        }
     }
     return found;
 }
 
-// connectors: () => [{ name, lost, capped }] for the configured connectors
+// connectors: () => [{ name, lost, capped, cap }] for the configured connectors
 export function systemStatus({ backupStatusFile, calendar, now, connectors = () => [] }) {
     const parts = {
         backup: readBackupStatus(backupStatusFile),

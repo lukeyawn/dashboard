@@ -3,7 +3,7 @@
 // closed to the connectors themselves by their allow-lists (server/access.js).
 import express from 'express';
 import * as schemas from '../../shared/schemas.js';
-import { WRITE_CAP } from '../access.js';
+import { WRITE_CAPS } from '../access.js';
 import { HttpError, validate } from '../errors.js';
 import { END_REASONS } from '../stores/connections.js';
 
@@ -18,7 +18,8 @@ export function connectionsRouter({ connections, oauth, settings, access }) {
         configured: Boolean(oauth?.connectors().includes(connector)),
         enabled: isOn(connector),
         url: oauth ? oauth.resourceOf(connector) : null,
-        ...(connector === 'chat' ? { writes_today: access.writesToday('chat'), write_cap: WRITE_CAP } : {}),
+        writes_today: access.writesToday(connector),
+        write_cap: WRITE_CAPS[connector],
     });
 
     router.get('/connectors', (req, res) => res.json(schemas.CONNECTOR_NAMES.map(describe)));

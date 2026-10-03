@@ -2,7 +2,7 @@
 
 Written for: Luke, doing this once, after the connector PR is merged. About 15 minutes. The design is in [docs/CONNECTOR.md](../docs/CONNECTOR.md).
 
-This opens one public door, port 443, with only the claude.ai connector behind it, and connects claude.ai chats to it. The dashboard itself moves to port 8443, `https://dashboard.tail354c76.ts.net:8443`, which stays reachable only on your tailnet. It has to be this way round, because claude.ai's servers only connect to port 443 (docs/CONNECTOR.md §3). The agent's suggest-only connector comes later, with its own steps.
+This opens one public door, port 443, with only the claude.ai connector behind it, and connects claude.ai chats to it. The dashboard itself moves to port 8443, `https://dashboard.tail354c76.ts.net:8443`, which stays reachable only on your tailnet. It has to be this way round, because claude.ai's servers only connect to port 443 (docs/CONNECTOR.md §3). The scheduled agent's own connector is a second one, added afterwards: see [The agent's connector](#the-agents-connector).
 
 **Already set up on port 8443?** Follow [Moving the door to port 443](#moving-the-door-to-port-443) instead, then steps 6 and 7.
 
@@ -93,7 +93,33 @@ In a new claude.ai chat with the Dashboard connector on:
 3. On the dashboard, the task appears within 30 seconds with a ✦. Tap the ✦: it says *Added by Claude (claude.ai)*. Tap **Undo**.
 4. On `/manage`, under **Claude**, the connection is listed, and the change shows under **Claude's changes**.
 
-**If you're testing the agent's email reading** as a scheduled task: it can reach this connector too, and could write to the dashboard directly. Run the trial as chats you start yourself for now, or check Claude's changes after its runs (docs/CONNECTOR.md §14).
+**If you're testing the agent's email reading** as a scheduled task, give it [its own connector](#the-agents-connector) first. It can reach this one too, and its changes would then count as a chat's.
+
+## The agent's connector
+
+Written for: Luke, once the agent's-connector PR is merged and deployed. About 10 minutes. The design is in [docs/AGENT.md](../docs/AGENT.md). This is a second connector, `/mcp/agent`, for the scheduled agent (phase 9). It adds and changes things directly, like chats, but can't delete anything, change settings or start night mode, and it stops at 30 changes a day. Its changes are recorded as *the agent* and show on the dock as "✦ *n* new from the agent".
+
+1. **Make its client, on the VM.** The same script adds only what's missing, so the chat connector's ID and secret stay as they are:
+   ```sh
+   ssh dashboard
+   sudo bash /opt/dashboard/vm/oauth-client.sh
+   sudo systemctl restart dashboard
+   sudo journalctl -u dashboard -n 5
+   ```
+   It should say `Added to /opt/dashboard/.env: OAUTH_AGENT_CLIENT_ID OAUTH_AGENT_CLIENT_SECRET`, and the journal should end with the `claude.ai connector on …` line as before.
+2. **Add it in claude.ai,** on the laptop, in the browser where you're logged in to the dashboard, with Tailscale on:
+   - Show its client ID and secret: `sudo grep '^OAUTH_AGENT_CLIENT' /opt/dashboard/.env`.
+   - **Customize → Connectors → Add custom connector.** Name: `Dashboard (agent)`. URL: `https://dashboard.tail354c76.ts.net/mcp/agent`. Under **Advanced settings**, the agent's client ID and secret (not the chat's).
+   - **Add**, then **Connect**. The Connect page should say *Dashboard (agent)* and *no deleting*. Tap **Approve**.
+3. **Its permissions:** reading tools **Always allow**, and writing tools **Always allow** too, because a scheduled run has nobody to approve each change. The chip and Undo are the review.
+4. **Try it.** In a new chat, turn on **Dashboard (agent)** and turn off **Dashboard**, then:
+   1. *"Add a task to test the agent's connector."*
+   2. Within 30 seconds the dock shows **✦ 1 new from the agent**. Tap it. The task is listed, with **Undo**. Tap **Undo**, then **Done**. The chip goes away, on the kiosk too.
+   3. On `/manage`, under **Claude**: *The agent: on*, with *1 of 30 agent changes today*. The change is listed under **Claude's changes** as *The agent*.
+   4. *"Delete a task"* and *"Start night mode"*: it has no tools for either, and should say so.
+5. **When you set up the scheduled task (phase 9):** give it **Dashboard (agent)**. If claude.ai lets a scheduled task leave a connector out, leave out **Dashboard**, the chat's. Otherwise its instructions say to use only its own.
+
+If it uses up its 30 changes, the dock says *Today's limit of 30 agent changes is used up*, and it can write again after midnight.
 
 ## Your devices
 
@@ -152,6 +178,7 @@ For a server where the door was set up on port 8443. claude.ai never reached it 
 | How much | How |
 |---|---|
 | One connection | `/manage` → **Claude** → **Revoke** |
-| Every chat connection, at once | `/manage` → **Claude** → **Switch off** (on the kiosk too). Turn it back on and reconnect from claude.ai. |
+| Every chat connection, at once | `/manage` → **Claude** → **Switch off** beside *claude.ai chats* (on the kiosk too). Turn it back on and reconnect from claude.ai. |
+| The agent, at once | `/manage` → **Claude** → **Switch off** beside *The agent*. Chats keep working. |
 | The door itself | On the VM: `sudo tailscale funnel --https=443 off`. Nothing from the internet reaches the server any more. The dashboard on 8443 is unaffected. |
-| A new client secret | Delete the `OAUTH_CHAT_CLIENT_SECRET` line from `/opt/dashboard/.env`, run `oauth-client.sh` again, restart, then remove and re-add the connector in claude.ai with the new secret. |
+| A new client secret | Delete the `OAUTH_CHAT_CLIENT_SECRET` line (or `OAUTH_AGENT_CLIENT_SECRET`, for the agent) from `/opt/dashboard/.env`, run `oauth-client.sh` again, restart, then remove and re-add that connector in claude.ai with the new secret. |

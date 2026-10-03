@@ -202,13 +202,30 @@ Choices made while building, where [DESIGN.md](DESIGN.md) left room or turned ou
 | `/.well-known/oauth-protected-resource` at the root describes the chat connector. | Some clients look there before the path-specific document. |
 | The write cap counts changes, not requests, made through chat connections since midnight, from the change record. | One source of truth, no new state, and it can't drift from what Claude's changes shows. |
 | The ✦ mark matches a row by id and `created_at`. | SQLite reuses the highest id after a delete, so after undoing Claude's newest item, your next one would otherwise inherit its mark. A test covers it. |
-| The agent's token signs in but gets no tools, and `oauth-client.sh` doesn't make the agent's client yet. | Its tools and the review modal come with suggestions (PR 3). Until then `/manage` doesn't show a connector that can't do anything. |
+| ~~The agent's token signs in but gets no tools, and `oauth-client.sh` doesn't make the agent's client yet.~~ Superseded by the agent's connector, below. | Its tools and the review modal come with suggestions (PR 3). Until then `/manage` doesn't show a connector that can't do anything. |
 | The public log line includes the visitor's address (`from=`). | It answers CONNECTOR.md's open question about `X-Forwarded-For` on the first real request, and makes abuse visible. |
 | The instructions about untrusted email text are sent by the stdio server too. | Claude Code reads email through its own connectors as well. |
 | Write tools' descriptions end "The owner sees every change and can undo it." | Claude knows its changes are visible, and can say so. |
 | Switching a connector off on `/manage` takes a second tap; switching it on doesn't. Revoke and Undo everything since take a second tap too. | One stray tap shouldn't cut claude.ai off or undo a day's work. Turning something on is harmless. |
 | Undo everything since offers the last hour, today, or a picked time, and covers claude.ai only unless widened. | The common cases are "that run just now" and "today". |
 | `oauth-client.sh` makes each secret from 32 bytes of `/dev/urandom`, base64url. The client ID starts `chat-`. | As strong as the tokens, with no Node needed; the prefix makes the two clients easy to tell apart later. |
+
+## Phase 8: the agent's connector
+
+[AGENT.md](AGENT.md) §6, built Oct 2.
+
+| Choice | Why |
+|---|---|
+| The two allow-lists share their reads and their add-and-change routes; the agent's has only those. Unchecking a habit is a `DELETE`, so the agent can check a habit but not uncheck one. | AGENT.md §2 says no `DELETE` of any kind. Unchecking is rare for an agent working from email, and the refusal names the route. |
+| The cap is a table, `WRITE_CAPS = { chat: 100, agent: 30 }`, and each connector's count is its own, from the change record. `/manage` and `/api/connectors` show both counts. | One rule for both connectors, and a chat can't use up the agent's day or the other way round. |
+| `agent_seen_at` is a setting, kept out of the change record. A connector that sends it is refused with 403, even the chat's, which may otherwise set the night hours. | It moves every time Luke looks, so recording it would fill History. A fooled chat or agent mustn't be able to clear the chip that shows its work. |
+| Closing the modal sets `agent_seen_at` to the newest change listed, by the server's clock, not to now. | A change that arrives while the modal is open, or a kiosk whose clock is off, can't be marked seen without being shown. |
+| The chip fetches `GET /api/changes?actor=agent&since=<agent_seen_at>` (up to 200) and settings, both polled every 30 seconds like the tiles. It also drops changes at or before `agent_seen_at` itself. | No new API. The server's `since` is "at or after", and the answer for an older `agent_seen_at` can still be on screen for a moment. |
+| The modal lists the changes as they were when the chip was tapped. Undo all of these sends `since` as the oldest change listed. | A poll can't move a row out from under a finger. The oldest listed is the same as `agent_seen_at` without the at-or-after edge, and it works when Luke has never looked. |
+| Undo all of these takes a second tap, as Undo everything since does on `/manage`. After it, or after each Undo, the row says *Undone*. | The modal is on the wall too. The change record keeps the agent's changes after they're undone, so the modal marks them itself. |
+| The change's who is *The agent* (*the agent* mid-sentence, on the ✦). The approval page and claude.ai name it *Dashboard (agent)*. | AGENT.md §3–4. |
+| The agent gets the same server instructions as chats. | They're about untrusted text, which is the agent's whole job. Using only its own connector belongs in its standing instructions (phase 9). |
+| `oauth-client.sh` makes the agent's client too (ID prefix `agent-`), on any run. | Running it again on the VM adds only the agent's lines, so the chat connector is untouched. |
 
 ## The block redesign
 

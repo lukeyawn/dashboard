@@ -29,6 +29,9 @@ function measure() {
     });
 
     const dock = document.querySelector('.dock').getBoundingClientRect();
+    // everything in the dock fits beside the clock, the agent's chip included
+    const dockParts = [...document.querySelectorAll('.dock-clock, .dock-right > *')].map(el => el.getBoundingClientRect());
+    const dockCrowded = dockParts.some((a, i) => a.right > innerWidth || dockParts.slice(i + 1).some(b => b.left < a.right - 0.5));
 
     // Upcoming's day boxes line up with the grid's first 4 columns (docs/BLOCKS.md §1):
     // how far, in reference pixels, each box's edges are from its column's
@@ -62,6 +65,7 @@ function measure() {
         pageScrolls: root.scrollWidth > root.clientWidth || root.scrollHeight > root.clientHeight,
         shells,
         dockInside: dock.top >= 0 && dock.bottom <= innerHeight + 0.5 && dock.height > 0,
+        dockCrowded,
         dayOffsets,
         bodySizes,
         smallTargets,
@@ -77,6 +81,7 @@ for (const [width, height] of RESOLUTIONS) {
             await page.goto('/');
             await page.locator('.task').first().waitFor();
             await page.locator('.dock-weather').waitFor();
+            await page.locator('.dock-agent').waitFor();
             await page.locator('.timeline-event').first().waitFor();
             await page.locator('.upcoming-event').first().waitFor();
             await page.evaluate(() => document.fonts.ready);
@@ -96,6 +101,7 @@ for (const [width, height] of RESOLUTIONS) {
             expect(m.shells.filter(s => s.overflowing).map(s => s.area), 'widgets whose content overflows').toEqual([]);
             expect(m.shells.filter(s => !s.inside).map(s => s.area), 'widgets off screen').toEqual([]);
             expect(m.dockInside, 'the dock is on screen').toBe(true);
+            expect(m.dockCrowded, 'the dock\'s parts overlap or run off screen').toBe(false);
             expect(m.dayOffsets, "Upcoming's days, off their columns (reference px)").toHaveLength(4);
             expect(m.dayOffsets.filter(d => d > 8), "Upcoming's days, off their columns (reference px)").toEqual([]);
             expect(m.smallTargets, 'tap targets smaller than --hit').toEqual([]);
@@ -113,6 +119,33 @@ for (const [width, height] of RESOLUTIONS) {
             const withPanel = await page.evaluate(measure);
             expect(withPanel.shells.filter(s => s.overflowing).map(s => s.area), 'widgets whose content overflows, with the panel open').toEqual([]);
             expect(withPanel.smallTargets, 'tap targets smaller than --hit, with the panel open').toEqual([]);
+
+            // the agent's changes, opened from the dock's chip (docs/AGENT.md §3)
+            await page.locator('.dock-agent').click();
+            const modal = page.locator('.modal');
+            await modal.waitFor();
+            await page.screenshot({ path: `test-results/screens/${width}x${height}-agent.png` });
+            const agent = await modal.evaluate(el => {
+                const px = Math.min(innerWidth / 1920, innerHeight / 1080);
+                const rect = el.getBoundingClientRect();
+                const body = el.querySelector('.modal-body');
+                const small = [...el.querySelectorAll('button')]
+                    .map(b => ({ label: b.getAttribute('aria-label') ?? b.textContent.trim(), ...b.getBoundingClientRect().toJSON() }))
+                    .filter(r => r.height < 48 * px - 0.5)
+                    .map(r => r.label);
+                return {
+                    inside: rect.left >= 0 && rect.top >= 0 && rect.right <= innerWidth && rect.bottom <= innerHeight,
+                    scrolls: body.scrollHeight > body.clientHeight,
+                    wide: body.scrollWidth > body.clientWidth + 1,
+                    small,
+                };
+            });
+            expect(agent.inside, "the agent's changes are on screen").toBe(true);
+            expect(agent.scrolls, "the agent's changes scroll inside the modal").toBe(true);
+            expect(agent.wide, "the agent's changes are wider than the modal").toBe(false);
+            expect(agent.small, "the agent's changes' buttons smaller than --hit").toEqual([]);
+            await modal.getByText('Done').click();
+            await expect(page.locator('.dock-agent')).toHaveCount(0);
         });
     });
 }

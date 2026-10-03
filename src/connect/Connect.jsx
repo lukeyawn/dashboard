@@ -3,7 +3,7 @@ import { request } from '../lib/api';
 import '../editors/editors.css';
 import './Connect.css';
 
-const NAMES = { chat: 'Dashboard', agent: 'Dashboard (suggest only)' };
+const NAMES = { chat: 'Dashboard', agent: 'Dashboard (agent)' };
 
 // Approving a claude.ai sign-in (docs/CONNECTOR.md §4). claude.ai's sign-in
 // redirects here, to the tailnet, so approving needs this device on the

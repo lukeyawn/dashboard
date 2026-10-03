@@ -33,11 +33,24 @@ describe('oauth-client.sh', () => {
         expect(env.API_TOKEN).toBe('abc');
         expect(env.PUBLIC_URL).toBe('https://dashboard.tail.ts.net');
         expect(env.TAILNET_URL).toBe('https://dashboard.tail.ts.net:8443');
-        for (const key of ['OAUTH_CHAT_CLIENT_ID', 'OAUTH_CHAT_CLIENT_SECRET', 'OAUTH_REFRESH_KEY']) {
+        for (const key of ['OAUTH_CHAT_CLIENT_ID', 'OAUTH_CHAT_CLIENT_SECRET', 'OAUTH_REFRESH_KEY', 'OAUTH_AGENT_CLIENT_ID', 'OAUTH_AGENT_CLIENT_SECRET']) {
             expect(env[key]).toMatch(/^[\w-]{40,}$/);
         }
+        expect(env.OAUTH_AGENT_CLIENT_ID).toMatch(/^agent-/);
         expect(fs.statSync(file).mode & 0o777).toBe(0o600);
-        expect(connectorConfig(env).clients.chat.id).toBe(env.OAUTH_CHAT_CLIENT_ID);
+        const config = connectorConfig(env);
+        expect(config.clients.chat.id).toBe(env.OAUTH_CHAT_CLIENT_ID);
+        expect(config.clients.agent.id).toBe(env.OAUTH_AGENT_CLIENT_ID);
+    });
+
+    it("adds the agent's client to a .env that already has the chat's, changing nothing else", async () => {
+        const file = scratch('PUBLIC_URL=https://first.ts.net\nOAUTH_CHAT_CLIENT_ID=chat-x\nOAUTH_CHAT_CLIENT_SECRET=s\nOAUTH_REFRESH_KEY=k\n');
+        const { stdout } = await run(file);
+        expect(stdout).toContain('Added to');
+        expect(stdout).toContain('OAUTH_AGENT_CLIENT_ID OAUTH_AGENT_CLIENT_SECRET');
+        const env = parse(file);
+        expect(env).toMatchObject({ OAUTH_CHAT_CLIENT_ID: 'chat-x', OAUTH_CHAT_CLIENT_SECRET: 's', OAUTH_REFRESH_KEY: 'k' });
+        expect(env.OAUTH_AGENT_CLIENT_SECRET).toMatch(/^[\w-]{40,}$/);
     });
 
     it('never changes what is already there', async () => {

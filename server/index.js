@@ -3,7 +3,8 @@
 // TZ, and optionally GCAL_ROUTINE_ICS_URL, PORT, HOST, DATABASE and BUILD. With
 // PUBLIC_URL set, the claude.ai connector's public listener starts too, on
 // 127.0.0.1:PUBLIC_PORT (docs/CONNECTOR.md §3), and needs OAUTH_CHAT_CLIENT_ID,
-// OAUTH_CHAT_CLIENT_SECRET and OAUTH_REFRESH_KEY.
+// OAUTH_CHAT_CLIENT_SECRET and OAUTH_REFRESH_KEY; OAUTH_AGENT_CLIENT_ID and
+// OAUTH_AGENT_CLIENT_SECRET turn on the agent's connector (docs/AGENT.md).
 import fs from 'node:fs';
 import path from 'node:path';
 import { createApp } from './app.js';

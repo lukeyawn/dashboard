@@ -4,7 +4,9 @@ import { request } from '../lib/api';
 import ClaudeChanges from './ClaudeChanges';
 import '../editors/editors.css';
 
-const NAMES = { chat: 'claude.ai chats', agent: 'The agent (suggest only)' };
+const NAMES = { chat: 'claude.ai chats', agent: 'The agent' };
+// what today's count is of (docs/AGENT.md §6)
+const COUNTED = { chat: 'changes today', agent: 'agent changes today' };
 const when = at => new Date(at).toLocaleString('en-US', { month: 'short', day: 'numeric', hour: 'numeric', minute: '2-digit' });
 
 // The "Claude" section on /manage (docs/CONNECTOR.md §9): each connector's
@@ -55,7 +57,7 @@ export default function Claude() {
                                 <span className="editor-title">{NAMES[connector.name]}: {connector.configured ? (connector.enabled ? 'on' : 'off') : 'not set up'}</span>
                                 <span className="editor-detail">
                                     {connector.configured ? connector.url : 'Set up on the server first (vm/CONNECTOR.md).'}
-                                    {connector.configured && connector.write_cap !== undefined && ` · ${connector.writes_today} of ${connector.write_cap} changes today`}
+                                    {connector.configured && connector.write_cap !== undefined && ` · ${connector.writes_today} of ${connector.write_cap} ${COUNTED[connector.name]}`}
                                 </span>
                             </div>
                             {connector.configured && (

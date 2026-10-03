@@ -36,7 +36,7 @@ describe('Connect', () => {
 
     it('can deny', async () => {
         setup({ ...REQUEST, connector: 'agent' });
-        expect(await screen.findByText('Dashboard (suggest only)')).toBeTruthy();
+        expect(await screen.findByText('Dashboard (agent)')).toBeTruthy();
         fireEvent.click(screen.getByText('Deny'));
         await waitFor(() => expect(assign).toHaveBeenCalledWith(expect.stringContaining('error=access_denied')));
     });

@@ -1,14 +1,17 @@
 // Settings are key → JSON value rows (DESIGN §3). Users change night_start,
-// night_end, week_start and assignments_area; the system keeps
-// night_early_until and kiosk_location.
+// night_end, week_start and assignments_area, and agent_seen_at changes when
+// the owner looks at the agent's changes; the system keeps night_early_until
+// and kiosk_location.
 import { HttpError } from '../errors.js';
 
-// assignments_area starts as School's id, stored by migration 015
-export const DEFAULTS = { night_start: '22:00', night_end: '06:30', week_start: 'sunday', assignments_area: null };
+// assignments_area starts as School's id, stored by migration 015;
+// agent_seen_at is null until the owner first looks (docs/AGENT.md §3)
+export const DEFAULTS = { night_start: '22:00', night_end: '06:30', week_start: 'sunday', assignments_area: null, agent_seen_at: null };
 const USER_KEYS = Object.keys(DEFAULTS);
 
-// Kept out of the change record: the kiosk reports it daily, so it's noise
-const UNRECORDED = new Set(['kiosk_location']);
+// Kept out of the change record as noise: the kiosk reports its location
+// daily, and agent_seen_at moves each time the owner looks
+const UNRECORDED = new Set(['kiosk_location', 'agent_seen_at']);
 
 export function createSettingsStore(db, { log } = {}) {
     const getRow = db.prepare('SELECT value FROM settings WHERE key = ?');

@@ -8,29 +8,40 @@ import { HttpError } from './errors.js';
 const RESOURCES = 'tasks|countdowns|goals|habits|applications';
 const end = '/?$';
 
+// what both connectors read: areas are read-only, since Claude chooses from
+// them and only the owner edits them
+const READ = ['GET', new RegExp(`^/(today|${RESOURCES}|areas|events|birthdays|settings|night)${end}`)];
+// adding and changing items, with their quick actions
+const WRITE = [
+    ['POST', new RegExp(`^/(${RESOURCES})${end}`)],
+    ['POST', new RegExp(`^/goals/\\d+/(increment|achieve)${end}`)],
+    ['PATCH', new RegExp(`^/(${RESOURCES})/\\d+${end}`)],
+    ['PUT', new RegExp(`^/habits/\\d+/checks/[0-9-]+${end}`)],
+];
+
 // [method, path under /api]
 export const ALLOWED = {
     // claude.ai chats: read, add and change, but never delete, export, undo,
     // or touch connections, the kill switches or the kiosk's location
     chat: [
-        // areas are read-only: Claude chooses from them, and only the owner edits them
-        ['GET', new RegExp(`^/(today|${RESOURCES}|areas|events|birthdays|settings|night)${end}`)],
-        ['POST', new RegExp(`^/(${RESOURCES})${end}`)],
-        ['POST', new RegExp(`^/goals/\\d+/(increment|achieve)${end}`)],
+        READ,
+        ...WRITE,
         ['POST', new RegExp(`^/night/(start|cancel)${end}`)],
-        ['PATCH', new RegExp(`^/(${RESOURCES})/\\d+${end}`)],
         // only the night hours and week_start can be set through it (shared/schemas.js);
         // week_start is harmless, since streaks are worked out on every read
         ['PATCH', new RegExp(`^/settings${end}`)],
-        ['PUT', new RegExp(`^/habits/\\d+/checks/[0-9-]+${end}`)],
         // unchecking a day: a quick action, not a deletion of anything
         ['DELETE', new RegExp(`^/habits/\\d+/checks/[0-9-]+${end}`)],
     ],
-    // the agent's connector arrives with suggestions (phase 8, PR 3)
-    agent: [],
+    // the scheduled agent (docs/AGENT.md §2): the same reads, and adding and
+    // changing items directly, but no DELETE of any kind, and no settings or
+    // night mode, which it has no reason to touch
+    agent: [READ, ...WRITE],
 };
 
-export const WRITE_CAP = 100;
+// changes a day through each connector; the agent's is lower, so a fooled
+// run can do at most 30 things (docs/AGENT.md §2)
+export const WRITE_CAPS = { chat: 100, agent: 30 };
 
 export function isAllowed(connector, method, path) {
     return (ALLOWED[connector] ?? []).some(([m, pattern]) => m === method && pattern.test(path));
@@ -56,8 +67,10 @@ export function createAccess({ log, now = Date.now }) {
             if (!isAllowed(connector, req.method, req.path)) {
                 return next(new HttpError(403, `claude.ai can't use ${req.method} ${req.path}. The owner does that on the dashboard.`));
             }
-            if (req.method !== 'GET' && connector === 'chat' && writesToday('chat') >= WRITE_CAP) {
-                return next(new HttpError(429, `Today's limit of ${WRITE_CAP} changes through claude.ai is used up. It resets at midnight.`));
+            const cap = WRITE_CAPS[connector];
+            if (req.method !== 'GET' && writesToday(connector) >= cap) {
+                const what = connector === 'agent' ? `${cap} agent changes` : `${cap} changes through claude.ai`;
+                return next(new HttpError(429, `Today's limit of ${what} is used up. It resets at midnight.`));
             }
             next();
         },

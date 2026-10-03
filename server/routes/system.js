@@ -8,7 +8,14 @@ import { KIOSK_REPORT_EVERY_MS, chooseLocation } from '../weather.js';
 export function settingsRouter(settings) {
     const router = express.Router();
     router.get('/', (req, res) => res.json(settings.user()));
-    router.patch('/', (req, res) => res.json(settings.updateUser(validate(schemas.settingsUpdate, req.body))));
+    router.patch('/', (req, res) => {
+        // only the owner's screens say they've looked at the agent's changes,
+        // so a connector can't hide them (docs/AGENT.md §3)
+        if (req.client === 'connector' && req.body && Object.hasOwn(req.body, 'agent_seen_at')) {
+            throw new HttpError(403, "claude.ai can't set agent_seen_at. The owner does that on the dashboard.");
+        }
+        res.json(settings.updateUser(validate(schemas.settingsUpdate, req.body)));
+    });
     return router;
 }
 

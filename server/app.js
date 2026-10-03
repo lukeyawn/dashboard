@@ -3,7 +3,7 @@
 import path from 'node:path';
 import express from 'express';
 import * as schemas from '../shared/schemas.js';
-import { WRITE_CAP, createAccess } from './access.js';
+import { WRITE_CAPS, createAccess } from './access.js';
 import { createAuth } from './auth.js';
 import { exportAll } from './backup.js';
 import { systemStatus } from './status.js';
@@ -124,7 +124,8 @@ export function createApp({ db, apiToken, kioskToken, build = 'dev', distDir = n
         const connectors = () => (oauth?.connectors() ?? []).map(name => ({
             name,
             lost: Boolean(connections.lost(name)),
-            capped: name === 'chat' && access.writesToday('chat') >= WRITE_CAP,
+            capped: access.writesToday(name) >= WRITE_CAPS[name],
+            cap: WRITE_CAPS[name],
         }));
         res.json(systemStatus({ backupStatusFile, calendar, now: now(), connectors }));
     });

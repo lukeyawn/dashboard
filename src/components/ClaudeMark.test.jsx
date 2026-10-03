@@ -35,4 +35,10 @@ describe('ClaudeMark', () => {
         fireEvent.click(screen.getByText('Keep it'));
         expect(screen.queryByRole('dialog')).toBeNull();
     });
+
+    it('names the scheduled agent', () => {
+        render(<ClaudeMark change={{ ...CHANGE, actor: 'agent' }} name="Reply to Stripe recruiter" />);
+        fireEvent.click(screen.getByLabelText('Added by the agent'));
+        expect(screen.getByText(/^Added by the agent, Oct 1/)).toBeTruthy();
+    });
 });
