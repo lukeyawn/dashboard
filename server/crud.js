@@ -114,7 +114,7 @@ export function createStore(db, { table, columns, orderBy = 'id', filters = {}, 
 // noun:   for messages, e.g. 'task'
 // schemas: { create, update, query } zod schemas from shared/schemas.js
 // extend: adds routes before the generic ones, e.g. POST /:id/increment
-// defaults: returns values for fields a create left out, worked out per request
+// defaults(values): returns values for fields a create left out, worked out per request
 export function crudRouter(store, { noun, create, update, query, extend, defaults = () => ({}) }) {
     const router = express.Router();
     const notFound = id => new HttpError(404, `There's no ${noun} ${id}`);
@@ -132,7 +132,7 @@ export function crudRouter(store, { noun, create, update, query, extend, default
         // (DESIGN §5.5); so is an area with the same name (docs/BLOCKS.md §3)
         const existing = store.findExisting?.(values) ?? store.findBySource?.(values.source);
         if (existing) return res.status(200).json(existing);
-        const filled = Object.fromEntries(Object.entries(defaults()).filter(([key]) => values[key] === undefined));
+        const filled = Object.fromEntries(Object.entries(defaults(values)).filter(([key]) => values[key] === undefined));
         res.status(201).json(store.create({ ...values, ...filled }));
     });
 

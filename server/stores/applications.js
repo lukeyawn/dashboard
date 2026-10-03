@@ -1,10 +1,13 @@
+import { today } from '../../shared/dates.js';
 import { STATUSES } from '../../shared/schemas.js';
 import { createStore } from '../crud.js';
 import { HttpError } from '../errors.js';
 
 // The job search (docs/BLOCKS.md §6). Each application carries url_by_claude:
 // true when Claude wrote its link, so the tile asks before opening it.
-export function createApplicationStore(db, { log } = {}) {
+// Only a to_apply one may have no applied_on; one moved on from to_apply
+// without a date was applied today.
+export function createApplicationStore(db, { log, now = () => new Date() } = {}) {
     const store = createStore(db, {
         table: 'applications',
         columns: ['company', 'role', 'status', 'applied_on', 'url', 'notes', 'source', 'next_on', 'next_time'],
@@ -28,14 +31,25 @@ export function createApplicationStore(db, { log } = {}) {
         list: filters => marked(store.list(filters)),
         get: id => one(store.get(id)),
         findBySource: source => one(store.findBySource(source)),
-        create: values => one(store.create(values)),
+
+        create: values => {
+            if (values.status !== 'to_apply' && !values.applied_on) throw new HttpError(400, 'An application needs the day it was sent.');
+            return one(store.create(values));
+        },
 
         // a time needs a date, so clearing the date clears the time
-        update: db.transaction((id, changes) => {
+        update: db.transaction((id, given) => {
             const before = store.raw(id);
             if (!before) return null;
-            if (changes.next_on === null) return one(store.update(id, { ...changes, next_time: null }));
-            if (changes.next_time && !(changes.next_on ?? before.next_on)) throw new HttpError(400, 'A time needs a date.');
+            const changes = { ...given };
+            if (changes.next_on === null) changes.next_time = null;
+            else if (changes.next_time && !(changes.next_on ?? before.next_on)) throw new HttpError(400, 'A time needs a date.');
+            const status = changes.status ?? before.status;
+            const appliedOn = changes.applied_on === undefined ? before.applied_on : changes.applied_on;
+            if (status !== 'to_apply' && !appliedOn) {
+                if (changes.applied_on === null) throw new HttpError(400, 'An application needs the day it was sent.');
+                changes.applied_on = today(now());
+            }
             return one(store.update(id, changes));
         }),
     };

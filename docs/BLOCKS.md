@@ -414,43 +414,63 @@ Every other open task, including deadlines that aren't school ("Pay rent, due Th
 - The four stage counts took a third of the tile, didn't help, and could be demotivating while mass-applying.
 - The posting's link was stored but never shown.
 - There was no stage for online assessments.
+- There was nowhere to keep roles to apply to.
 
-**Statuses:** `applied`, **`oa`**, `interview`, `offer`, `rejected`, and **`withdrawn`**.
+**Statuses:** **`to_apply`**, `applied`, **`oa`**, `interview`, `offer`, `rejected`, and **`withdrawn`**.
+- To apply is a role saved to apply to, by Luke or found by Claude. Its `applied_on` is empty until it's applied; moving it on fills in today.
 - Withdrawn is for an application you drop yourself. Luke rarely expects to use it, but it keeps "they said no" apart from "I said no".
 - **Rejected and withdrawn are archived:** they never appear on the tile, not even as spare rows. They're under an "Archived" filter in the editor.
 
 **The next step:** new fields `next_on` (a date) and `next_time` (optional).
-- They mean the OA's due date, the interview's time, or the date an offer needs a reply by.
-- Shown as "due Fri", "Tue 2 PM" or "reply by Oct 20", in `--urgent` within 2 days.
+- They mean the day to apply by, the OA's due date, the interview's time, or the date an offer needs a reply by.
+- Shown in a row as "by Fri", "due Fri", "Tue 2 PM" or "by Oct 20", in `--urgent` within 2 days, and in full in the panel ("Offer · reply by Tue, Oct 20").
 - Claude fills them in during the nightly routine, from email.
 
-**The layout: a list, and a panel for the selected application**
+**The layout: three lists, and a panel once an application is tapped**
+
+With nothing selected, the rows use the whole tile:
 
 ```
  JOB SEARCH                                                        ✎
- Stripe        [interview]  Tue 2 PM │ Stripe · SWE Intern
- Jane Street   [OA]         due Fri  │ Interview · Tue Oct 6, 2:00 PM
- Ramp          [offer]   by Oct 20   │ Applied Sep 12      [Stage ▾]
- Figma         [applied]    Sep 28   │ ─────────────────────────────
- Notion        [applied]    Sep 27   │ Recruiter: Dana. Two rounds:
- + 31 more                           │ coding (LeetCode medium) and
-                                     │ a project deep-dive…
-                                     │             ↗ Posting  Prepare
+ NEEDS ACTION
+ Jane Street · SWE Intern  ↗                Prepare   due Fri        [OA]
+ Stripe · Backend Intern  ↗ ✦               Prepare  Tue 2 PM [INTERVIEW]
+ Ramp · Software Engineer Intern  ↗                  by Oct 20    [OFFER]
+ TO APPLY
+ Anthropic · Software Engineer Intern  ↗              by Oct 9 [TO APPLY]
+ WAITING ON
+ Figma · Product Engineer Intern                        Sep 28  [APPLIED]
+ + 31 more
 ```
 
-- **The list (left, about 55%)** has one line per application: the company, the stage pill and the next step's date.
-  - **Order:** OA, interview and offer applications first, by the next step's date. Spare rows are filled with the most recent applied ones, muted, so the tile isn't empty early in a search.
-  - About 6 rows, then "+N more".
+Tapping a row opens the panel for it. The rows keep everything but Prepare, which moves to the panel, and the name is cut off to fit:
+
+```
+ JOB SEARCH                                                        ✎
+ NEEDS ACTION                          │ Stripe · Backend Intern     ✕
+ Jane Street · S… ↗   due Fri     [OA] │ Interview · Tue Oct 6, 2:00 PM
+ Stripe · Back… ↗ ✦  Tue 2 PM [INTERV] │ Applied Sep 12      [Stage ▾]
+ Ramp · Softw… ↗    by Oct 20  [OFFER] │ ┌───────────────────────────┐
+ TO APPLY                              │ │Recruiter: Dana. Two rounds│
+ Anthropic · S… ↗    by Oct 9 [TO APP] │ └───────────────────────────┘
+ + 32 more                             │ Saved    ↗ Posting  Prepare
+```
+
+- **Three sections** (Luke, Oct 2, after the first build):
+  - **Needs action:** every OA and offer, and anything else sent with a next step from today on, such as a scheduled interview. Ordered by the next step's date (none last).
+  - **To apply:** roles saved to apply to, by the day to apply by (none last), then the newest.
+  - **Waiting on:** everything else that isn't archived: the applied ones, and interviews with nothing scheduled or whose date has passed. Interviews first, then the most recent; applied ones are muted. Each row shows the step's date, or the date applied.
+  - What doesn't fit folds into "+N more", from the end: Waiting on first, then To apply. A section with no row showing has no heading.
   - **No stage counts.**
-- **Tapping a row selects it.** The pill is only a label, so a tap can't change a stage by accident.
+- **Each row, left to right:** "Company · Role", cut off with "…" when short of room; **↗** to the posting, and ✦ on what Claude added, just after it; then, in columns that line up across the rows, **Prepare** (for OAs and interviews), the date, and the stage pill on the right. The pill is only a label, so a tap can't change a stage by accident. A tap anywhere else on the row opens the panel.
+- **The panel only opens on a tap.** Nothing is selected at first, so the wall shows the full lists. Tapping the open row again, or ✕, closes the panel. On the kiosk, it closes after 5 minutes idle.
 - **The panel (right, about 45%)** shows the selected application:
   - the company and role;
   - the next step, with its date and time;
   - the date applied;
   - **Stage ▾;**
-  - the notes, scrolling inside the panel if long;
+  - **the notes, editable in place:** saved with **Save**, 30 seconds after the last keystroke, or when the panel closes;
   - **↗ Posting** and **Prepare**.
-- **Default selection:** the top row, the most urgent. With no tapping at all, the wall shows the next interview or OA and its notes. On the kiosk, the selection returns to the top row after 5 minutes idle.
 - **Stage ▾** opens a menu of every stage. The choice goes through the 5-second pending tap. This replaces both the cycling pill and the rule that only the editor could reject.
 - **Prepare** (on OA and interview applications) opens a new claude.ai chat with the prompt filled in:
   - the company, role, stage, posting link and notes;
@@ -483,7 +503,11 @@ Every other open task, including deadlines that aren't school ("Pay rent, due Th
 
 **Tests:**
 - the migration;
-- the list order and the spare rows;
+- the three sections, their order, and an interview moving to Waiting on once its date has passed;
+- a to-apply role with no date applied, and today filled in when it moves on;
+- the row's ↗ and Prepare, and neither on the kiosk;
+- the panel opening, closing, and closing on the kiosk when idle;
+- the notes saving with Save, after 30 seconds, and on closing;
 - the stage menu with the pending tap;
 - the kiosk hiding the links;
 - the Prepare link's contents, with notes that contain instructions kept inside the quoted block;

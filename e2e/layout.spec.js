@@ -103,6 +103,15 @@ for (const [width, height] of RESOLUTIONS) {
             // body text is the same size in every widget (DESIGN §9)
             const spread = Math.max(...m.bodySizes) - Math.min(...m.bodySizes);
             expect(spread, `body sizes ${m.bodySizes.join(', ')}`).toBeLessThan(0.5);
+
+            // Job search with an application's panel open (docs/BLOCKS.md §6)
+            // near its edge: the middle of a row may be its ↗ link
+            await page.locator('.job-select').first().click({ position: { x: 4, y: 4 } });
+            await page.locator('.job-panel').waitFor();
+            await page.screenshot({ path: `test-results/screens/${width}x${height}-job-panel.png` });
+            const withPanel = await page.evaluate(measure);
+            expect(withPanel.shells.filter(s => s.overflowing).map(s => s.area), 'widgets whose content overflows, with the panel open').toEqual([]);
+            expect(withPanel.smallTargets, 'tap targets smaller than --hit, with the panel open').toEqual([]);
         });
     });
 }

@@ -28,9 +28,10 @@ function longStep(date, time) {
     return time ? `${day}, ${formatTime(clock(time))}` : day;
 }
 
-// what the next step's date is: an OA is due, an offer needs a reply by
-const PREFIX = { oa: 'due', offer: 'reply by' };
-const ROW_PREFIX = { oa: 'due', offer: 'by' };
+// what the next step's date is: the day to apply by, an OA is due, an offer
+// needs a reply by
+const PREFIX = { to_apply: 'apply by', oa: 'due', offer: 'reply by' };
+const ROW_PREFIX = { to_apply: 'by', oa: 'due', offer: 'by' };
 
 // A row's date: the next step's ("due Fri", "Tue 2 PM", "by Oct 20"), or
 // for an applied one without a step, the day it was sent ("Sep 28").
@@ -54,5 +55,5 @@ export function nextStep(application) {
     return when && `${STAGE_NAMES[application.status]} · ${when}`;
 }
 
-// "Applied Sep 12"
-export const appliedText = application => `Applied ${monthDay(application.applied_on)}`;
+// "Applied Sep 12", or "Not applied yet" for one to apply to
+export const appliedText = application => (application.applied_on ? `Applied ${monthDay(application.applied_on)}` : 'Not applied yet');
