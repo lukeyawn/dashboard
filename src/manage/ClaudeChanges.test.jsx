@@ -57,7 +57,7 @@ describe("Claude's changes", () => {
         fireEvent.click(screen.getByText('Undo everything since'));
         expect(api.writes()).toEqual([]);
         fireEvent.click(screen.getByText('Tap again to undo them all'));
-        expect((await screen.findByRole('status')).textContent).toBe('Undid 1 change. Skipped 1 you\'ve changed since: Added countdown "Finals".');
+        expect((await screen.findByRole('status')).textContent).toBe('Undid 1 change. Couldn\'t undo 1: Added countdown "Finals" (changed since)');
         expect(api.writes()[0].body).toEqual({ since: new Date(NOW.getTime() - 60 * 60 * 1000).toISOString(), via: 'claude.ai' });
     });
 

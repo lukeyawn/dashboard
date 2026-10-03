@@ -206,6 +206,177 @@ describe('undo', () => {
     });
 });
 
+describe('undo across migrations (docs/UNDO.md)', () => {
+    const find = async (request, test) => (await changes(request, '?limit=200')).find(test);
+    // rewrites a copy in the record, as a past migration might have left it
+    const rewrite = (id, field, copy) => server.db.prepare(`UPDATE changes SET ${field} = ? WHERE id = ?`).run(JSON.stringify(copy), id);
+    const taskNames = async request => (await request('/api/tasks')).body.map(t => t.name).sort();
+
+    it('undoes an update, a create and a delete from before a column was added', async () => {
+        const request = await start();
+        const kept = (await request('/api/tasks', { method: 'POST', body: { name: 'Kept' } })).body;
+        await request(`/api/tasks/${kept.id}`, { method: 'PATCH', body: { name: 'Kept, renamed' } });
+        const extra = (await request('/api/tasks', { method: 'POST', body: { name: 'Extra' } })).body;
+        const gone = (await request('/api/tasks', { method: 'POST', body: { name: 'Gone' } })).body;
+        await request(`/api/tasks/${gone.id}`, { method: 'DELETE' });
+        const renamed = await find(request, c => c.action === 'update');
+        const created = await find(request, c => c.action === 'create' && c.after.id === extra.id);
+        const deleted = await find(request, c => c.action === 'delete');
+
+        server.db.exec('ALTER TABLE tasks ADD COLUMN mood TEXT');
+        expect((await undo(request, renamed.id)).status).toBe(200);
+        expect((await undo(request, created.id)).status).toBe(200);
+        expect((await undo(request, deleted.id)).status).toBe(200);
+        expect(await taskNames(request)).toEqual(['Gone', 'Kept']);
+    });
+
+    it("doesn't depend on the copy's key order", async () => {
+        const request = await start();
+        const task = (await request('/api/tasks', { method: 'POST', body: { name: 'a' } })).body;
+        await request(`/api/tasks/${task.id}`, { method: 'PATCH', body: { name: 'b' } });
+        const edit = await find(request, c => c.action === 'update');
+        rewrite(edit.id, 'after', Object.fromEntries(Object.entries(edit.after).reverse()));
+        expect((await undo(request, edit.id)).status).toBe(200);
+        expect(await taskNames(request)).toEqual(['a']);
+    });
+
+    it('refuses a copy with a column the table no longer has, and changes nothing', async () => {
+        const request = await start();
+        const task = (await request('/api/tasks', { method: 'POST', body: { name: 'a' } })).body;
+        await request(`/api/tasks/${task.id}`, { method: 'PATCH', body: { name: 'b' } });
+        const gone = (await request('/api/tasks', { method: 'POST', body: { name: 'gone' } })).body;
+        await request(`/api/tasks/${gone.id}`, { method: 'DELETE' });
+        const created = await find(request, c => c.action === 'create' && c.after.id === task.id);
+        const edit = await find(request, c => c.action === 'update');
+        const deleted = await find(request, c => c.action === 'delete');
+        rewrite(created.id, 'after', { ...created.after, effort: 'quick' });
+        rewrite(edit.id, 'before', { ...edit.before, effort: 'quick' });
+        rewrite(deleted.id, 'before', { ...deleted.before, effort: 'quick' });
+
+        for (const change of [created, edit, deleted]) {
+            const refused = await undo(request, change.id);
+            expect(refused.status).toBe(409);
+            expect(refused.body.error.message).toBe("That change is from before the table changed, so it can't be undone.");
+        }
+        expect(await taskNames(request)).toEqual(['b']);
+    });
+
+    it('refuses an update onto a new item that reused the id', async () => {
+        const request = await start();
+        const old = (await request('/api/tasks', { method: 'POST', body: { name: 'Same' } })).body;
+        await request(`/api/tasks/${old.id}`, { method: 'PATCH', body: { priority: 'now' } });
+        const edit = await find(request, c => c.action === 'update');
+        await request(`/api/tasks/${old.id}`, { method: 'DELETE' });
+        const reused = (await request('/api/tasks', { method: 'POST', body: { name: 'Same', priority: 'now' } })).body;
+        expect(reused.id).toBe(old.id);
+        // the same in every column but created_at
+        server.db.prepare('UPDATE tasks SET updated_at = ? WHERE id = ?').run(edit.after.updated_at, reused.id);
+
+        expect((await undo(request, edit.id)).status).toBe(409);
+        expect((await request('/api/tasks')).body[0].priority).toBe('now');
+    });
+
+    it("refuses to pin a second countdown, whether undoing an unpin or a delete", async () => {
+        const request = await start();
+        const pinned = async () => (await request('/api/countdowns')).body.filter(c => c.pinned).map(c => c.label);
+        const message = 'Another countdown is pinned now. Unpin it, then undo this.';
+
+        const a = (await request('/api/countdowns', { method: 'POST', body: { label: 'A', target_date: '2026-12-01', pinned: true } })).body;
+        await request('/api/countdowns', { method: 'POST', body: { label: 'B', target_date: '2026-12-02', pinned: true } });
+        const unpin = await find(request, c => c.action === 'update' && c.item_id === String(a.id));
+        const refused = await undo(request, unpin.id);
+        expect([refused.status, refused.body.error.message]).toEqual([409, message]);
+        expect(await pinned()).toEqual(['B']);
+
+        const c = (await request('/api/countdowns', { method: 'POST', body: { label: 'C', target_date: '2026-12-03', pinned: true } })).body;
+        await request(`/api/countdowns/${c.id}`, { method: 'DELETE' });
+        const deleted = await find(request, ch => ch.action === 'delete');
+        await request('/api/countdowns', { method: 'POST', body: { label: 'D', target_date: '2026-12-04', pinned: true } });
+        const refusedDelete = await undo(request, deleted.id);
+        expect([refusedDelete.status, refusedDelete.body.error.message]).toEqual([409, message]);
+        expect(await pinned()).toEqual(['D']);
+        expect((await request('/api/countdowns')).body.map(x => x.label)).not.toContain('C');
+    });
+
+    it('refuses to bring back an item whose source another item has taken since', async () => {
+        const request = await start();
+        const first = (await request('/api/tasks', { method: 'POST', body: { name: 'Reply to Stripe', source: 'gmail:abc' } })).body;
+        await request(`/api/tasks/${first.id}`, { method: 'DELETE' });
+        const deleted = await find(request, c => c.action === 'delete');
+        await request('/api/tasks', { method: 'POST', body: { name: 'Reply to Stripe again', source: 'gmail:abc' } });
+
+        const refused = await undo(request, deleted.id);
+        expect([refused.status, refused.body.error.message]).toEqual([409, 'Another item has come from the same source since.']);
+        expect(await taskNames(request)).toEqual(['Reply to Stripe again']);
+    });
+
+    it('refuses to undo a rename when another area has the old name now', async () => {
+        const request = await start();
+        await request('/api/areas/1', { method: 'PATCH', body: { name: 'Uni' } });
+        const rename = await find(request, c => c.resource === 'areas' && c.action === 'update');
+        await request('/api/areas', { method: 'POST', body: { name: 'School' } });
+
+        const refused = await undo(request, rename.id);
+        expect([refused.status, refused.body.error.message]).toEqual([409, "There's an area called School again since."]);
+    });
+
+    it('refuses with a 409, not a 500, when the old row breaks a rule the table has now', async () => {
+        const request = await start();
+        const task = (await request('/api/tasks', { method: 'POST', body: { name: 'a' } })).body;
+        await request(`/api/tasks/${task.id}`, { method: 'PATCH', body: { priority: 'now' } });
+        const edit = await find(request, c => c.action === 'update');
+        rewrite(edit.id, 'before', { ...edit.before, priority: 'high' });
+
+        const refused = await undo(request, edit.id);
+        expect([refused.status, refused.body.error.message]).toEqual([409, 'Undoing this would leave it inconsistent.']);
+        expect((await request('/api/tasks')).body[0].priority).toBe('now');
+    });
+
+    it('sets updated_at on every kind of write to a row', async () => {
+        const request = await start();
+        const SENTINEL = '2000-01-01T00:00:00.000Z';
+        // marks a row, makes a write, and checks the write stamped it
+        async function stamps(table, id, write) {
+            server.db.prepare(`UPDATE ${table} SET updated_at = ? WHERE id = ?`).run(SENTINEL, id);
+            await write();
+            expect(server.db.prepare(`SELECT updated_at FROM ${table} WHERE id = ?`).get(id).updated_at, `${table} ${id}`).not.toBe(SENTINEL);
+        }
+        const post = async (path, body) => (await request(path, { method: 'POST', body })).body;
+        const patch = (path, body) => () => request(path, { method: 'PATCH', body });
+
+        const task = await post('/api/tasks', { name: 'Pset', area_id: 1 });
+        await stamps('tasks', task.id, patch(`/api/tasks/${task.id}`, { name: 'Pset 4' }));
+        await stamps('tasks', task.id, patch(`/api/tasks/${task.id}`, { done_at: '2026-09-30T17:00:00.000Z' }));
+        const laundry = await post('/api/tasks', { name: 'Laundry', due: '2026-09-27', repeat: { every: 1, unit: 'week' } });
+        await stamps('tasks', laundry.id, patch(`/api/tasks/${laundry.id}`, { done_at: '2026-09-30T17:00:00.000Z' }));
+
+        const essay = await post('/api/tasks', { name: 'Essay', area_id: 1 });
+        await stamps('areas', 1, patch('/api/areas/1', { name: 'Uni' }));
+        await stamps('areas', 1, patch('/api/areas/1', { position: 3 }));
+        await stamps('areas', 2, patch('/api/areas/1', { position: 0 }));
+        await stamps('tasks', essay.id, () => request('/api/areas/1', { method: 'DELETE' }));
+        const deleted = await find(request, c => c.resource === 'areas' && c.action === 'delete');
+        await stamps('tasks', essay.id, () => undo(request, deleted.id));
+
+        const a = await post('/api/countdowns', { label: 'A', target_date: '2026-12-01', pinned: true });
+        await stamps('countdowns', a.id, patch(`/api/countdowns/${a.id}`, { label: 'A!' }));
+        await stamps('countdowns', a.id, () => post('/api/countdowns', { label: 'B', target_date: '2026-12-02', pinned: true }));
+
+        const books = await post('/api/goals', { name: 'Books', target: 12 });
+        await stamps('goals', books.id, patch(`/api/goals/${books.id}`, { name: 'Novels' }));
+        await stamps('goals', books.id, () => post(`/api/goals/${books.id}/increment`));
+        const offer = await post('/api/goals', { name: 'Offer', kind: 'milestone' });
+        await stamps('goals', offer.id, () => post(`/api/goals/${offer.id}/achieve`));
+
+        const habit = await post('/api/habits', { name: 'Gym' });
+        await stamps('habits', habit.id, patch(`/api/habits/${habit.id}`, { per_week: 3 }));
+
+        const app = await post('/api/applications', { company: 'Stripe', role: 'Intern' });
+        await stamps('applications', app.id, patch(`/api/applications/${app.id}`, { notes: 'Recruiter: Dana' }));
+        await stamps('applications', app.id, patch(`/api/applications/${app.id}`, { status: 'oa', next_on: '2026-10-09' }));
+    });
+});
+
 describe('the migration to weekly habit targets (docs/BLOCKS.md §2)', () => {
     it('gives every habit 7 a week, and rewrites older changes so they can still be undone', () => {
         const db = new Database(':memory:');
@@ -364,6 +535,34 @@ describe("Claude's changes (docs/CONNECTOR.md §6)", () => {
         // the undo is the owner's, and can itself be undone
         const [latest] = await changes(request);
         expect(latest.actor).toBe('owner');
+    });
+
+    it('undoes a pin and the unpin it caused, newest first, and skips a clash and carries on', async () => {
+        const { asClaude, request, tick } = await startWithClaude();
+        const pinned = async () => (await request('/api/countdowns')).body.filter(c => c.pinned).map(c => c.label);
+        await request('/api/countdowns', { method: 'POST', body: { label: 'A', target_date: '2026-12-01', pinned: true } });
+        tick(60_000);
+        const since = new Date(NOW + 60_000).toISOString();
+        await asClaude('/api/countdowns', { method: 'POST', body: { label: 'B', target_date: '2026-12-02', pinned: true } });
+        const res = await request('/api/changes/undo-since', { method: 'POST', body: { since, via: 'claude.ai' } });
+        expect([res.body.undone.length, res.body.skipped.length]).toEqual([2, 0]);
+        expect(await pinned()).toEqual(['A']);
+
+        // Claude pins C again; then the owner pins D, which unpins C
+        tick(60_000);
+        const later = new Date(NOW + 120_000).toISOString();
+        await asClaude('/api/countdowns', { method: 'POST', body: { label: 'C', target_date: '2026-12-03', pinned: true } });
+        await add(asClaude, 'bad');
+        await request('/api/countdowns', { method: 'POST', body: { label: 'D', target_date: '2026-12-04', pinned: true } });
+        const clash = await request('/api/changes/undo-since', { method: 'POST', body: { since: later, via: 'claude.ai' } });
+        expect(clash.status).toBe(200);
+        expect(clash.body.undone.map(c => c.after?.name)).toEqual(['bad']);
+        expect(clash.body.skipped.map(s => s.reason)).toEqual([
+            'It has changed since, so undoing this would lose the later change. Undo the later change first.',
+            'Another countdown is pinned now. Unpin it, then undo this.',
+        ]);
+        expect(await pinned()).toEqual(['D']);
+        expect(await names(request)).toEqual([]);
     });
 
     it('undoes Claude Code too when widened, and validates the request', async () => {

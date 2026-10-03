@@ -86,3 +86,10 @@ export function describeChange(change) {
     if (change.action === 'delete') return `Deleted ${noun} "${nameOf(change.before)}"`;
     return describeUpdate(noun, change.before, change.after);
 }
+
+// What Undo everything since couldn't undo, each with the server's own reason:
+// someone changed it since, it clashes with another item, or it's from before
+// the table changed (docs/UNDO.md §2)
+export function describeSkipped(skipped) {
+    return `Couldn't undo ${skipped.length}: ${skipped.map(s => `${describeChange(s.change)} (${s.reason})`).join('; ')}`;
+}

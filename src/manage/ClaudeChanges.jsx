@@ -1,7 +1,7 @@
 import { useState } from 'react';
 import { useResource } from '../hooks/useResource';
 import { request } from '../lib/api';
-import { describeChange, whoMade } from './describeChange';
+import { describeChange, describeSkipped, whoMade } from './describeChange';
 import '../editors/editors.css';
 
 const SOURCES = [['', 'All of Claude'], ['claude.ai', 'claude.ai only'], ['claude-code', 'Claude Code only']];
@@ -56,7 +56,7 @@ export default function ClaudeChanges() {
                 body: { since, ...(scope === 'claude.ai' ? { via: 'claude.ai' } : {}) },
             });
             const parts = [`Undid ${undone.length} ${undone.length === 1 ? 'change' : 'changes'}.`];
-            if (skipped.length) parts.push(`Skipped ${skipped.length} you've changed since: ${skipped.map(s => describeChange(s.change)).join('; ')}.`);
+            if (skipped.length) parts.push(describeSkipped(skipped));
             setMessage(parts.join(' '));
         } catch (err) {
             setMessage(`Couldn't undo. ${err.message}`);

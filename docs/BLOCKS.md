@@ -577,10 +577,7 @@ Each step is its own PR off `main`, never stacked. They go in three rounds: a PR
 | | **Round 3** | | |
 | 9 | Job search (§6) | Large | 7, for the shared menu |
 
-**Migrations and Undo.** Undo acts only when the item still matches the change record's copy of it (DESIGN §5.5), and those copies are whole rows. A migration that adds, renames or changes columns would leave every older change to that table impossible to undo, with a misleading "It has changed since". So:
-- **Each such migration rewrites the copies** in `changes` for its table exactly as it changes the rows: new columns added with their defaults, renamed ones renamed, mapped values mapped, dropped ones removed. In SQL, that's `json_set` and `json_remove` on `before` and `after`.
-- **The match includes key order,** since Undo compares the copies as JSON text. `json_set` adds a key at the end, as `ALTER TABLE ADD COLUMN` adds a column, so the two line up. A rebuilt table (`applications`) keeps its columns in their old order, with the new ones last.
-- **Each migration's test** runs it on a database holding older changes, then undoes one of them. That catches a copy that no longer matches, order included.
+**Migrations and Undo.** Replaced by [UNDO.md](UNDO.md) (Oct 3): Undo compares column by column, so most migrations no longer rewrite the change record. The rule is in DESIGN.md §14.
 
 **Merging:**
 - **Several PRs touch `shared/schemas.js`, and most add a migration,** so migration numbers are given out in merge order: a PR renames its file when it's rebased.

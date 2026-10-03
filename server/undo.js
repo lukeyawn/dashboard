@@ -1,11 +1,31 @@
 // Undo for the change record (DESIGN §5.5). An undo puts the item back exactly
 // as it was before that change, but only if nothing has changed it since:
 // otherwise it would silently throw away a later edit. Each undo is itself a
-// recorded change, so it can be undone too.
+// recorded change, so it can be undone too. Rows are compared column by
+// column, so a migration that adds a column doesn't block older changes
+// (docs/UNDO.md).
 import { HttpError } from './errors.js';
 
 const ROW_TABLES = new Set(['tasks', 'areas', 'countdowns', 'goals', 'habits', 'applications']);
+// what the record keeps alongside a deleted row, which aren't columns
+const EXTRAS = new Set(['_checks', '_tasks']);
 const same = (a, b) => JSON.stringify(a) === JSON.stringify(b);
+
+// Whether a row still holds every column of a copy from the record, one
+// column at a time (docs/UNDO.md §2). A column the table has gained since isn't
+// in the copy, and isn't compared: any later edit to it changed updated_at,
+// which is. Key order doesn't matter.
+const holds = (row, copy) => Object.keys(copy).every(c => row[c] === copy[c]);
+
+// the message for a constraint an undo ran into (docs/UNDO.md §2). SQLite names
+// a failed UNIQUE constraint by its columns, not its index.
+function constraintMessage(err, change) {
+    const column = err.code === 'SQLITE_CONSTRAINT_UNIQUE' ? err.message.match(/UNIQUE constraint failed: (\w+\.\w+)/)?.[1] : null;
+    if (column === 'countdowns.pinned') return 'Another countdown is pinned now. Unpin it, then undo this.';
+    if (column === 'areas.name') return `There's an area called ${change.before.name} again since.`;
+    if (column?.endsWith('.source')) return 'Another item has come from the same source since.';
+    return 'Undoing this would leave it inconsistent.';
+}
 
 export function createUndo(db, log) {
     const columnsOf = table => new Set(db.prepare(`PRAGMA table_info(${table})`).all().map(c => c.name));
@@ -19,6 +39,17 @@ export function createUndo(db, log) {
     const record = (change, action, before, after) => log.record({ resource: change.resource, itemId: change.item_id, action, before, after });
     const changedSince = () => new HttpError(409, 'It has changed since, so undoing this would lose the later change. Undo the later change first.');
 
+    // A copy with a column the table no longer has is from before a migration
+    // that dropped or renamed it without rewriting the record. Undoing the
+    // rest would quietly leave that column out, so it's refused (docs/UNDO.md §2).
+    function checkCopies(columns, ...copies) {
+        for (const copy of copies) {
+            if (Object.keys(copy).some(c => !columns.has(c) && !EXTRAS.has(c))) {
+                throw new HttpError(409, "That change is from before the table changed, so it can't be undone.");
+            }
+        }
+    }
+
     function undoRow(change) {
         const { resource: table } = change;
         const columns = columnsOf(table);
@@ -29,7 +60,8 @@ export function createUndo(db, log) {
 
         if (change.action === 'create') {
             if (!current) throw new HttpError(409, "It's already gone.");
-            if (!same(current, change.after)) throw changedSince();
+            checkCopies(columns, change.after);
+            if (!holds(current, change.after)) throw changedSince();
             // deleting it here would clear it from tasks without a record of it
             if (table === 'areas' && usesArea.get(current.id)) throw new HttpError(409, 'Tasks use that area now. Delete it from Areas instead.');
             db.prepare(`DELETE FROM ${table} WHERE id = ?`).run(current.id);
@@ -39,8 +71,9 @@ export function createUndo(db, log) {
 
         if (change.action === 'update') {
             if (!current) throw new HttpError(409, "It's been deleted since.");
-            if (!same(current, change.after)) throw changedSince();
-            const names = Object.keys(change.before).filter(c => c !== 'id' && columns.has(c));
+            checkCopies(columns, change.before, change.after);
+            if (!holds(current, change.after)) throw changedSince();
+            const names = Object.keys(change.before).filter(c => c !== 'id');
             db.prepare(`UPDATE ${table} SET ${names.map(c => `${c} = @${c}`).join(', ')} WHERE id = @id`).run({ ...pick(change.before, names), id: current.id });
             const restored = read(current.id);
             record(change, 'update', current, restored);
@@ -48,8 +81,9 @@ export function createUndo(db, log) {
         }
 
         // a delete: put the row back, under its old id unless something has taken it since
+        checkCopies(columns, change.before);
         const { _checks: checks = [], _tasks: tasks = [], ...row } = change.before;
-        const names = Object.keys(row).filter(c => columns.has(c) && !(c === 'id' && current));
+        const names = Object.keys(row).filter(c => !(c === 'id' && current));
         if (table === 'areas' && db.prepare('SELECT 1 FROM areas WHERE name = ? COLLATE NOCASE').get(row.name)) {
             throw new HttpError(409, `There's an area called ${row.name} again since.`);
         }
@@ -99,6 +133,10 @@ export function createUndo(db, log) {
             } catch (err) {
                 // a task put back on an area that has been deleted since
                 if (err.code === 'SQLITE_CONSTRAINT_FOREIGNKEY') throw new HttpError(409, "Its area has been deleted since. Undo that first.");
+                // a clash with another row, or a rule the row no longer meets:
+                // refused like any other conflict, so Undo everything since
+                // skips it and carries on
+                if (err.code?.startsWith('SQLITE_CONSTRAINT')) throw new HttpError(409, constraintMessage(err, change));
                 throw err;
             }
         }

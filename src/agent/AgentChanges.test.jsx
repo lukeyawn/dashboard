@@ -51,7 +51,7 @@ describe("the agent's changes", () => {
         fireEvent.click(screen.getByText('Undo all of these'));
         expect(api.writes()).toEqual([]);
         fireEvent.click(screen.getByText('Tap again to undo them all'));
-        expect((await screen.findByRole('status')).textContent).toBe('Undid 1 change. Kept 1 you\'ve changed since: Added task "Reply to Stripe recruiter".');
+        expect((await screen.findByRole('status')).textContent).toBe('Undid 1 change. Couldn\'t undo 1: Added task "Reply to Stripe recruiter" (changed since)');
         expect(api.writes()[0]).toMatchObject({ url: '/api/changes/undo-since', body: { since: '2026-10-02T12:00:00.000Z', actors: ['agent'] } });
         expect(screen.getAllByText('Undone')).toHaveLength(1);
     });
