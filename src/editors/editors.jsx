@@ -243,7 +243,8 @@ export function ApplicationsEditor() {
             updateSchema={schemas.applicationUpdate}
             filters={[{ key: 'archived', label: 'Show', options: ['Open', 'Archived'], value: a => (isArchived(a) ? 'Archived' : 'Open'), initial: 'Open' }]}
             sorts={[
-                { label: 'Recently applied', compare: (a, b) => b.applied_on.localeCompare(a.applied_on) || b.id - a.id },
+                // one to apply to has no applied_on yet: those go last, newest first
+                { label: 'Recently applied', compare: (a, b) => (b.applied_on ?? '').localeCompare(a.applied_on ?? '') || b.id - a.id },
                 { label: 'Next step', compare: (a, b) => (a.next_on ?? '9999').localeCompare(b.next_on ?? '9999') || b.id - a.id },
             ]}
             sections={rows => [{ title: null, rows }]}

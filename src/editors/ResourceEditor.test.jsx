@@ -366,6 +366,19 @@ describe('job applications (docs/BLOCKS.md §6)', () => {
         expect(screen.queryByText('Stripe · Intern')).toBeNull();
     });
 
+    it('lists the ones not applied to yet last under Recently applied, instead of failing on their empty date', async () => {
+        serve('applications', [
+            application(1, { company: 'Older', applied_on: '2026-09-01' }),
+            application(2, { company: 'To apply, older', status: 'to_apply', applied_on: null }),
+            application(3, { company: 'Newer', applied_on: '2026-09-20' }),
+            application(4, { company: 'To apply, newer', status: 'to_apply', applied_on: null }),
+        ]);
+        render(<ApplicationsEditor />);
+        await screen.findByText('Newer · Intern');
+        const titles = [...document.querySelectorAll('.editor-item .editor-title')].map(el => el.textContent);
+        expect(titles).toEqual(['Newer · Intern', 'Older · Intern', 'To apply, newer · Intern', 'To apply, older · Intern']);
+    });
+
     it('asks for the next step time only with a date, and clears both together', async () => {
         const api = serve('applications', [application(1, { company: 'Stripe', status: 'oa', next_on: '2026-10-06', next_time: '09:00' })]);
         render(<ApplicationsEditor />);
