@@ -70,6 +70,8 @@ seed('applications', createApplicationStore(db), [
     { company: 'Datadog', role: 'SRE Intern', status: 'applied', applied_on: day(-8) },
     { company: 'Jane Street', role: 'SWE Intern', status: 'rejected', applied_on: day(-30) },
     { company: 'Notion', role: 'SWE Intern', status: 'withdrawn', applied_on: day(-25) },
+    { company: 'Anthropic', role: 'Software Engineer Intern', status: 'to_apply', next_on: day(9), url: 'https://www.anthropic.com/careers' },
+    { company: 'Databricks', role: 'SWE Intern', status: 'to_apply' },
 ]);
 
 db.close();

@@ -66,7 +66,16 @@ describe('applications', () => {
         expect(apps.update(999, { status: 'oa' })).toBeNull();
     });
 
-    it('take the two new statuses', () => {
+    it('fill in today when one to apply to moves on', () => {
+        const apps = createApplicationStore(db, { now: () => new Date(2026, 8, 30, 12) });
+        const app = apps.create({ company: 'x', role: 'y', status: 'to_apply' });
+        expect(app.applied_on).toBeNull();
+        expect(apps.update(app.id, { notes: 'Referral from Sam' }).applied_on).toBeNull();
+        expect(apps.update(app.id, { status: 'applied' }).applied_on).toBe('2026-09-30');
+        expect(() => apps.create({ company: 'x', role: 'y', status: 'applied' })).toThrow('An application needs the day it was sent.');
+    });
+
+    it('take the new statuses', () => {
         const apps = createApplicationStore(db);
         expect(apps.create({ company: 'x', role: 'y', status: 'withdrawn', applied_on: '2026-09-01' }).status).toBe('withdrawn');
         expect(apps.list({ status: 'withdrawn' })).toHaveLength(1);

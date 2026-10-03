@@ -9,7 +9,8 @@ import './ClaudeMark.css';
 // one asks first: "Open evil.example? Claude added this link." (docs/AGENT.md
 // §2, docs/CONNECTOR.md §7), and the link carries a ✦. byClaude is the row's
 // url_by_claude.
-export default function OpenLink({ url, byClaude, className, children }) {
+// label: the link's accessible name, when its text is only a symbol
+export default function OpenLink({ url, byClaude, className, label, children }) {
     const [asking, setAsking] = useState(false);
 
     function ask(event) {
@@ -25,7 +26,7 @@ export default function OpenLink({ url, byClaude, className, children }) {
 
     return (
         <>
-            <a className={className} href={url} target="_blank" rel="noopener noreferrer" data-tap onClick={ask}>
+            <a className={className} href={url} target="_blank" rel="noopener noreferrer" aria-label={label && (byClaude ? `${label}, added by Claude` : label)} data-tap onClick={ask}>
                 {children}
                 {byClaude && <span className="open-link-mark" aria-label="added by Claude"> ✦</span>}
             </a>

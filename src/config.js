@@ -4,6 +4,9 @@
 // how long a completing tap waits before it's sent, so it can be cancelled (DESIGN §6.2)
 export const PENDING_MS = 5_000;
 
+// notes edited on a tile are saved this long after the last keystroke (docs/BLOCKS.md §6)
+export const NOTES_SAVE_MS = 30_000;
+
 // how often widgets refetch their data (DESIGN §6)
 export const POLL_MS = 30_000;
 

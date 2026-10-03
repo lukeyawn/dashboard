@@ -110,6 +110,8 @@ export const APPLICATIONS = rows([
     { company: 'Notion', role: 'SWE Intern', status: 'applied', applied_on: '2026-09-18' },
     { company: 'Ramp', role: 'SWE Intern', status: 'applied', applied_on: '2026-09-15' },
     { company: 'Datadog', role: 'SRE Intern', status: 'applied', applied_on: '2026-09-12' },
+    { company: 'Anthropic', role: 'Software Engineer Intern, Research Tools', status: 'to_apply', applied_on: null, next_on: '2026-10-09' },
+    { company: 'Databricks', role: 'SWE Intern', status: 'to_apply', applied_on: null },
     { company: 'Citadel', role: 'SWE Intern', status: 'rejected' },
     { company: 'Palantir', role: 'FDE Intern', status: 'withdrawn' },
 ].map(a => ({ applied_on: '2026-09-01', url: null, notes: null, next_on: null, next_time: null, url_by_claude: false, source: null, ...a })));

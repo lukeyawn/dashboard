@@ -104,7 +104,7 @@ export function createApp({ db, apiToken, kioskToken, build = 'dev', distDir = n
         countdowns: createCountdownStore(db, { log, now: () => new Date(now()) }),
         goals: createGoalStore(db, { log, now: () => new Date(now()), weekStart: () => settings.get('week_start') }),
         habits: createHabitStore(db, { now: () => new Date(now()), log, weekStart: () => settings.get('week_start') }),
-        applications: createApplicationStore(db, { log }),
+        applications: createApplicationStore(db, { log, now: () => new Date(now()) }),
     };
     const { events, birthdays } = calendarRouters(calendar);
     app.use('/api/tasks', tasksRouter(stores.tasks));
