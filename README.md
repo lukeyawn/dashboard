@@ -6,14 +6,15 @@ The full design, and the reasons behind it, is in [docs/DESIGN.md](docs/DESIGN.m
 
 ## Status
 
-Being built in phases ([DESIGN §12](docs/DESIGN.md#12-build-plan)).
+**v1 is live** (Oct 3, 2026): build `8d5648c`, database at migration 020, holding real data from then on. Built in phases ([DESIGN §12](docs/DESIGN.md#12-build-plan)).
 
 - **Live:** the server runs on a Google Cloud VM, reachable only over Tailscale ([vm/SETUP.md](vm/SETUP.md)). The database is backed up continuously to Cloud Storage and nightly to Google Drive. All nine widgets work, along with the editors in a ✎ modal and at `/manage` (which works on a phone), and the MCP server for Claude Code ([mcp/README.md](mcp/README.md)).
 - **Built, waiting for hardware:** the kiosk, with night mode, the reload rules and the Pi's setup ([kiosk/SETUP.md](kiosk/SETUP.md)).
 - **Phase 7 (data an agent can work with):** the status line, richer tasks with deadlines merged in, and a change record with History and Undo on `/manage`.
 - **Phase 8, built:** the claude.ai connectors, one for chats and one for the scheduled agent, behind a public door on port 443 with only the MCP endpoints and their sign-in (the dashboard itself is on tailnet-only 8443). Claude's changes are listed with Undo on `/manage`, and the agent's in the dock ([docs/CONNECTOR.md](docs/CONNECTOR.md), [docs/AGENT.md](docs/AGENT.md), [vm/CONNECTOR.md](vm/CONNECTOR.md)).
 - **The block redesign, built:** Upcoming, weekly habit targets, task areas and recurrence, Assignments, countdown times, goal deadlines and milestones, and the job search list ([docs/BLOCKS.md](docs/BLOCKS.md)).
-- **Next:** phase 9, the scheduled agent, set up in claude.ai, with its daily briefing in the dock. Other planned ideas are in [docs/V2_IDEAS.md](docs/V2_IDEAS.md).
+- **Phase 9, the repo's part built:** the agent's runs, its briefing and its changes behind the ✦ in the dock ([docs/AGENT.md §7](docs/AGENT.md#7-runs-the-briefing-and-the-timeline-phase-9)). The agent itself is set up in claude.ai ([vm/AGENT.md](vm/AGENT.md)).
+- **Next:** the ideas planned in [docs/V2_IDEAS.md](docs/V2_IDEAS.md).
 
 ## Development
 

@@ -373,3 +373,12 @@ Oct 3, after PR #44. Frontend only. [AGENT.md §7](AGENT.md#the-dock-a--and-a-ti
 | A briefing's link reads *"7 changes (2 undone) ›"* once some are undone in the popover. | Its count would otherwise disagree with what the Changes tab shows. |
 | Closing from either tab marks everything seen, as before. | The Changes tab's *"7 new"* and the links are visible from Briefings; making Luke open Changes before "new" clears would turn the glance back into a chore (§1). |
 
+
+## v1 live
+
+Oct 3, on build `8d5648c` (migration 020). The deployed dashboard had held mock data, entered by hand to test the UI; it was wiped before real use.
+
+| Choice | Why |
+|---|---|
+| The wipe was SQL run on the VM with the service stopped, after copying the database to `backups/dashboard-before-wipe.db`: it emptied `tasks`, `countdowns`, `goals`, `habits` (and `habit_checks` with them), `applications`, `changes` and `runs`, and kept `settings`, `areas` and the `oauth_*` tables. | Deleting through the UI would have left the mock history in the change record, which is kept for good, with Undo buttons that bring the mock items back, and the test runs in the ✦ timeline. A fresh database file would also have dropped the settings, any edited areas and the claude.ai connectors' sign-ins, so both connectors would have had to be connected again. |
+| No script in the repo for it. | It's a one-off. The change record is otherwise never deleted from (BLOCKS.md §7), so a wipe command shouldn't be one step away. |
