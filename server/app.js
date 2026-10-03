@@ -15,6 +15,7 @@ import { createOAuth } from './oauth.js';
 import { createPublicApp } from './public.js';
 import { changesRouter } from './routes/changes.js';
 import { connectionsRouter, switchKey } from './routes/connections.js';
+import { runsRouter } from './routes/runs.js';
 import { applicationsRouter, areasRouter, countdownsRouter, goalsRouter, habitsRouter, tasksRouter } from './routes/resources.js';
 import { calendarRouters, locationRouter, nightRouter, settingsRouter, weatherRouter } from './routes/system.js';
 import { createApplicationStore } from './stores/applications.js';
@@ -23,6 +24,7 @@ import { createCountdownStore } from './stores/countdowns.js';
 import { createGoalStore } from './stores/goals.js';
 import { createAreaStore } from './stores/areas.js';
 import { createHabitStore } from './stores/habits.js';
+import { createRunStore } from './stores/runs.js';
 import { createSettingsStore } from './stores/settings.js';
 import { createTaskStore } from './stores/tasks.js';
 import { todaySnapshot } from './today.js';
@@ -78,15 +80,19 @@ export function createApp({ db, apiToken, kioskToken, build = 'dev', distDir = n
     });
 
     const log = createChangeLog(db, { now });
-    const access = createAccess({ log, now });
+    const runs = createRunStore(db, { now: () => new Date(now()) });
+    const access = createAccess({ log, runs, now });
     app.use('/api', auth.requireToken);
     // a claude.ai connector may use only the routes on its allow-list, and
-    // what it writes is cleaned first (docs/CONNECTOR.md §5, §7)
+    // what it writes is cleaned first (docs/CONNECTOR.md §5, §7); the
+    // agent's writes each name an open run (docs/AGENT.md §7)
     app.use('/api', access.check);
     app.use('/api', cleanConnectorWrites);
+    app.use('/api', access.requireRun);
     // every write made while handling this request is recorded as this actor,
-    // and the claude.ai connection if there is one (DESIGN §5.5)
-    app.use('/api', (req, res, next) => withActor(actorOf(req), next, connectionOf(req)));
+    // and the claude.ai connection and the agent's run if there are any
+    // (DESIGN §5.5)
+    app.use('/api', (req, res, next) => withActor(actorOf(req), next, connectionOf(req), req.runId ?? null));
     // which token this browser logged in with; the kiosk behaves as a kiosk (DESIGN §6.4)
     app.get('/api/session', (req, res) => res.json({ client: req.client }));
     const settings = createSettingsStore(db, { log });
@@ -115,8 +121,9 @@ export function createApp({ db, apiToken, kioskToken, build = 'dev', distDir = n
     app.use('/api/applications', applicationsRouter(stores.applications, now));
     app.use('/api/settings', settingsRouter(settings));
     app.use('/api/changes', changesRouter(log, createUndo(db, log)));
+    app.use('/api/runs', runsRouter(runs, settings, now));
     if (oauth) app.use('/api/connect', oauth.approvalRouter());
-    app.use('/api', connectionsRouter({ connections, oauth, settings, access }));
+    app.use('/api', connectionsRouter({ connections, oauth, settings, access, runs, now }));
     app.use('/api/night', nightRouter(settings, now));
     app.use('/api/location', locationRouter(settings, now));
     if (weatherAt) app.use('/api/weather', weatherRouter(settings, weatherAt, now));
@@ -127,7 +134,14 @@ export function createApp({ db, apiToken, kioskToken, build = 'dev', distDir = n
             capped: access.writesToday(name) >= WRITE_CAPS[name],
             cap: WRITE_CAPS[name],
         }));
-        res.json(systemStatus({ backupStatusFile, calendar, now: now(), connectors }));
+        // the agent's runs, while its connector is set up and switched on,
+        // so switching it off doesn't leave a warning every day
+        const agent = () => {
+            if (!oauth?.connectors().includes('agent') || settings.get(switchKey('agent')) === false) return null;
+            const run = runs.latest();
+            return { latest: run && { id: run.id, name: run.name, started_at: run.started_at, ended_at: run.ended_at } };
+        };
+        res.json(systemStatus({ backupStatusFile, calendar, now: now(), connectors, agent }));
     });
     app.get('/api/today', async (req, res) => {
         res.json(await todaySnapshot({ stores, settings, calendar, weatherAt, now: new Date(now()) }));

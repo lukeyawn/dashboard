@@ -1,4 +1,7 @@
 import { useState } from 'react';
+import * as schemas from '../../shared/schemas';
+import { runState } from '../../shared/runs';
+import EditorForm from '../editors/EditorForm';
 import { useResource } from '../hooks/useResource';
 import { request } from '../lib/api';
 import ClaudeChanges from './ClaudeChanges';
@@ -10,7 +13,8 @@ const COUNTED = { chat: 'changes today', agent: 'agent changes today' };
 const when = at => new Date(at).toLocaleString('en-US', { month: 'short', day: 'numeric', hour: 'numeric', minute: '2-digit' });
 
 // The "Claude" section on /manage (docs/CONNECTOR.md §9): each connector's
-// switch, its connections with Revoke, today's count, and Claude's changes.
+// switch, its connections with Revoke, today's count, the agent's last run
+// and its limit on runs (docs/AGENT.md §7), and Claude's changes.
 // Switching a connector off revokes its connections at once; switching it
 // back on only allows new sign-ins from claude.ai.
 export default function Claude() {
@@ -42,6 +46,7 @@ export default function Claude() {
     }
 
     const shown = (connectors.data ?? []).filter(c => c.configured || c.name === 'chat');
+    const agent = shown.find(c => c.name === 'agent');
     const live = (connections.data ?? []).filter(c => !c.ended_at);
     const ended = (connections.data ?? []).filter(c => c.ended_at).slice(0, 5);
 
@@ -75,6 +80,8 @@ export default function Claude() {
                     </li>
                 ))}
             </ul>
+
+            {agent && <AgentRuns agent={agent} onSaved={connectors.refresh} />}
 
             <div className="editor-section">
                 <h3>Connections</h3>
@@ -116,6 +123,55 @@ export default function Claude() {
                 <h3>Claude&apos;s changes</h3>
                 <ClaudeChanges />
             </div>
+        </div>
+    );
+}
+
+const STATE_TEXT = { running: 'Still running', unreported: "Didn't report" };
+
+// The agent's last run, so its briefing can be read on the phone too, and
+// how many runs it may start a day, raised when adding agents
+function AgentRuns({ agent, onSaved }) {
+    const runs = useResource('runs', { params: { limit: 1 } });
+    const settings = useResource('settings');
+    const [error, setError] = useState(null);
+    const last = runs.data?.[0];
+
+    async function save(changes) {
+        try {
+            await request('/settings', { method: 'PATCH', body: changes });
+            setError(null);
+            await Promise.all([settings.refresh(), onSaved()]);
+            return true;
+        } catch (err) {
+            setError(err.message);
+            return null;
+        }
+    }
+
+    return (
+        <div className="editor-section">
+            <h3>The agent&apos;s runs</h3>
+            {runs.data && !last && <p className="editor-message">The agent hasn&apos;t run yet.</p>}
+            {last && (
+                <div className="editor-text">
+                    <span className="editor-title">Last run: {last.name ?? 'Run'}, {when(last.started_at)} · {last.summary ?? STATE_TEXT[runState(last)]}</span>
+                    {last.briefing && <span className="editor-detail">{last.briefing}</span>}
+                </div>
+            )}
+            <p className="editor-message">{agent.runs_today} of {agent.run_cap} runs today</p>
+            {settings.data && (
+                <EditorForm
+                    key={settings.data.agent_runs_per_day}
+                    fields={[{ key: 'agent_runs_per_day', label: 'Runs a day', type: 'number' }]}
+                    schema={schemas.settingsUpdate}
+                    initial={settings.data}
+                    onlyChanges
+                    submitLabel="Save"
+                    onSubmit={save}
+                />
+            )}
+            {error && <p className="editor-error" role="status">{error}</p>}
         </div>
     );
 }

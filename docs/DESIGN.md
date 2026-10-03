@@ -120,7 +120,7 @@ src/                      frontend
   components/             shared pieces: WidgetShell, Dashboard, Page, Dock, Modal, Menu, ClaudeMark, OpenLink, NightOverlay
   editors/                one editor per resource, used by both /manage and the dashboard modal
   manage/                 the /manage page: the editors, History, the Claude section, describeChange.js
-  agent/                  the dock chip's list of the agent's changes (AGENT.md §3)
+  agent/                  the dock's ✦ and the timeline of the agent's runs and changes (AGENT.md §7)
   connect/                the connector approval page (CONNECTOR.md §4)
   login/                  the token screen (§4, Access)
   hooks/                  useResource, useNow, usePendingAction, useIdle, useHiddenCount and the rest
@@ -135,7 +135,7 @@ server/
                           with an in-memory database
   db.js                   opens the database, runs migrations
   crud.js, stores/        the generic store and router, and each resource's own behaviour
-  routes/                 resources, system (settings, night, weather, calendar), changes, connections
+  routes/                 resources, system (settings, night, weather, calendar), changes, connections, runs
   changes.js, undo.js     the change record and undo (§5.5, UNDO.md)
   auth.js, access.js      tokens and credentials; the connectors' allow-lists (CONNECTOR.md §5)
   oauth.js, public.js,    the claude.ai door: sign-in, the public listener, the MCP endpoints,
@@ -154,7 +154,8 @@ mcp/
   index.js, tools.js      the stdio MCP server, a thin client over the REST API; tools shared with the connectors
 e2e/                      Playwright: layout checks at every supported resolution (§13), editing, full stack, night mode
 vm/                       server setup: systemd units, Litestream config, backup script and timer, deploy.sh,
-                          oauth-client.sh, SETUP.md, RESTORE.md, CONNECTOR.md
+                          oauth-client.sh, SETUP.md, RESTORE.md, CONNECTOR.md, AGENT.md (the scheduled agent
+                          and its instructions)
 kiosk/                    Pi setup: labwc autostart, swayidle config, night-mode script
 scripts/                  the secret check, the word-list build, the snapshot and export the nightly backup runs
 docs/                     this file and the topic docs (above); archive/ for superseded ones
@@ -176,7 +177,7 @@ Everything lives on the VM, except events, which are Google's.
 
 | Data | Where | Notes |
 |---|---|---|
-| Tasks (deadlines included), task areas, countdowns, goals, habits, applications, settings, the change record, the connectors' connections and token hashes | `data/dashboard.db`, one SQLite file on the VM | The live copy. Express is the only program that opens it. |
+| Tasks (deadlines included), task areas, countdowns, goals, habits, applications, settings, the change record, the agent's runs, the connectors' connections and token hashes | `data/dashboard.db`, one SQLite file on the VM | The live copy. Express is the only program that opens it. |
 | Continuous backup | A Google Cloud Storage bucket, through Litestream | Every change within seconds. Can be restored to any moment in the last 30 days. |
 | Nightly backup | A Google Drive folder, through rclone | A database snapshot plus the JSON export, for the last 30 nights. |
 | Events and birthdays | Google Calendar | A copy of the feed is cached in `data/calendar-cache/`, so the timeline still works when Google can't be reached. |
@@ -218,8 +219,9 @@ Everything lives on the VM, except events, which are Google's.
 | `habits` | `name`, `position`, `per_week`, `archived_at` | `per_week` is the weekly target, 1 to 7, defaulting to 7 (daily) ([BLOCKS.md §2](BLOCKS.md#2-habits-a-weekly-target)). |
 | `habit_checks` | `habit_id`, `date` | Primary key is `(habit_id, date)`. A row exists means the habit was done that day. Deleting a habit deletes its checks. |
 | `applications` | `company`, `role`, `status`, `applied_on`, `url?`, `notes?`, `source?`, `next_on?`, `next_time?` | `status` is one of `to_apply`, `applied`, `oa`, `interview`, `offer`, `rejected`, `withdrawn`; the last two are archived, off the tile. `applied_on` is empty only while it's `to_apply` (migration 018), and filled in with today when it moves on. `next_on` and `next_time` are the next step: the day to apply by, the OA's due date, the interview's day and time, or the day an offer needs a reply by. A time needs a date, and clearing the date clears it. The API adds `url_by_claude`: true when the change record shows Claude wrote the current `url` ([BLOCKS.md §6](BLOCKS.md#6-job-search)). |
-| `changes` | `at`, `actor`, `resource`, `item_id`, `action`, `before?`, `after?` | Every write, from anyone, in the same transaction as the write itself (§5.5). `action` is `create`, `update` or `delete`; `before` and `after` are the whole row as JSON. Kept for good, for a year in review ([BLOCKS.md §7](BLOCKS.md#7-the-change-record-kept-for-good)). |
-| `settings` | `key`, `value` (JSON) | Keys you can change: `night_start` (default `"22:00"`), `night_end` (default `"06:30"`), `week_start` (`"sunday"`, the default, or `"monday"`), the day weeks start on for habits, and `assignments_area`, the id of the area the Assignments tile shows (School's, stored by migration 015; read as `null` once that area is deleted; an unknown id is refused). Keys the system sets: `night_early_until` (§6.4), `kiosk_location`, `{ lat, lon, name, reported_at }` (§10, Dock), and `agent_seen_at`, when the owner last looked at the agent's changes, set from the owner's screens and the kiosk only ([AGENT.md §3](AGENT.md#3-the-review-a-glance-not-a-gate)). |
+| `changes` | `at`, `actor`, `resource`, `item_id`, `action`, `before?`, `after?`, `connection_id?`, `run_id?` | Every write, from anyone, in the same transaction as the write itself (§5.5). `action` is `create`, `update` or `delete`; `before` and `after` are the whole row as JSON. `connection_id` is the claude.ai connection behind it, and `run_id` the agent's run, on every change through the agent's connector. Kept for good, for a year in review ([BLOCKS.md §7](BLOCKS.md#7-the-change-record-kept-for-good)). |
+| `runs` | `name?`, `started_at`, `ended_at?`, `summary?`, `briefing?`, `connection_id?` | The scheduled agent's runs: `start_run` makes one on the server's clock, and `report_run` sets `ended_at`, a one-line summary and the briefing, all at once. A run reports once. Kept for good ([AGENT.md §7](AGENT.md#7-runs-the-briefing-and-the-timeline-phase-9)). |
+| `settings` | `key`, `value` (JSON) | Keys you can change: `night_start` (default `"22:00"`), `night_end` (default `"06:30"`), `week_start` (`"sunday"`, the default, or `"monday"`), the day weeks start on for habits, `assignments_area`, the id of the area the Assignments tile shows (School's, stored by migration 015; read as `null` once that area is deleted; an unknown id is refused), and `agent_runs_per_day` (default 5, 1 to 50), how many runs the agent may start a day, from the owner's screens and the kiosk only ([AGENT.md §7](AGENT.md#7-runs-the-briefing-and-the-timeline-phase-9)). Keys the system sets: `night_early_until` (§6.4), `kiosk_location`, `{ lat, lon, name, reported_at }` (§10, Dock), and `agent_seen_at`, when the owner last looked at the agent's changes, set from the owner's screens and the kiosk only ([AGENT.md §3](AGENT.md#3-the-review-a-glance-not-a-gate)). |
 
 **Not in the database:**
 - **Events and birthdays** come from Google Calendar (§4). There's no events table.
@@ -251,9 +253,11 @@ The resources are `tasks`, `countdowns`, `goals`, `habits` and `applications`.
 | `GET /api/tasks?done=false` | Hide completed tasks. Each task carries its area's name as `area`. An unknown `area_id` is refused with the list of areas. |
 | `GET` / `POST /api/areas`, `PATCH` / `DELETE /api/areas/:id` | The task areas, in order. Adding a name that exists, ignoring case, returns that area. `PATCH` with `position` moves an area to that place and renumbers the rest. Read-only for claude.ai chats. |
 | `POST /api/<resource>` with a `source` that already exists | Returns the existing item with `200` instead of creating a duplicate (§5.5). |
-| `GET /api/changes?limit&actor&resource` | The change record, newest first (§5.5). |
+| `GET /api/changes?limit&actor&resource&since&run` | The change record, newest first (§5.5). |
 | `POST /api/changes/:id/undo` | Puts the item back as it was before that change. The undo is itself recorded. |
-| `GET /api/status` | The health of the parts that run on their own: the last nightly backup and the calendar feeds (§5.5), and later the agent's runs. |
+| `POST /api/changes/undo-since` `{ since?, run?, actors, via? }` | Undoes everything matching, newest first, skipping and listing what it can't: Claude's changes since a time (CONNECTOR.md §6), or one of the agent's runs. |
+| `GET /api/runs?since&limit`, `POST /api/runs`, `POST /api/runs/:id/report` | The agent's runs: the list (owner and kiosk only), `start_run` and `report_run` ([AGENT.md §7](AGENT.md#7-runs-the-briefing-and-the-timeline-phase-9)). |
+| `GET /api/status` | The health of the parts that run on their own: the last nightly backup, the calendar feeds, the connectors and the agent's runs (§5.5). |
 | `GET /api/countdowns?past=true` | The current countdowns, nearest first (by date, then time). `past=true` lists the past ones instead. A new date (and time) that has already passed is refused with a 400 saying so, such as *"That date has passed (Jan 1, 2026). Did you mean 2027?"*. Renaming a past countdown is allowed. |
 | `GET /api/habits?days=7` | Each habit includes its checked dates in that window, `week_count` (days done this calendar week, from `week_start`) and its streak. The server computes these on every read, so the widget and the agent agree. |
 | `PUT` / `DELETE /api/habits/:id/checks/:date` | Mark a day done or not done. Both are idempotent. |
@@ -347,7 +351,7 @@ Changes the agent makes show up on the kiosk within one polling interval (§6).
 
 ### 5.1 An autonomous agent (phase 9)
 
-A Claude agent that runs on a schedule, reads the owner's email and calendar, and keeps the dashboard current: emails become tasks, application updates are noticed, and it writes a morning briefing. It writes through its own connector, and the design is in [AGENT.md](AGENT.md). It's being set up in claude.ai (Oct 3); the one part coded here is the daily briefing in the dock ([V2_IDEAS.md idea 7](V2_IDEAS.md#7-the-daily-briefing-in-the-center-of-the-dock)).
+A Claude agent that runs on a schedule, reads the owner's email and calendar, and keeps the dashboard current: emails become tasks, application updates are noticed, and it writes a morning briefing. It writes through its own connector, and the design is in [AGENT.md](AGENT.md). It's set up in claude.ai by following [vm/AGENT.md](../vm/AGENT.md), which has its instructions. The part coded here is its runs, each change tagged with its run, and the briefing and timeline behind the ✦ in the middle of the dock ([AGENT.md §7](AGENT.md#7-runs-the-briefing-and-the-timeline-phase-9)).
 
 **It runs in Anthropic's cloud,** as a scheduled task on the owner's Claude plan, not on the VM. That means no API bill, and it uses Claude's own Gmail and Calendar connectors. A self-hosted agent would need its own Google sign-in app, and Gmail's restricted scopes mean either Google's review or a login that expires every 7 days (the trap §4 avoids for the calendar). The cost is that it can't reach the tailnet, so the dashboard needs a public door (§5.3).
 
@@ -386,9 +390,8 @@ Each can be revoked on its own: the tokens by changing them in `.env`, and each 
 - **The change record** (`changes`, §3): every write, from anyone, with the actor (`owner`, `kiosk`, `claude`, `agent`), the time, and the row before and after. Writes through the stdio MCP server are recorded as `claude`. It's kept for good. `/manage`'s **History** lists recent changes, filterable by who made them, each with **Undo**. Undo refuses whenever the item has changed in any way since; it compares column by column, so a migration that adds a column doesn't block older changes ([UNDO.md](UNDO.md)).
 - **Sources and no duplicates.** An item created from an email carries `source` (`gmail:<message id>`), and the server never creates a second item with the same source, so an agent re-reading the inbox every morning can't pile up copies.
 - **Richer tasks** (§3): due date, priority, area, time estimate, notes and a link back to the email, filled in by Claude.
-- **A status line** (`GET /api/status`): the last nightly backup and the calendar feed now, and the agent's runs later. The dock shows a warning only when something is wrong, such as no successful backup in 36 hours, or a calendar feed (main or classes) failing for over an hour.
-- **Claude's changes** on `/manage`: only what Claude did, each with Undo, plus *Undo everything since…*, and a ✦ on items Claude created ([CONNECTOR.md §6](CONNECTOR.md#6-claudes-changes-the-log-and-undo)). The agent's new changes also show as a chip in the dock ([AGENT.md §3](AGENT.md#3-the-review-a-glance-not-a-gate)).
-- **Later:** the agent's run reports and its daily briefing, shown on the dashboard.
+- **A status line** (`GET /api/status`): the last nightly backup, the calendar feeds, the connectors and the agent's runs. The dock shows a warning only when something is wrong, such as no successful backup in 36 hours, a calendar feed (main or classes) failing for over an hour, an agent run that didn't report, or no run in 26 hours.
+- **Claude's changes** on `/manage`: only what Claude did, each with Undo, plus *Undo everything since…*, and a ✦ on items Claude created ([CONNECTOR.md §6](CONNECTOR.md#6-claudes-changes-the-log-and-undo)). The agent's runs, each with its briefing and changes, are a timeline behind the ✦ in the dock ([AGENT.md §7](AGENT.md#7-runs-the-briefing-and-the-timeline-phase-9)).
 
 ---
 
@@ -821,6 +824,7 @@ Every open task that isn't an assignment, including deadlines that aren't school
 ### Dock
 - **Left:** a large live clock (1-second tick, `tabular-nums`, §8 glanceable sizes) and the date.
   - **Seconds** sit beside the minutes, at about 40% of the clock's size in `--text-muted`, above AM/PM. Full-size seconds were rejected: changing every second, they would pull the eye across the room, and the clock would be about 40% wider ([BLOCKS.md §8](BLOCKS.md#8-the-dock-clock-seconds)).
+- **Center:** the agent's **✦**, with *"5 new"* while it has done things Luke hasn't seen. Nothing it wrote shows until it's tapped; the tap opens a timeline of its runs over the last few days, with their briefings and changes, Undo, and a line between new and seen ([AGENT.md §7](AGENT.md#7-runs-the-briefing-and-the-timeline-phase-9)). It's hidden after three quiet days.
 - **Right:** the weather: current temperature, condition, and the day's high and low. The page asks the server (`GET /api/weather`) every 30 minutes. The server fetches from Open-Meteo, which needs no API key, and caches each location's answer for 30 minutes.
 - **Weather location,** in this order:
   1. **The viewing device's own location,** if its browser gives permission. The page asks once, rounds the coordinates to about 1 km, and sends them with the request. They aren't stored. On a phone or laptop, the weather is for wherever you are.
@@ -900,7 +904,7 @@ The rule is **one complete vertical slice before any breadth**: a few real widge
 | **6. Kiosk** | Everything in §11.2: Chromium flags and startup, kiosk login, squeekboard, night mode with the moon button, and the reload rules (§6.4). |
 | **7. Agent-ready data** | Deadlines merged into tasks, with priority, effort, area, notes, link and source; the Due soon tile (since replaced by Assignments) and the Tasks tile; the change record with History and Undo; sources and no duplicates; the status line. (§5.5) |
 | **8. The public door** | Built as three PRs ([CONNECTOR.md §14](CONNECTOR.md#14-how-it-was-built)): the credential allow-lists, OAuth with approval on the tailnet, the public listener and the chat connector, Claude's changes with Undo everything since; then go-live on Funnel port 443, with the dashboard moved to 8443; then the agent's connector, which writes, and the chip listing its changes ([AGENT.md §6](AGENT.md#6-phase-8s-last-pr-rescoped)). (§5.2–5.4) |
-| **9. The agent** | Its standing instructions and schedule, with its Gmail and Calendar connectors read-only, set up in claude.ai; a Gmail label on triaged emails; run reports in the status line; the daily briefing in the center of the dock, with the agent's changes batched by run. (§5.1, [AGENT.md §5](AGENT.md#5-what-phase-9-keeps)) |
+| **9. The agent** | Its standing instructions and schedule, with its Gmail and Calendar connectors read-only, set up in claude.ai; a Gmail label on triaged emails; run reports in the status line; the daily briefing behind the ✦ in the center of the dock, with the agent's changes grouped by run. The repo's part is built (Oct 3, [AGENT.md §7](AGENT.md#7-runs-the-briefing-and-the-timeline-phase-9)); the rest is [vm/AGENT.md](../vm/AGENT.md). (§5.1, [AGENT.md §5](AGENT.md#5-what-phase-9-keeps)) |
 | **Block redesign** | Built (Oct 2–3), as nine PRs in three rounds ([BLOCKS.md §10](BLOCKS.md#10-build-order)): dock seconds; the change record kept for good; weekly habit targets; countdown times; the task data; Upcoming; the Tasks and Assignments tiles; goals; job search. |
 | **Later** | Click-to-focus with container-query condensing; a daily background photo from Unsplash (below); an assistant widget on the dashboard; sunrise gradient; an idle photo-album mode; a wins log; a stats or "wrapped" page for a year in review; habits derived from data ("applied to a job today") and from LeetCode or GitHub; logging habits from the phone ([BLOCKS.md §2](BLOCKS.md#2-habits-a-weekly-target)). Ideas from the Oct 3 review, planned and deferred, are in [V2_IDEAS.md](V2_IDEAS.md). |
 
@@ -1028,7 +1032,7 @@ They get settled by trying things on the real setup.
 - [ ] **How quickly Google's iCal feed reflects edits.** If changes take too long to show up, switch to the Calendar API with OAuth. Checked in phase 2.
 - [ ] **Free-tier data use.** Expected to be far under 1 GB a month. Check the billing report after the first month.
 - [ ] **Night hours:** 22:00–06:30 is a starting point, and it can be changed from `/manage` at any time.
-- [x] **Where the daily briefing goes** (phase 9): the center of the dock, with the agent's changes ([V2_IDEAS.md idea 7](V2_IDEAS.md#7-the-daily-briefing-in-the-center-of-the-dock)).
+- [x] **Where the daily briefing goes** (phase 9): behind the ✦ in the center of the dock, with the agent's changes grouped by run ([AGENT.md §7](AGENT.md#7-runs-the-briefing-and-the-timeline-phase-9)).
 - [ ] **Scheduled agents and connectors** (phase 9): confirm that a scheduled Claude agent can use claude.ai's Gmail, Calendar and custom connectors with their tools limited as §5.2 requires, and whether a task can leave out a connector or web search. More in [CONNECTOR.md §12](CONNECTOR.md#12-open-questions).
 
 ---

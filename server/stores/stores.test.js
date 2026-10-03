@@ -206,8 +206,8 @@ describe('settings', () => {
 
     it('update user settings together', () => {
         const settings = createSettingsStore(db);
-        expect(settings.updateUser({ night_start: '23:00' })).toEqual({ night_start: '23:00', night_end: '06:30', week_start: 'sunday', assignments_area: 1, agent_seen_at: null });
-        expect(settings.updateUser({ night_start: '21:30', night_end: '07:00', week_start: 'monday' })).toEqual({ night_start: '21:30', night_end: '07:00', week_start: 'monday', assignments_area: 1, agent_seen_at: null });
+        expect(settings.updateUser({ night_start: '23:00' })).toEqual({ night_start: '23:00', night_end: '06:30', week_start: 'sunday', assignments_area: 1, agent_seen_at: null, agent_runs_per_day: 5 });
+        expect(settings.updateUser({ night_start: '21:30', night_end: '07:00', week_start: 'monday' })).toEqual({ night_start: '21:30', night_end: '07:00', week_start: 'monday', assignments_area: 1, agent_seen_at: null, agent_runs_per_day: 5 });
     });
 
     it('keep the assignments area by id: School to start, none once deleted, refusing an unknown one', () => {

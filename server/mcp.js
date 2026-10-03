@@ -5,7 +5,8 @@
 // access token. So the API's allow-list decides what Claude can do, in one
 // place, exactly as it does for every other client. The agent's connector
 // also goes without settings and night mode (docs/AGENT.md §2), which its
-// allow-list refuses anyway.
+// allow-list refuses anyway, and is the only one with start_run and
+// report_run, naming its run on every write (§7).
 import { McpServer } from '@modelcontextprotocol/sdk/server/mcp.js';
 import { StreamableHTTPServerTransport } from '@modelcontextprotocol/sdk/server/streamableHttp.js';
 import { createClient } from '../mcp/client.js';
@@ -26,7 +27,7 @@ export function createMcpHandler({ apiUrl, now = () => new Date() }) {
             token: req.accessToken,
             unreachable: "The dashboard's server isn't answering itself, so try again in a minute.",
         });
-        registerTools(server, call, now, { omit: OMITTED[connector] });
+        registerTools(server, call, now, { omit: OMITTED[connector], runs: connector === 'agent' });
         const transport = new StreamableHTTPServerTransport({ sessionIdGenerator: undefined, enableJsonResponse: true });
         res.on('close', () => {
             transport.close();

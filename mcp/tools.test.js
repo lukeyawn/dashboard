@@ -48,6 +48,9 @@ describe('the tool list', () => {
             expect(names).toContain(name);
         }
         for (const tool of tools) expect(tool.description).toContain('YYYY-MM-DD');
+        // runs are the scheduled agent's alone (docs/AGENT.md §7)
+        expect(names).not.toContain('start_run');
+        expect(tools.find(t => t.name === 'add_task').inputSchema.properties.run).toBeUndefined();
     });
 
     it('marks reads as read-only and deleting as destructive', async () => {
@@ -156,5 +159,34 @@ describe('errors', () => {
     it("explain when the dashboard can't be reached", async () => {
         await connect({ baseUrl: 'http://127.0.0.1:9' });
         expect((await use('list_tasks')).text).toMatch(/Can't reach the dashboard.*Tailscale/);
+    });
+});
+
+describe("the agent's runs (docs/AGENT.md §7)", () => {
+    it('send a write tool\'s run as a header, and nothing on reads or for the run tools', async () => {
+        const sent = [];
+        const fetch = async (url, init) => {
+            sent.push({ path: new URL(url).pathname, run: init.headers['x-dashboard-run'] });
+            return new Response(JSON.stringify({ id: 7 }), { status: 200, headers: { 'content-type': 'application/json' } });
+        };
+        const mcp = new McpServer({ name: 'dashboard', version: '1.0.0' });
+        registerTools(mcp, createClient({ baseUrl: 'http://dashboard.test', token: 't', fetch }), () => NOW, { runs: true });
+        const [serverSide, clientSide] = InMemoryTransport.createLinkedPair();
+        await mcp.connect(serverSide);
+        client = new Client({ name: 'test', version: '1.0.0' });
+        await client.connect(clientSide);
+        await use('start_run', { name: 'Email' });
+        await use('add_task', { run: 7, name: 'Reply' });
+        await use('list_tasks');
+        await use('complete_task', { run: 7, id: 3 });
+        await use('report_run', { run: 7, summary: 'One task', briefing: 'Reply to Stripe' });
+        expect(sent).toEqual([
+            { path: '/api/runs', run: undefined },
+            { path: '/api/tasks', run: '7' },
+            { path: '/api/tasks', run: undefined },
+            { path: '/api/tasks/3', run: '7' },
+            { path: '/api/runs/7/report', run: undefined },
+        ]);
+        expect((await use('add_task', { name: 'No run' })).error).toBe(true);
     });
 });

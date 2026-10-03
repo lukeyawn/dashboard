@@ -6,8 +6,9 @@ import Claude from './Claude';
 
 afterEach(() => vi.unstubAllGlobals());
 
-function setup({ configured = true, agent = { name: 'agent', configured: false, enabled: true, url: null, writes_today: 0, write_cap: 30 } } = {}) {
+function setup({ configured = true, agent = { name: 'agent', configured: false, enabled: true, url: null, writes_today: 0, write_cap: 30 }, runs = [] } = {}) {
     let enabled = true;
+    const settings = { agent_runs_per_day: 5 };
     const connections = [
         { id: 2, connector: 'chat', created_at: '2026-10-01T14:00:00.000Z', last_used_at: '2026-10-01T15:00:00.000Z', ended_at: null, end_reason: null, end_reason_text: null },
         { id: 1, connector: 'chat', created_at: '2026-09-01T14:00:00.000Z', last_used_at: null, ended_at: '2026-09-30T14:00:00.000Z', end_reason: 'expired', end_reason_text: 'Unused for 30 days' },
@@ -25,6 +26,9 @@ function setup({ configured = true, agent = { name: 'agent', configured: false, 
         'GET /api/connections': () => connections,
         'POST /api/connections/:id/revoke': () => null,
         'GET /api/changes': () => [],
+        'GET /api/runs': () => runs,
+        'GET /api/settings': () => settings,
+        'PATCH /api/settings': ({ body }) => Object.assign(settings, body),
     });
     api.install();
     render(<Claude />);
@@ -46,6 +50,25 @@ describe('Claude on /manage', () => {
         expect(await screen.findByText('The agent: on')).toBeTruthy();
         expect(screen.getByText(/https:\/\/dashboard\.test\/mcp\/agent · 12 of 30 agent changes today/)).toBeTruthy();
         expect(screen.getAllByText('Switch off')).toHaveLength(2);
+    });
+
+    it("shows the agent's last run and today's runs, and changes how many it may start a day (docs/AGENT.md §7)", async () => {
+        const api = setup({
+            agent: { name: 'agent', configured: true, enabled: true, url: 'https://dashboard.test/mcp/agent', writes_today: 3, write_cap: 30, runs_today: 1, run_cap: 5 },
+            runs: [{ id: 4, name: 'Email', started_at: '2026-10-03T12:00:00.000Z', ended_at: '2026-10-03T12:04:00.000Z', summary: '3 tasks from email', briefing: 'Rent due Thu · Stripe OA Fri' }],
+        });
+        expect(await screen.findByText(/^Last run: Email, Oct 3, .* · 3 tasks from email$/)).toBeTruthy();
+        expect(screen.getByText('Rent due Thu · Stripe OA Fri')).toBeTruthy();
+        expect(screen.getByText('1 of 5 runs today')).toBeTruthy();
+        const input = await screen.findByLabelText('Runs a day');
+        fireEvent.change(input, { target: { value: '8' } });
+        fireEvent.click(screen.getByText('Save'));
+        await waitFor(() => expect(api.writes()).toEqual([{ method: 'PATCH', url: '/api/settings', body: { agent_runs_per_day: 8 } }]));
+    });
+
+    it("says when the agent hasn't run yet", async () => {
+        setup({ agent: { name: 'agent', configured: true, enabled: true, url: 'https://dashboard.test/mcp/agent', writes_today: 0, write_cap: 30, runs_today: 0, run_cap: 5 } });
+        expect(await screen.findByText("The agent hasn't run yet.")).toBeTruthy();
     });
 
     it('switches off only on a second tap, then back on at once', async () => {

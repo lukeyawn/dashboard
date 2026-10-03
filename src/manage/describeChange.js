@@ -70,6 +70,7 @@ function describeSetting(change) {
     if (CONNECTOR_SWITCHES[key]) return `Switched ${CONNECTOR_SWITCHES[key]} ${change.after?.value === false ? 'off' : 'on'}`;
     // an area id means nothing to read
     if (key === 'assignments_area') return change.after ? 'Changed the Assignments area' : 'Reset the Assignments area';
+    if (key === 'agent_runs_per_day') return change.after ? `Set the agent's runs a day to ${change.after.value}` : "Reset the agent's runs a day";
     const label = key.replace('_', ' ');
     return change.after ? `Set ${label} to ${change.after.value}` : `Reset ${label}`;
 }

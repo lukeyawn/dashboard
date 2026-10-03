@@ -1,7 +1,10 @@
-import { useState } from 'react';
-import AgentChanges from '../agent/AgentChanges';
+import { useCallback, useState } from 'react';
+import AgentTimeline from '../agent/AgentTimeline';
 import { useAgentChanges } from '../agent/useAgentChanges';
+import { IDLE_MS } from '../config';
 import { useOfflineSince } from '../hooks/useConnection';
+import { useIdle } from '../hooks/useIdle';
+import { useIsKiosk } from '../hooks/useKiosk';
 import { useResource } from '../hooks/useResource';
 import { useNow } from '../hooks/useNow';
 import { useWeather } from '../hooks/useWeather';
@@ -17,9 +20,9 @@ function timeParts(now) {
 }
 
 // The clock, the date and the weather (DESIGN §10, Dock), a note when the
-// server can't be reached or a background job is failing, the chip for what
-// the agent changed (docs/AGENT.md §3), and the moon button that starts
-// night mode (§6.4, §5.5)
+// server can't be reached or a background job is failing, the agent's ✦ in
+// the middle (docs/AGENT.md §7), and the moon button that starts night mode
+// (§6.4, §5.5)
 export default function Dock({ night, onMoon }) {
     const now = useNow(1000);
     const { time, seconds, period } = timeParts(now);
@@ -43,10 +46,12 @@ export default function Dock({ night, onMoon }) {
                     {now.toLocaleDateString('en-US', {weekday: 'long', month: 'long', day: 'numeric'})}
                 </span>
             </div>
+            <div className="dock-center">
+                <AgentCenter />
+            </div>
             <div className="dock-right">
                 {offlineSince && <span className="dock-offline" role="status">offline since {formatTime(offlineSince)}</span>}
                 {!offlineSince && problems.map(p => <span key={p.kind} className="dock-offline dock-problem" role="status">{p.message}</span>)}
-                <AgentChip />
                 <Weather />
                 {onMoon && (
                     <button
@@ -65,29 +70,45 @@ export default function Dock({ night, onMoon }) {
     );
 }
 
-// "✦ 5 new from the agent", only while there's something new; tapping it
-// lists the changes, and closing that clears the chip on every screen
-function AgentChip() {
-    const { unseen, markSeen, refresh } = useAgentChanges();
-    // the changes as they were when the chip was tapped, so a poll can't
-    // move a row out from under a finger
+// The agent's ✦ (docs/AGENT.md §7): nothing of what it did shows until it's
+// tapped. "5 new" sits beside it while there's something Luke hasn't seen;
+// it's muted otherwise, and gone after a few quiet days. Tapping it opens the
+// timeline, and closing that marks everything in it seen, on every screen.
+// On the kiosk it closes itself after IDLE_MS without a touch, without
+// marking anything seen, since nobody may have read it.
+function AgentCenter() {
+    const { entries, newCount, seenUpTo, markSeen, refresh } = useAgentChanges();
+    const isKiosk = useIsKiosk();
+    const { idle } = useIdle(IDLE_MS);
+    // the timeline as it was when the ✦ was tapped, so a poll can't move a
+    // row out from under a finger
     const [open, setOpen] = useState(null);
-
-    function close() {
-        markSeen(open.map(c => c.at).sort().at(-1));
-        setOpen(null);
-        refresh();
+    // set while rendering, when idle starts, rather than in an effect
+    const [wasIdle, setWasIdle] = useState(idle);
+    if (idle !== wasIdle) {
+        setWasIdle(idle);
+        if (idle && isKiosk && open) setOpen(null);
     }
 
-    if (unseen.length === 0 && !open) return null;
+    const close = useCallback(() => {
+        markSeen(open.seenUpTo);
+        setOpen(null);
+        refresh();
+    }, [open, markSeen, refresh]);
+
+    if (entries.length === 0 && !open) return null;
     return (
         <>
-            {unseen.length > 0 && (
-                <button type="button" className="dock-agent" data-tap onClick={() => setOpen(unseen)}>
-                    ✦ {unseen.length}{unseen.length >= 200 ? '+' : ''} new from the agent
-                </button>
-            )}
-            {open && <AgentChanges changes={open} onClose={close} />}
+            <button
+                type="button"
+                className={newCount > 0 ? 'dock-agent new' : 'dock-agent'}
+                data-tap
+                aria-label={newCount > 0 ? `The agent: ${newCount} new` : 'The agent'}
+                onClick={() => setOpen({ entries, seenUpTo })}
+            >
+                ✦{newCount > 0 && <span className="dock-agent-count">{newCount}{newCount >= 200 ? '+' : ''} new</span>}
+            </button>
+            {open && <AgentTimeline entries={open.entries} onClose={close} />}
         </>
     );
 }

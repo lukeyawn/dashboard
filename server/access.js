@@ -19,6 +19,13 @@ const WRITE = [
     ['PUT', new RegExp(`^/habits/\\d+/checks/[0-9-]+${end}`)],
 ];
 
+// starting and reporting one of the agent's runs (docs/AGENT.md §7)
+const RUNS = [
+    ['POST', new RegExp(`^/runs${end}`)],
+    ['POST', new RegExp(`^/runs/\\d+/report${end}`)],
+];
+const isRunRoute = (method, path) => RUNS.some(([m, pattern]) => m === method && pattern.test(path));
+
 // [method, path under /api]
 export const ALLOWED = {
     // claude.ai chats: read, add and change, but never delete, export, undo,
@@ -35,8 +42,10 @@ export const ALLOWED = {
     ],
     // the scheduled agent (docs/AGENT.md §2): the same reads, and adding and
     // changing items directly, but no DELETE of any kind, and no settings or
-    // night mode, which it has no reason to touch
-    agent: [READ, ...WRITE],
+    // night mode, which it has no reason to touch. It starts and reports its
+    // runs (§7), but can't read them back, so one run can't leave
+    // instructions in a briefing for the next.
+    agent: [READ, ...WRITE, ...RUNS],
 };
 
 // changes a day through each connector; the agent's is lower, so a fooled
@@ -52,7 +61,12 @@ export function startOfToday(now) {
     return parseDate(today(new Date(now))).toISOString();
 }
 
-export function createAccess({ log, now = Date.now }) {
+// The run a write from the agent's connector belongs to, sent by mcp/client.js
+// as a header so the API's own schemas stay as they are
+export const RUN_HEADER = 'X-Dashboard-Run';
+
+// runs: the agent's runs (server/stores/runs.js)
+export function createAccess({ log, runs, now = Date.now }) {
     // changes made through a connector since midnight, dashboard time
     const writesToday = connector => log.countSince(startOfToday(now()), connector);
 
@@ -68,9 +82,28 @@ export function createAccess({ log, now = Date.now }) {
                 return next(new HttpError(403, `claude.ai can't use ${req.method} ${req.path}. The owner does that on the dashboard.`));
             }
             const cap = WRITE_CAPS[connector];
-            if (req.method !== 'GET' && writesToday(connector) >= cap) {
+            // starting and reporting a run write no items, so a run that
+            // used up the day's changes can still say what it did
+            if (req.method !== 'GET' && !isRunRoute(req.method, req.path) && writesToday(connector) >= cap) {
                 const what = connector === 'agent' ? `${cap} agent changes` : `${cap} changes through claude.ai`;
                 return next(new HttpError(429, `Today's limit of ${what} is used up. It resets at midnight.`));
+            }
+            next();
+        },
+
+        // after check: every write from the agent's connector names an open
+        // run, so nothing it does is left out of a run (docs/AGENT.md §7).
+        // Anyone else's header is ignored.
+        requireRun(req, res, next) {
+            if (req.client !== 'connector' || req.connection.connector !== 'agent') return next();
+            if (req.method === 'GET' || isRunRoute(req.method, req.path)) return next();
+            const header = req.get(RUN_HEADER);
+            const id = header === undefined ? null : Number(header);
+            if (id !== null && !(Number.isInteger(id) && id > 0)) return next(new HttpError(400, `${RUN_HEADER} must be a run id, from start_run`));
+            try {
+                req.runId = runs.checkOpen(id).id;
+            } catch (err) {
+                return next(err);
             }
             next();
         },

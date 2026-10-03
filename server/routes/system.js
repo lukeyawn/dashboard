@@ -5,15 +5,17 @@ import { HttpError, validate } from '../errors.js';
 import { nextEnd, nightState } from '../night.js';
 import { KIOSK_REPORT_EVERY_MS, chooseLocation } from '../weather.js';
 
+const OWNER_ONLY = ['agent_seen_at', 'agent_runs_per_day'];
+
 export function settingsRouter(settings) {
     const router = express.Router();
     router.get('/', (req, res) => res.json(settings.user()));
     router.patch('/', (req, res) => {
         // only the owner's screens say they've looked at the agent's changes,
-        // so a connector can't hide them (docs/AGENT.md §3)
-        if (req.client === 'connector' && req.body && Object.hasOwn(req.body, 'agent_seen_at')) {
-            throw new HttpError(403, "claude.ai can't set agent_seen_at. The owner does that on the dashboard.");
-        }
+        // so a connector can't hide them (docs/AGENT.md §3), or raise the
+        // agent's limit on runs (§7)
+        const ownerOnly = req.client === 'connector' && req.body && OWNER_ONLY.find(key => Object.hasOwn(req.body, key));
+        if (ownerOnly) throw new HttpError(403, `claude.ai can't set ${ownerOnly}. The owner does that on the dashboard.`);
         res.json(settings.updateUser(validate(schemas.settingsUpdate, req.body)));
     });
     return router;

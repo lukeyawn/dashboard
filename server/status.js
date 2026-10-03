@@ -1,10 +1,16 @@
 // The health of the parts that run on their own (DESIGN §5.5): the nightly
-// backup, the calendar feeds, and the claude.ai connectors. The dock shows a
-// warning only for a problem.
+// backup, the calendar feeds, the claude.ai connectors and the scheduled
+// agent's runs. The dock shows a warning only for a problem.
 import fs from 'node:fs';
+import { RUN_OPEN_MS } from './stores/runs.js';
 
 export const BACKUP_STALE_MS = 36 * 60 * 60 * 1000;
 export const CALENDAR_FAILING_MS = 60 * 60 * 1000;
+// the agent is expected to run at least once a day (docs/AGENT.md §7)
+export const RUN_STALE_MS = 26 * 60 * 60 * 1000;
+
+// "Tue 7:02 AM", in the dashboard's time zone
+const when = iso => new Date(iso).toLocaleString('en-US', { weekday: 'short', hour: 'numeric', minute: '2-digit' });
 
 // what vm/backup.sh last recorded, or null if it has never run here
 export function readBackupStatus(file) {
@@ -17,7 +23,9 @@ export function readBackupStatus(file) {
     }
 }
 
-export function problems({ backup, calendar, connectors = [] }, now) {
+// agent: { latest } (the newest run, or null) while the agent's connector is
+// set up and switched on, otherwise null
+export function problems({ backup, calendar, connectors = [], agent = null }, now) {
     const found = [];
     if (backup && !backup.ok) {
         found.push({ kind: 'backup', message: `The last backup failed${backup.step ? ` (${backup.step})` : ''}` });
@@ -37,15 +45,24 @@ export function problems({ backup, calendar, connectors = [] }, now) {
             found.push({ kind: `connector-${c.name}-limit`, message });
         }
     }
+    const run = agent?.latest;
+    if (run && now - Date.parse(run.started_at) > RUN_STALE_MS) {
+        found.push({ kind: 'agent-runs', message: `The agent hasn't run since ${when(run.started_at)}` });
+    } else if (run && !run.ended_at && now - Date.parse(run.started_at) > RUN_OPEN_MS) {
+        const which = run.name ? `${run.name} run` : 'run';
+        found.push({ kind: 'agent-runs', message: `The agent's ${which} from ${when(run.started_at)} didn't report` });
+    }
     return found;
 }
 
 // connectors: () => [{ name, lost, capped, cap }] for the configured connectors
-export function systemStatus({ backupStatusFile, calendar, now, connectors = () => [] }) {
+// agent: () => { latest } or null, as problems() takes it
+export function systemStatus({ backupStatusFile, calendar, now, connectors = () => [], agent = () => null }) {
     const parts = {
         backup: readBackupStatus(backupStatusFile),
         calendar: calendar.status?.() ?? null,
         connectors: connectors(),
+        agent: agent(),
     };
     return { ...parts, problems: problems(parts, now) };
 }

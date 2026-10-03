@@ -1,0 +1,89 @@
+/* catches the tap that closes the popover, so it can't also tick a task below */
+.agent-backdrop {
+    position: fixed;
+    inset: 0;
+    z-index: 10;
+}
+
+/* outside every tile, so sized like the page in --px (DESIGN §9), as the
+   modal is. It opens just above the dock, centered on the ✦, and scrolls
+   inside rather than growing past the top of the page. */
+.agent-timeline {
+    --e-font: calc(20 * var(--px));
+    --e-hit: var(--hit);
+    --e-gap: calc(12 * var(--px));
+    position: fixed;
+    bottom: calc(var(--page-inset) + var(--dock-h) + calc(12 * var(--px)));
+    left: 50%;
+    transform: translateX(-50%);
+    display: flex;
+    flex-direction: column;
+    width: min(100vw - 2 * var(--page-inset), calc(900 * var(--px)));
+    max-height: min(calc(720 * var(--px)), 100dvh - var(--dock-h) - 3 * var(--page-inset));
+    border: 1px solid hsla(0, 0%, 70%, 0.3);
+    border-radius: var(--radius);
+    background-color: hsla(235, 35%, 14%, 0.95);
+    backdrop-filter: blur(calc(15 * var(--px)));
+    box-shadow: inset 0 0 calc(20 * var(--px)) hsla(0, 0%, 80%, 0.25), 0 calc(10 * var(--px)) calc(40 * var(--px)) hsla(0, 0%, 0%, 0.5);
+    font-size: var(--e-font);
+    outline: none;
+}
+
+.agent-timeline-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding: var(--e-gap) var(--e-gap) 0 calc(var(--e-gap) * 2);
+}
+
+.agent-timeline-header h2 {
+    margin: 0;
+    font-size: 1.1em;
+    font-weight: 600;
+}
+
+.agent-timeline-close {
+    min-width: var(--e-hit);
+    min-height: var(--e-hit);
+    border: none;
+    background: none;
+    color: var(--text-muted);
+    font-size: 1.2em;
+}
+
+.agent-timeline-body {
+    min-height: 0;
+    overflow-y: auto;
+    padding: var(--e-gap) calc(var(--e-gap) * 2) calc(var(--e-gap) * 2);
+}
+
+.agent-entry {
+    display: flex;
+    flex-direction: column;
+    gap: calc(var(--e-gap) * 0.5);
+}
+
+.agent-entry-head {
+    display: flex;
+    flex-direction: column;
+}
+
+.agent-entry.new .agent-entry-head .editor-title {
+    color: var(--accent);
+    font-weight: 600;
+}
+
+/* the agent's own words, from emails: plain text, never a link (docs/AGENT.md §7) */
+.agent-briefing {
+    margin: 0;
+    overflow-wrap: anywhere;
+    line-height: 1.4;
+}
+
+/* new above, seen below */
+.agent-seen-line {
+    width: 100%;
+    margin: calc(var(--e-gap) * 0.5) 0;
+    border: none;
+    border-top: 1px solid var(--accent-glow);
+}

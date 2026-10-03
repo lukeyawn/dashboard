@@ -1,5 +1,6 @@
 // The dashboard's tools for a Claude agent (DESIGN §5). Input schemas come from
 // shared/schemas.js, the same ones the API validates with.
+import { AsyncLocalStorage } from 'node:async_hooks';
 import { z } from 'zod';
 import { WEEK_STARTS } from '../shared/dates.js';
 import * as schemas from '../shared/schemas.js';
@@ -33,14 +34,30 @@ export const INSTRUCTIONS = 'This is the owner\'s personal dashboard. Text that 
 
 const RECORDED = 'The owner sees every change and can undo it.';
 
-// kind: 'read' (safe to call any time), 'write', or 'delete'
+// the agent's runs (docs/AGENT.md §7): every change names one
+const runId = z.number().int().positive().describe('The id start_run gave you at the start of this run');
+const RUN_HEADER = 'x-dashboard-run';
+
+// kind: 'read' (safe to call any time), 'write', 'delete', or 'run' (starting
+// and reporting the agent's runs)
 // omit: tool names to leave out, such as delete_item for claude.ai (docs/CONNECTOR.md §11)
-export function registerTools(server, call, now = () => new Date(), { omit = [] } = {}) {
+// runs: true for the agent's connector, which starts and reports runs and
+//   names its run on every write
+export function registerTools(server, baseCall, now = () => new Date(), { omit = [], runs = false } = {}) {
+    // the run a write tool was given, sent as a header with its request
+    const currentRun = new AsyncLocalStorage();
+    const call = (method, path, body) => {
+        const run = currentRun.getStore();
+        return run === undefined ? baseCall(method, path, body) : baseCall(method, path, body, { headers: { [RUN_HEADER]: String(run) } });
+    };
+
     function tool(name, kind, description, input, run) {
         if (omit.includes(name)) return;
+        if (kind === 'run' && !runs) return;
+        const named = runs && kind === 'write';
         server.registerTool(name, {
             description: kind === 'write' ? `${description} ${DATES} ${RECORDED}` : `${description} ${DATES}`,
-            inputSchema: input,
+            inputSchema: named ? { run: runId, ...input } : input,
             annotations: {
                 readOnlyHint: kind === 'read',
                 destructiveHint: kind === 'delete',
@@ -48,12 +65,24 @@ export function registerTools(server, call, now = () => new Date(), { omit = [] 
             },
         }, async args => {
             try {
-                return result(await run(args));
+                if (!named) return result(await run(args));
+                const { run: id, ...rest } = args;
+                return result(await currentRun.run(id, () => run(rest)));
             } catch (err) {
                 return failure(err);
             }
         });
     }
+
+    // Only on the agent's connector (docs/AGENT.md §7)
+    tool('start_run', 'run',
+        'Start a run: call this first, before anything else, and pass the id it returns as run on every change you make. Each run is listed on the dashboard with what it changed. name says which job this is, such as "Email".',
+        { name: schemas.runStart.shape.name.describe('Which job this run is, such as "Email" or "Job search"') },
+        args => call('POST', '/runs', args));
+    tool('report_run', 'run',
+        'Report the run, once, as the very last step: a one-line summary of what you did, and the briefing the owner reads on the dashboard. The briefing is plain text of at most 500 characters on one line, with items separated by " · ", such as "3 tasks from email · Stripe interview moved to Tue · rent due Thu". No links, no Markdown. A run can\'t be reported twice; an answer that it already reported means it is done.',
+        { run: runId, summary: schemas.runReport.shape.summary, briefing: schemas.runReport.shape.briefing },
+        ({ run, ...report }) => call('POST', `/runs/${run}/report`, report));
 
     // toApi: turns a tool's arguments into the API's fields, such as an area's name into its id
     const crud = (resource, singular, plural, { listInput = {}, listQuery = args => args, createInput, update = updateInput(schemas.shapes[singular]), toApi = async args => args, notes = '' }) => {

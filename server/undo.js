@@ -145,14 +145,15 @@ export function createUndo(db, log) {
         throw new HttpError(409, "That change can't be undone.");
     });
 
-    // Undoes every change matching the filters (actors, via, since), newest
-    // first, in one transaction (docs/CONNECTOR.md §6). A change to an item
-    // edited since is skipped and reported, never forced, so this can't
-    // overwrite the owner's own later edits.
-    undo.since = db.transaction(({ since, actors, via }) => {
+    // Undoes every change matching the filters (actors, via, since, and the
+    // agent's run), newest first, in one transaction (docs/CONNECTOR.md §6,
+    // docs/AGENT.md §7). A change to an item edited since is skipped and
+    // reported, never forced, so this can't overwrite the owner's own later
+    // edits.
+    undo.since = db.transaction(({ since, actors, via, run }) => {
         const undone = [];
         const skipped = [];
-        for (const change of log.matching({ actor: actors, via, since })) {
+        for (const change of log.matching({ actor: actors, via, since, run })) {
             try {
                 undo(change.id);
                 undone.push(change);

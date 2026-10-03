@@ -56,66 +56,106 @@ describe('Dock status line', () => {
     });
 });
 
-describe("Dock's chip for the agent's changes", () => {
-    afterEach(() => vi.unstubAllGlobals());
+describe("Dock's ✦ for the agent (docs/AGENT.md §7)", () => {
+    beforeEach(() => {
+        // only the date: the polls and the testing library keep real timers
+        vi.useFakeTimers({ toFake: ['Date'] });
+        vi.setSystemTime(new Date('2026-10-03T15:00:00.000Z'));
+    });
+    afterEach(() => {
+        vi.unstubAllGlobals();
+        vi.useRealTimers();
+    });
 
     const CHANGES = [
-        { id: 9, at: '2026-10-02T12:05:00.000Z', actor: 'agent', resource: 'tasks', item_id: '3', action: 'create', before: null, after: { id: 3, name: 'Book flights' } },
-        { id: 7, at: '2026-10-02T12:00:00.000Z', actor: 'agent', resource: 'tasks', item_id: '2', action: 'create', before: null, after: { id: 2, name: 'Reply to Stripe recruiter' } },
-        { id: 4, at: '2026-10-01T12:00:00.000Z', actor: 'agent', resource: 'tasks', item_id: '1', action: 'create', before: null, after: { id: 1, name: 'Seen yesterday' } },
+        { id: 9, at: '2026-10-02T12:05:00.000Z', actor: 'agent', run_id: 2, resource: 'tasks', item_id: '3', action: 'create', before: null, after: { id: 3, name: 'Book flights' } },
+        { id: 7, at: '2026-10-02T12:00:00.000Z', actor: 'agent', run_id: 2, resource: 'tasks', item_id: '2', action: 'create', before: null, after: { id: 2, name: 'Reply to Stripe recruiter' } },
+        { id: 4, at: '2026-10-01T12:00:00.000Z', actor: 'agent', run_id: 1, resource: 'tasks', item_id: '1', action: 'create', before: null, after: { id: 1, name: 'Seen yesterday' } },
+    ];
+    const RUNS = [
+        { id: 2, name: 'Email', started_at: '2026-10-02T11:59:00.000Z', ended_at: '2026-10-02T12:06:00.000Z', summary: 'Two tasks', briefing: 'Book flights · reply to Stripe' },
+        { id: 1, name: 'Email', started_at: '2026-10-01T11:59:00.000Z', ended_at: '2026-10-01T12:01:00.000Z', summary: 'One task', briefing: 'Seen yesterday' },
     ];
 
-    async function setup(seen = '2026-10-01T12:00:00.000Z') {
+    async function setup({ seen = '2026-10-01T12:01:00.000Z', runs = RUNS, changes = CHANGES } = {}) {
         const { fakeServer } = await import('../testing/fakeApi');
         const state = { seen };
         const api = fakeServer({
             'GET /api/status': () => ({ problems: [] }),
+            'GET /api/session': () => ({ client: 'api' }),
             'GET /api/settings': () => ({ week_start: 'sunday', agent_seen_at: state.seen }),
             'PATCH /api/settings': ({ body }) => {
                 state.seen = body.agent_seen_at;
                 return { agent_seen_at: state.seen };
             },
             // the server's since is "at or after"
-            'GET /api/changes': ({ query }) => CHANGES.filter(c => c.actor === query.get('actor') && (!query.get('since') || c.at >= query.get('since'))),
+            'GET /api/changes': ({ query }) => changes.filter(c => c.actor === query.get('actor') && (!query.get('since') || c.at >= query.get('since'))),
+            'GET /api/runs': ({ query }) => runs.filter(r => !query.get('since') || (r.ended_at ?? r.started_at) >= query.get('since')),
         });
         api.install();
         render(<Dock />);
         return { api, state };
     }
 
-    it("counts the agent's changes since Luke last looked, and shows nothing when there are none", async () => {
+    it("shows only the ✦ and how many things are new, none of the agent's words", async () => {
         await setup();
-        expect(await screen.findByText('✦ 2 new from the agent')).toBeTruthy();
-        cleanup();
-        await setup('2026-10-02T12:05:00.000Z');
-        await act(async () => {});
-        expect(document.querySelector('.dock-agent')).toBeNull();
+        const button = await screen.findByRole('button', { name: 'The agent: 2 new' });
+        expect(button.textContent).toBe('✦2 new');
+        expect(button.className).toBe('dock-agent new');
+        expect(screen.queryByText(/Book flights/)).toBeNull();
     });
 
-    it('counts every change when Luke has never looked', async () => {
-        const { api } = await setup(null);
-        expect(await screen.findByText('✦ 3 new from the agent')).toBeTruthy();
-        expect(api.requests.some(r => r.url === '/api/changes?actor=agent&limit=200')).toBe(true);
-    });
-
-    it('opens the changes, and closing them marks them seen, up to the newest shown', async () => {
-        const { api, state } = await setup();
-        fireEvent.click(await screen.findByText('✦ 2 new from the agent'));
-        expect(screen.getByText('Added task "Book flights"')).toBeTruthy();
-        expect(screen.queryByText('Added task "Seen yesterday"')).toBeNull();
+    it('is muted when nothing is new, and gone after a few quiet days', async () => {
+        const { api } = await setup({ seen: '2026-10-02T12:06:00.000Z' });
+        const button = await screen.findByRole('button', { name: 'The agent' });
+        expect(button.className).toBe('dock-agent');
+        // looking again with nothing new leaves agent_seen_at alone
+        fireEvent.click(button);
         fireEvent.click(screen.getByText('Done'));
-        expect(document.querySelector('.dock-agent')).toBeNull();
-        await waitFor(() => expect(state.seen).toBe('2026-10-02T12:05:00.000Z'));
-        expect(api.writes()).toEqual([{ method: 'PATCH', url: '/api/settings', body: { agent_seen_at: '2026-10-02T12:05:00.000Z' } }]);
+        await act(async () => {});
+        expect(api.writes()).toEqual([]);
+        cleanup();
+        vi.setSystemTime(new Date('2026-10-06T15:00:00.000Z'));
+        await setup({ seen: '2026-10-02T12:06:00.000Z' });
         await act(async () => {});
         expect(document.querySelector('.dock-agent')).toBeNull();
     });
 
-    it('clears when Luke looks on another screen', async () => {
+    it('counts everything when Luke has never looked', async () => {
+        const { api } = await setup({ seen: null });
+        expect(await screen.findByRole('button', { name: 'The agent: 3 new' })).toBeTruthy();
+        expect(api.requests.some(r => r.url === '/api/changes?actor=agent&limit=200')).toBe(true);
+        expect(api.requests.some(r => r.url === '/api/runs?limit=50')).toBe(true);
+    });
+
+    it('opens the timeline, and closing it marks everything in it seen', async () => {
+        const { api, state } = await setup();
+        fireEvent.click(await screen.findByRole('button', { name: 'The agent: 2 new' }));
+        expect(screen.getByText('Book flights · reply to Stripe')).toBeTruthy();
+        expect(screen.getByText('Added task "Seen yesterday"')).toBeTruthy();
+        expect(document.querySelector('.agent-seen-line')).toBeTruthy();
+        fireEvent.click(screen.getByText('Done'));
+        // the report came after the last change, so it's what's seen up to
+        await waitFor(() => expect(state.seen).toBe('2026-10-02T12:06:00.000Z'));
+        expect(api.writes()).toEqual([{ method: 'PATCH', url: '/api/settings', body: { agent_seen_at: '2026-10-02T12:06:00.000Z' } }]);
+        await waitFor(() => expect(screen.getByRole('button', { name: 'The agent' }).className).toBe('dock-agent'));
+    });
+
+    it('counts a report with no changes as new, until the timeline is closed', async () => {
+        const quiet = { id: 3, name: 'Email', started_at: '2026-10-03T12:00:00.000Z', ended_at: '2026-10-03T12:02:00.000Z', summary: 'Nothing new', briefing: 'A quiet day' };
+        const { state } = await setup({ seen: '2026-10-02T12:06:00.000Z', runs: [quiet, ...RUNS] });
+        fireEvent.click(await screen.findByRole('button', { name: 'The agent: 1 new' }));
+        expect(screen.getByText('A quiet day')).toBeTruthy();
+        fireEvent.click(screen.getByText('Done'));
+        await waitFor(() => expect(state.seen).toBe('2026-10-03T12:02:00.000Z'));
+        await waitFor(() => expect(screen.getByRole('button', { name: 'The agent' })).toBeTruthy());
+    });
+
+    it('clears "new" when Luke looks on another screen', async () => {
         const { state } = await setup();
-        await screen.findByText('✦ 2 new from the agent');
-        state.seen = '2026-10-02T12:05:00.000Z';
+        await screen.findByRole('button', { name: 'The agent: 2 new' });
+        state.seen = '2026-10-02T12:06:00.000Z';
         await act(async () => window.dispatchEvent(new Event('focus')));
-        await waitFor(() => expect(document.querySelector('.dock-agent')).toBeNull());
+        await waitFor(() => expect(screen.getByRole('button', { name: 'The agent' })).toBeTruthy());
     });
 });

@@ -1,16 +1,17 @@
 // The claude.ai connectors on /manage (docs/CONNECTOR.md §9): their switches,
-// their connections with Revoke, and today's write count. Tailnet-only, and
-// closed to the connectors themselves by their allow-lists (server/access.js).
+// their connections with Revoke, today's write count, and for the agent
+// today's runs (docs/AGENT.md §7). Tailnet-only, and closed to the
+// connectors themselves by their allow-lists (server/access.js).
 import express from 'express';
 import * as schemas from '../../shared/schemas.js';
-import { WRITE_CAPS } from '../access.js';
+import { WRITE_CAPS, startOfToday } from '../access.js';
 import { HttpError, validate } from '../errors.js';
 import { END_REASONS } from '../stores/connections.js';
 
 export const switchKey = connector => `connector_${connector}_enabled`;
 
 // connections, oauth: null when the connector isn't set up (no PUBLIC_URL)
-export function connectionsRouter({ connections, oauth, settings, access }) {
+export function connectionsRouter({ connections, oauth, settings, access, runs, now }) {
     const router = express.Router();
     const isOn = connector => settings.get(switchKey(connector)) !== false;
     const describe = connector => ({
@@ -20,6 +21,7 @@ export function connectionsRouter({ connections, oauth, settings, access }) {
         url: oauth ? oauth.resourceOf(connector) : null,
         writes_today: access.writesToday(connector),
         write_cap: WRITE_CAPS[connector],
+        ...(connector === 'agent' && { runs_today: runs.countSince(startOfToday(now())), run_cap: settings.get('agent_runs_per_day') }),
     });
 
     router.get('/connectors', (req, res) => res.json(schemas.CONNECTOR_NAMES.map(describe)));

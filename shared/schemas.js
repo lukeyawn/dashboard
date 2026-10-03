@@ -209,14 +209,16 @@ export const applicationQuery = z.strictObject({ status: z.enum(STATUSES).option
 // settings, night mode, location
 
 // the night hours, the day weeks start on (for habits), the area the
-// Assignments tile shows (an area id), and when the owner last looked at the
-// agent's changes (docs/AGENT.md §3; the owner and the kiosk only)
+// Assignments tile shows (an area id), when the owner last looked at the
+// agent's changes (docs/AGENT.md §3), and how many runs the agent may start
+// a day (§7). The last two are the owner's and the kiosk's only.
 export const settingsUpdate = partial({
     night_start: time,
     night_end: time,
     week_start: z.enum(WEEK_STARTS),
     assignments_area: z.number().int().positive(),
     agent_seen_at: timestamp,
+    agent_runs_per_day: z.number().int().min(1).max(50),
 });
 
 export const kioskLocation = z.strictObject({
@@ -248,13 +250,28 @@ export const changesQuery = z.strictObject({
     resource: z.enum(['tasks', 'areas', 'countdowns', 'goals', 'habits', 'habit_checks', 'applications', 'settings']).optional(),
     via: via.optional(),
     since: timestamp.optional(),
+    // one of the agent's runs (docs/AGENT.md §7)
+    run: id.optional(),
 });
 
-// Undo everything since a time (docs/CONNECTOR.md §6): Claude's changes by default
+// Undo everything since a time (docs/CONNECTOR.md §6), or everything one of
+// the agent's runs did (docs/AGENT.md §7): Claude's changes by default
 export const undoSince = z.strictObject({
-    since: timestamp,
+    since: timestamp.optional(),
+    run: z.number().int().positive().optional(),
     actors: z.array(z.enum(ACTORS)).min(1).default(['claude', 'agent']),
     via: via.optional(),
+}).refine(body => body.since !== undefined || body.run !== undefined, 'Give since, run, or both');
+
+// the scheduled agent's runs (docs/AGENT.md §7); the server keeps the times
+export const runStart = z.strictObject({ name: text(40).optional() });
+export const runReport = z.strictObject({
+    summary: text(200, 'The summary'),
+    briefing: text(500, 'The briefing'),
+});
+export const runsQuery = z.strictObject({
+    since: timestamp.optional(),
+    limit: z.coerce.number().int().min(1).max(50).default(14),
 });
 
 // the claude.ai connectors and their kill switches (docs/CONNECTOR.md §9)
