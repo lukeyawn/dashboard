@@ -538,13 +538,6 @@ describe('the migration to application steps (docs/BLOCKS.md §6)', () => {
         expect(raw(id)).toBeUndefined();
     });
 
-    it('takes to_apply without a date applied, and nothing else without one', () => {
-        const db = new Database(':memory:');
-        migrate(db);
-        expect(() => db.prepare("INSERT INTO applications (company, role, status, applied_on) VALUES ('a', 'r', 'to_apply', NULL)").run()).not.toThrow();
-        expect(() => db.prepare("INSERT INTO applications (company, role, status, applied_on) VALUES ('a', 'r', 'applied', NULL)").run()).toThrow(/CHECK/);
-    });
-
     it('takes oa and withdrawn, keeps source unique, and refuses a time without a date', () => {
         const db = new Database(':memory:');
         migrate(db);
@@ -555,6 +548,35 @@ describe('the migration to application steps (docs/BLOCKS.md §6)', () => {
         expect(() => insert("'oa', NULL, NULL, '14:00'")).toThrow(/CHECK/);
         expect(() => insert("'oa', 'x', NULL, NULL")).toThrow(/UNIQUE/);
     });
+});
+
+describe('the migration to a to-apply list (docs/BLOCKS.md §6)', () => {
+    it('keeps every application and its older changes undoable, from a database that already ran 017', () => {
+        const db = new Database(':memory:');
+        const migrations = loadMigrations();
+        migrate(db, migrations.slice(0, 17));
+        const log = createChangeLog(db);
+        const raw = id => db.prepare('SELECT * FROM applications WHERE id = ?').get(id);
+        const { id } = db.prepare("INSERT INTO applications (company, role, applied_on, status, next_on) VALUES ('Ramp', 'Intern', '2026-09-01', 'oa', '2026-10-02') RETURNING id").get();
+        log.record({ resource: 'applications', itemId: id, action: 'create', after: raw(id) });
+        const before = raw(id);
+        db.prepare("UPDATE applications SET status = 'interview', next_on = NULL, updated_at = '2026-09-30T12:00:00.000Z' WHERE id = ?").run(id);
+        log.record({ resource: 'applications', itemId: id, action: 'update', before, after: raw(id) });
+
+        migrate(db, migrations);
+        expect(db.pragma('user_version', { simple: true })).toBe(18);
+        expect(raw(id)).toMatchObject({ status: 'interview', applied_on: '2026-09-01' });
+        const [updated] = log.list();
+        expect(createUndo(db, log)(updated.id)).toMatchObject({ status: 'oa', next_on: '2026-10-02' });
+    });
+
+    it('takes to_apply without a date applied, and nothing else without one', () => {
+        const db = new Database(':memory:');
+        migrate(db);
+        expect(() => db.prepare("INSERT INTO applications (company, role, status, applied_on) VALUES ('a', 'r', 'to_apply', NULL)").run()).not.toThrow();
+        expect(() => db.prepare("INSERT INTO applications (company, role, status, applied_on) VALUES ('a', 'r', 'applied', NULL)").run()).toThrow(/CHECK/);
+    });
+
 });
 
 describe('who wrote a link (docs/AGENT.md §2)', () => {

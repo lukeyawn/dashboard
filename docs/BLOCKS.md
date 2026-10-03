@@ -459,10 +459,10 @@ Tapping a row opens the panel for it. The rows keep everything but Prepare, whic
 - **Three sections** (Luke, Oct 2, after the first build):
   - **Needs action:** every OA and offer, and anything else sent with a next step from today on, such as a scheduled interview. Ordered by the next step's date (none last).
   - **To apply:** roles saved to apply to, by the day to apply by (none last), then the newest.
-  - **Waiting on:** everything else that isn't archived: the applied ones, and interviews with nothing scheduled or whose date has passed. Interviews first, then the most recent; applied ones are muted. Each row shows the step's date, or the date applied.
+  - **Waiting on:** everything else that isn't archived: the applied ones, and interviews with nothing scheduled or whose date has passed. Interviews first, then the most recent; applied ones are quieter, the company in a lighter weight. Each row shows the step's date, or the date applied.
   - What doesn't fit folds into "+N more", from the end: Waiting on first, then To apply. A section with no row showing has no heading.
   - **No stage counts.**
-- **Each row, left to right:** "Company · Role", cut off with "…" when short of room; **↗** to the posting, and ✦ on what Claude added, just after it; then, in columns that line up across the rows, **Prepare** (for OAs and interviews), the date, and the stage pill on the right. The pill is only a label, so a tap can't change a stage by accident. A tap anywhere else on the row opens the panel.
+- **Each row, left to right:** "Company · Role" (the company white, as a task's name is, and the role muted), cut off with "…" when short of room; **↗** to the posting, and ✦ on what Claude added, just after it; then, in columns that line up across the rows, **Prepare** (for OAs and interviews), the date, and the stage pill on the right. The pill is only a label, so a tap can't change a stage by accident. A tap anywhere else on the row opens the panel.
 - **The panel only opens on a tap.** Nothing is selected at first, so the wall shows the full lists. Tapping the open row again, or ✕, closes the panel. On the kiosk, it closes after 5 minutes idle.
 - **The panel (right, about 45%)** shows the selected application:
   - the company and role;
@@ -485,7 +485,7 @@ Tapping a row opens the panel for it. The rows keep everything but Prepare, whic
 - **On the kiosk, ↗ and Prepare are hidden.** Kiosk Chromium has no tabs and no back button, so an outside page would leave the wall stuck, and the kiosk isn't signed in to claude.ai. Elsewhere they open a new tab.
 
 **Files:**
-- **A migration:** a rebuild of `applications`, since SQLite can't change a CHECK in place, with the new statuses, `next_on` and `next_time`.
+- **Migrations:** rebuilds of `applications`, since SQLite can't change a CHECK in place: 017 with the new statuses, `next_on` and `next_time`, and 018 with `to_apply` and an `applied_on` it may leave empty.
 - `shared/schemas.js` (`STATUSES`; `NEXT_STATUS` removed).
 - **Server:**
   - the `/advance` route and its allow-list entry are removed (`set_application_status` stays);
