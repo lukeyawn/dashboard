@@ -1,5 +1,6 @@
 // One change from the record (DESIGN §5.5) as a line a person reads in History:
 // "Completed task "Pset 4"", "Claude added task "Buy milk"".
+import { STAGE_NAMES } from '../../shared/applications';
 import { parseDate } from '../../shared/dates';
 import { describeRepeat } from '../../shared/repeat';
 
@@ -52,7 +53,11 @@ function describeUpdate(noun, before, after) {
     if (before.archived_at && !after.archived_at) return `Unarchived ${name}`;
     if (noun === 'countdown' && before.pinned !== after.pinned) return `${after.pinned ? 'Pinned' : 'Unpinned'} ${name}`;
     if (noun === 'goal' && before.current !== after.current) return `${name}: ${before.current} → ${after.current}`;
-    if (noun === 'application' && before.status !== after.status) return `Moved ${name} to ${after.status}`;
+    if (noun === 'application' && before.status !== after.status) return `Moved ${name} to ${STAGE_NAMES[after.status] ?? after.status}`;
+    // the next step (docs/BLOCKS.md §6)
+    if (noun === 'application' && (before.next_on !== after.next_on || before.next_time !== after.next_time)) {
+        return after.next_on ? `Set the next step of ${name}: ${[weekdayOrDate(after.next_on), after.next_time].filter(Boolean).join(', ')}` : `Cleared the next step of ${name}`;
+    }
     const changed = Object.keys(after).filter(k => !QUIET.has(k) && before[k] !== after[k]);
     if (changed.length === 0) return `Changed ${name}`;
     return `Changed ${name}: ${changed.map(k => `${k.replace('_', ' ')} ${show(k, before[k])} → ${show(k, after[k])}`).join(', ')}`;

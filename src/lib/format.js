@@ -9,3 +9,12 @@ export function formatNumber(n) {
 export function formatTime(date) {
     return date.toLocaleTimeString('en-US', { hour: 'numeric', minute: '2-digit' });
 }
+
+// The domain a link goes to, so stripe.com.evil.example reads as what it is
+export function domainOf(url) {
+    try {
+        return new URL(url).hostname;
+    } catch {
+        return url;
+    }
+}

@@ -10,19 +10,21 @@ import './editors.css';
 // sections(rows): [{ title, rows }] how to group the items
 // describe(row): { title, detail } how an item reads in the list
 // actions(row, rows): [{ label, changes }] extra one-tap buttons, such as Archive
-// filters: [{ key, label, options }] narrow the list; options may be a function of the rows
+// filters: [{ key, label, options, value?, initial? }] narrow the list; options may be a function
+//          of the rows, value(row) reads what's matched (row[key] by default), and initial is
+//          the option chosen at first (All by default)
 // sorts:   [{ label, compare }] orders the list; the first is the default
 // check:   (values, before) extra checks, passed on to EditorForm
 // createValues: always sent with a new item, such as { dream: true } for Dreams
 export default function ResourceEditor({ resource, noun, params, fields, createSchema, updateSchema, sections, describe, actions = () => [], createFields = fields, filters = [], sorts = [], check, createValues = {} }) {
     const items = useResource(resource, { params });
     const [editing, setEditing] = useState(null);
-    const [chosen, setChosen] = useState({});
+    const [chosen, setChosen] = useState(() => Object.fromEntries(filters.filter(f => f.initial).map(f => [f.key, f.initial])));
     const [sortIndex, setSortIndex] = useState(0);
 
     // the rows the sections see: filtered, then sorted
     const shown = rows => {
-        const filtered = rows.filter(row => filters.every(f => !chosen[f.key] || String(row[f.key] ?? '') === chosen[f.key]));
+        const filtered = rows.filter(row => filters.every(f => !chosen[f.key] || String((f.value ? f.value(row) : row[f.key]) ?? '') === chosen[f.key]));
         return sorts[sortIndex] ? [...filtered].sort(sorts[sortIndex].compare) : filtered;
     };
 

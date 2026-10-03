@@ -55,7 +55,7 @@ describe('the change record', () => {
         expect(created.at).toBe(new Date(NOW).toISOString());
     });
 
-    it('records the quick actions too: habit checks, goal +1, advancing, settings', async () => {
+    it("records the quick actions too: habit checks, goal +1, an application's stage, settings", async () => {
         const request = await start();
         const habit = (await request('/api/habits', { method: 'POST', body: { name: 'Read' } })).body;
         await request(`/api/habits/${habit.id}/checks/2026-09-30`, { method: 'PUT' });
@@ -63,7 +63,7 @@ describe('the change record', () => {
         const goal = (await request('/api/goals', { method: 'POST', body: { name: 'Books', target: 12 } })).body;
         await request(`/api/goals/${goal.id}/increment`, { method: 'POST' });
         const app = (await request('/api/applications', { method: 'POST', body: { company: 'Stripe', role: 'Intern' } })).body;
-        await request(`/api/applications/${app.id}/advance`, { method: 'POST' });
+        await request(`/api/applications/${app.id}`, { method: 'PATCH', body: { status: 'oa' } });
         await request('/api/settings', { method: 'PATCH', body: { night_start: '23:00' } });
         await request('/api/night/start', { method: 'POST' });
 
@@ -511,5 +511,76 @@ describe('the migration to goal kinds (docs/BLOCKS.md §5)', () => {
         expect(() => db.prepare("INSERT INTO goals (name, kind, current, target, step, started) VALUES ('x', 'milestone', NULL, 3, NULL, '2026-09-30')").run()).toThrow(/CHECK/);
         expect(() => db.prepare("INSERT INTO goals (name, target, started) VALUES ('x', NULL, '2026-09-30')").run()).toThrow(/CHECK/);
         expect(() => db.prepare("INSERT INTO goals (name, kind, current, step, started) VALUES ('x', 'milestone', NULL, NULL, '2026-09-30')").run()).not.toThrow();
+    });
+});
+
+describe('the migration to application steps (docs/BLOCKS.md §6)', () => {
+    it('keeps every application, with no next step, and rewrites older changes so they can still be undone', () => {
+        const db = new Database(':memory:');
+        const migrations = loadMigrations();
+        migrate(db, migrations.slice(0, 16));
+        const log = createChangeLog(db);
+        const raw = id => db.prepare('SELECT * FROM applications WHERE id = ?').get(id);
+        const { id } = db.prepare("INSERT INTO applications (company, role, applied_on, source) VALUES ('Stripe', 'Intern', '2026-09-01', 'gmail:1') RETURNING id").get();
+        log.record({ resource: 'applications', itemId: id, action: 'create', after: raw(id) });
+        const before = raw(id);
+        db.prepare("UPDATE applications SET status = 'interview', updated_at = '2026-09-30T12:00:00.000Z' WHERE id = ?").run(id);
+        log.record({ resource: 'applications', itemId: id, action: 'update', before, after: raw(id) });
+
+        migrate(db, migrations);
+        expect(raw(id)).toMatchObject({ status: 'interview', source: 'gmail:1', next_on: null, next_time: null });
+        const [updated, created] = log.list();
+        expect(Object.keys(updated.after).slice(-3)).toEqual(['source', 'next_on', 'next_time']);
+
+        const undoChange = createUndo(db, log);
+        expect(undoChange(updated.id).status).toBe('applied');
+        expect(undoChange(created.id)).toBeNull();
+        expect(raw(id)).toBeUndefined();
+    });
+
+    it('takes oa and withdrawn, keeps source unique, and refuses a time without a date', () => {
+        const db = new Database(':memory:');
+        migrate(db);
+        const insert = (values, extra = '') => db.prepare(`INSERT INTO applications (company, role, applied_on, status, source, next_on, next_time) VALUES ('a', 'r', '2026-09-01', ${values})${extra}`).run();
+        expect(() => insert("'oa', 'x', '2026-10-06', '14:00'")).not.toThrow();
+        expect(() => insert("'withdrawn', NULL, NULL, NULL")).not.toThrow();
+        expect(() => insert("'ghosted', NULL, NULL, NULL")).toThrow(/CHECK/);
+        expect(() => insert("'oa', NULL, NULL, '14:00'")).toThrow(/CHECK/);
+        expect(() => insert("'oa', 'x', NULL, NULL")).toThrow(/UNIQUE/);
+    });
+});
+
+describe('who wrote a link (docs/AGENT.md §2)', () => {
+    async function startWithClaude() {
+        server = await startServer({ connector: true, now: () => NOW });
+        const { access_token: token } = await server.signIn('chat');
+        const asClaude = (path, options = {}) => server.request(path, { ...options, token });
+        return { asClaude, request: server.request };
+    }
+    const byClaude = async (request, id) => (await request('/api/applications')).body.find(a => a.id === id).url_by_claude;
+
+    it("marks a link Claude wrote, and not one you wrote or Claude's edits to anything else", async () => {
+        const { asClaude, request } = await startWithClaude();
+        const claudes = (await asClaude('/api/applications', { method: 'POST', body: { company: 'A', role: 'R', url: 'https://evil.example/' } })).body;
+        const mine = (await request('/api/applications', { method: 'POST', body: { company: 'B', role: 'R', url: 'https://stripe.com/jobs' } })).body;
+        expect(claudes.url_by_claude).toBe(true);
+        expect(await byClaude(request, claudes.id)).toBe(true);
+        await asClaude(`/api/applications/${mine.id}`, { method: 'PATCH', body: { notes: 'Recruiter: Dana' } });
+        expect(await byClaude(request, mine.id)).toBe(false);
+
+        // your new link is yours; Claude's change to it is Claude's
+        await request(`/api/applications/${claudes.id}`, { method: 'PATCH', body: { url: 'https://ramp.com/careers' } });
+        expect(await byClaude(request, claudes.id)).toBe(false);
+        const changed = (await asClaude(`/api/applications/${mine.id}`, { method: 'PATCH', body: { url: 'https://stripe.com.evil.example/' } })).body;
+        expect(changed.url_by_claude).toBe(true);
+    });
+
+    it("still marks Claude's link after you undo a later change back to it", async () => {
+        const { asClaude, request } = await startWithClaude();
+        const app = (await asClaude('/api/applications', { method: 'POST', body: { company: 'A', role: 'R', url: 'https://evil.example/' } })).body;
+        await request(`/api/applications/${app.id}`, { method: 'PATCH', body: { url: 'https://ramp.com/careers' } });
+        const [latest] = await changes(request);
+        await undo(request, latest.id);
+        expect(await byClaude(request, app.id)).toBe(true);
     });
 });

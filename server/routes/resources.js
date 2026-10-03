@@ -74,16 +74,5 @@ export function applicationsRouter(store, now = Date.now) {
         create: schemas.applicationCreate,
         update: schemas.applicationUpdate,
         query: schemas.applicationQuery,
-        extend(router, { idParam, notFound }) {
-            router.post('/:id/advance', (req, res) => {
-                const id = idParam(req);
-                const application = store.advance(id);
-                if (application === null) throw notFound(id);
-                if (application === undefined) {
-                    throw new HttpError(409, 'Only applied and interview applications can advance');
-                }
-                res.json(application);
-            });
-        },
     });
 }

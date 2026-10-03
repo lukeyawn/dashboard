@@ -34,7 +34,11 @@ describe('describeChange', () => {
         expect(describeChange(change('goals', 'update', { name: 'Books', current: 7 }, { name: 'Books', current: 8 }))).toBe('goal "Books": 7 → 8');
         expect(describeChange(change('habits', 'update', { name: 'Read', archived_at: null }, { name: 'Read', archived_at: 'x' }))).toBe('Archived habit "Read"');
         expect(describeChange(change('applications', 'update', { company: 'Stripe', role: 'Intern', status: 'applied' }, { company: 'Stripe', role: 'Intern', status: 'interview' })))
-            .toBe('Moved application "Stripe · Intern" to interview');
+            .toBe('Moved application "Stripe · Intern" to Interview');
+        expect(describeChange(change('applications', 'update', { company: 'Ramp', role: 'Intern', status: 'oa', next_on: null, next_time: null }, { company: 'Ramp', role: 'Intern', status: 'oa', next_on: '2026-10-06', next_time: '14:00' })))
+            .toBe('Set the next step of application "Ramp · Intern": Tue, Oct 6, 14:00');
+        expect(describeChange(change('applications', 'update', { company: 'Ramp', role: 'Intern', status: 'oa', next_on: '2026-10-06', next_time: null }, { company: 'Ramp', role: 'Intern', status: 'oa', next_on: null, next_time: null })))
+            .toBe('Cleared the next step of application "Ramp · Intern"');
         expect(describeChange(change('countdowns', 'update', { label: 'Finals', pinned: 0 }, { label: 'Finals', pinned: 1 }))).toBe('Pinned countdown "Finals"');
     });
 

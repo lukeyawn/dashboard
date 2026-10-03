@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { formatNumber, formatTime } from './format';
+import { domainOf, formatNumber, formatTime } from './format';
 
 describe('format', () => {
     it('shows at most one decimal', () => {
@@ -10,5 +10,10 @@ describe('format', () => {
 
     it('formats a time of day', () => {
         expect(formatTime(new Date(2026, 8, 30, 13, 5))).toBe('1:05 PM');
+    });
+
+    it("reads a link's domain, or gives the text back when it isn't a link", () => {
+        expect(domainOf('https://stripe.com.evil.example:8443/a?b=c')).toBe('stripe.com.evil.example');
+        expect(domainOf('not a link')).toBe('not a link');
     });
 });

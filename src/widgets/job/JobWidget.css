@@ -1,72 +1,103 @@
 .applied { --status: var(--applied); }
+.oa { --status: var(--oa); }
 .interview { --status: var(--interview); }
 .offer { --status: var(--offer); }
 .rejected { --status: var(--rejected); }
+.withdrawn { --status: var(--withdrawn); }
 
-.job-stages {
+/* the list on the left, about 55%, and the panel on the right (docs/BLOCKS.md §6) */
+.job-body {
+    flex: 1;
+    min-height: 0;
     display: grid;
-    grid-template-columns: repeat(4, minmax(0, 1fr));
-    gap: var(--row-gap);
+    grid-template-columns: minmax(0, 55fr) minmax(0, 45fr);
+    gap: var(--pad);
 }
 
-.job-stage {
-    padding: calc(var(--cell) * 0.05) var(--pad);
-    border-top: max(1px, calc(2 * var(--px))) solid var(--status);
-    border-radius: calc(var(--cell) * 0.05);
-    background-color: hsla(0, 0%, 100%, 0.06);
-}
-
-.job-stage-count {
-    font-size: var(--fs-stat);
-    font-weight: 300;
-    line-height: 1.1;
-    color: var(--status);
-}
-
-.job-stage-label {
-    font-size: calc(var(--cell) * 0.084);
-    letter-spacing: 0.08em;
-    text-transform: uppercase;
-    color: var(--text-muted);
-}
-
+/* what doesn't fit folds into "+N more" */
 .job-list {
-    display: flex;
-    flex-direction: column;
+    min-height: 0;
+    overflow: hidden;
 }
 
 .job-row {
     position: relative;
-    display: grid;
-    grid-template-columns: auto minmax(0, 1fr) auto;
-    align-items: center;
-    gap: var(--pad);
-    min-height: var(--hit);
+    display: flex;
     border-bottom: 1px solid var(--hairline);
 }
 
-.job-row:last-child {
-    border-bottom: none;
-}
-
-/* the pill stays small; the button around it is the full tap target (DESIGN §6.1) */
-.status-button {
-    display: flex;
-    justify-content: flex-end;
+/* the whole row selects it: company, pill, date */
+.job-select {
+    flex: 1;
+    min-width: 0;
+    display: grid;
+    grid-template-columns: minmax(0, 1fr) auto auto;
     align-items: center;
-    min-width: var(--hit);
+    gap: var(--row-gap);
     min-height: var(--hit);
-    padding: 0;
+    padding: 0 0 0 var(--row-gap);
     border: none;
+    border-radius: calc(var(--cell) * 0.04);
     background: none;
+    color: inherit;
     font: inherit;
+    text-align: left;
 }
 
-.status-button:active .status-pill {
-    filter: brightness(1.4);
+.job-select:active {
+    filter: brightness(1.3);
 }
 
-/* pending: crossed out, with the shrinking timer line (DESIGN §6.2) */
+.job-row.selected .job-select {
+    background-color: hsla(0, 0%, 100%, 0.1);
+}
+
+/* the most recent applied ones fill the spare rows, muted */
+.job-row.spare .job-select {
+    color: var(--text-muted);
+}
+
+.job-row.spare .status-pill {
+    opacity: 0.7;
+}
+
+.job-company {
+    font-weight: 600;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+}
+
+.job-row.spare .job-company {
+    font-weight: 400;
+}
+
+.status-pill {
+    justify-self: start;
+    padding: calc(var(--cell) * 0.013) calc(var(--cell) * 0.065);
+    border: 1px solid var(--status);
+    border-radius: 999px;
+    font-size: calc(var(--cell) * 0.077);
+    letter-spacing: 0.06em;
+    text-transform: uppercase;
+    white-space: nowrap;
+    color: var(--status);
+}
+
+/* short ("due Fri", "Tue 2 PM", "by Oct 20"), so never cut off */
+.job-date {
+    min-width: calc(var(--cell) * 0.35);
+    font-size: var(--fs-small);
+    text-align: right;
+    white-space: nowrap;
+    color: var(--text-muted);
+}
+
+.job-date.urgent {
+    color: var(--urgent);
+}
+
+/* a stage change waiting out the pending tap: crossed out, with the shrinking timer line (DESIGN §6.2) */
 .job-row.pending .status-pill {
     text-decoration: line-through;
     opacity: 0.6;
@@ -84,33 +115,94 @@
     animation: pending-timer var(--pending-ms) linear forwards;
 }
 
-.job-company {
+.job-more {
+    padding-top: var(--row-gap);
+    font-size: var(--fs-small);
+    color: var(--text-muted);
+}
+
+/* the selected application */
+.job-panel {
+    min-height: 0;
+    display: flex;
+    flex-direction: column;
+    gap: calc(var(--row-gap) * 0.5);
+    padding-left: var(--pad);
+    border-left: 1px solid var(--hairline);
+    font-size: var(--fs-small);
+}
+
+.job-panel p {
+    margin: 0;
+}
+
+.job-panel-title {
+    font-size: var(--fs-body);
+    font-weight: 600;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+}
+
+.job-panel-step {
+    color: var(--accent);
+}
+
+.job-panel-stage {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    gap: var(--row-gap);
+    padding-bottom: calc(var(--row-gap) * 0.5);
+    border-bottom: 1px solid var(--hairline);
+    color: var(--text-muted);
+}
+
+/* Stage ▾ in the panel, not a header: no negative margin */
+.job-panel-stage .menu-button {
+    margin: 0;
+}
+
+.job-moving {
+    min-height: var(--hit);
+    padding: 0 calc(var(--cell) * 0.05);
+    border: none;
+    background: none;
+    color: var(--accent);
+    font: inherit;
+    white-space: nowrap;
+}
+
+/* the notes scroll inside the panel when long */
+.job-notes {
+    flex: 1;
+    min-height: 0;
+    overflow-y: auto;
+    white-space: pre-wrap;
+    overflow-wrap: anywhere;
+    line-height: 1.35;
+}
+
+.job-no-notes {
+    color: var(--text-muted);
+}
+
+.job-links {
+    display: flex;
+    justify-content: flex-end;
+    gap: var(--pad);
+}
+
+.job-link {
     display: flex;
     align-items: center;
-    max-width: calc(var(--cell) * 1.5);
-    font-weight: 600;
-}
-
-.job-company-name {
-    min-width: 0;
+    min-height: var(--hit);
+    padding: 0 calc(var(--cell) * 0.05);
+    color: var(--accent);
+    text-decoration: none;
     white-space: nowrap;
-    overflow: hidden;
-    text-overflow: ellipsis;
 }
 
-.job-role {
-    color: var(--text-muted);
-    white-space: nowrap;
-    overflow: hidden;
-    text-overflow: ellipsis;
-}
-
-.status-pill {
-    padding: calc(var(--cell) * 0.013) calc(var(--cell) * 0.065);
-    border: 1px solid var(--status);
-    border-radius: 999px;
-    font-size: calc(var(--cell) * 0.077);
-    letter-spacing: 0.06em;
-    text-transform: uppercase;
-    color: var(--status);
+.job-link:active {
+    filter: brightness(1.4);
 }

@@ -176,9 +176,9 @@ export const habitQuery = z.strictObject({
 
 // applications
 
-export const STATUSES = ['applied', 'interview', 'offer', 'rejected'];
-// applied → interview → offer. Rejected is set only by an edit (DESIGN §10, Job search).
-export const NEXT_STATUS = { applied: 'interview', interview: 'offer' };
+// oa is an online assessment; withdrawn is an application the owner dropped.
+// Rejected and withdrawn are archived, off the tile (docs/BLOCKS.md §6).
+export const STATUSES = ['applied', 'oa', 'interview', 'offer', 'rejected', 'withdrawn'];
 const application = {
     company: text(100, 'Company'),
     role: text(100, 'Role'),
@@ -186,15 +186,22 @@ const application = {
     applied_on: date,
     url: optionalText(500),
     notes: optionalText(5000),
+    // the next step: the OA's due date, the interview's day, or the day an
+    // offer needs a reply by, and optionally its time
+    next_on: date.nullable(),
+    next_time: time.nullable(),
 };
+const timeNeedsDate = [a => !a.next_time || a.next_on !== null, { message: 'A time needs a date.', path: ['next_time'] }];
 export const applicationCreate = z.strictObject({
     ...application,
     status: application.status.default('applied'),
     // the server fills in today, by its own clock, when it's left out
     applied_on: application.applied_on.optional(),
+    next_on: application.next_on.optional(),
+    next_time: application.next_time.optional(),
     source: source.optional(),
-});
-export const applicationUpdate = partial(application);
+}).refine(a => !a.next_time || a.next_on, timeNeedsDate[1]);
+export const applicationUpdate = partial(application).refine(...timeNeedsDate);
 export const applicationQuery = z.strictObject({ status: z.enum(STATUSES).optional() });
 
 // settings, night mode, location

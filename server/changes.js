@@ -124,5 +124,26 @@ export function createChangeLog(db, { now = Date.now } = {}) {
             const rows = creationsStatement.all(resource, new Date(now() - MARK_MS).toISOString());
             return new Map(rows.map(r => [`${r.item_id}|${r.created}`, { id: r.id, at: r.at, actor: r.actor, via: viaOf(r) }]));
         },
+
+        // Every value Claude has written to one column of a table's rows, as
+        // a Set per row keyed by "id|created_at", for asking before opening a
+        // link Claude wrote (docs/AGENT.md §2). Any of Claude's changes that
+        // set the value counts, so a link Luke restored with Undo, or that
+        // Luke deleted and brought back, is still Claude's. No time limit.
+        claudeValues(resource, column) {
+            const path = `$.${column}`;
+            const rows = db.prepare(`
+                SELECT item_id, json_extract(after, '$.created_at') AS created, json_extract(after, @path) AS value
+                FROM changes
+                WHERE resource = @resource AND actor IN ('claude', 'agent') AND after IS NOT NULL
+                    AND json_extract(after, @path) IS NOT NULL
+                    AND json_extract(after, @path) IS NOT json_extract(before, @path)`).all({ resource, path });
+            const values = new Map();
+            for (const r of rows) {
+                const key = `${r.item_id}|${r.created}`;
+                values.set(key, (values.get(key) ?? new Set()).add(r.value));
+            }
+            return values;
+        },
     };
 }

