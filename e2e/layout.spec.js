@@ -82,7 +82,7 @@ for (const [width, height] of RESOLUTIONS) {
             await page.evaluate(() => document.fonts.ready);
             // the lists that fold what doesn't fit into "+N" work it out again
             // once the fonts are in, so none is left cutting off a row
-            const clipped = () => page.evaluate(() => [...document.querySelectorAll('.upcoming-body, .tasks-list, .assignment-list, .timeline')]
+            const clipped = () => page.evaluate(() => [...document.querySelectorAll('.upcoming-body, .tasks-list, .assignment-list, .timeline, .job-list')]
                 .filter(el => el.scrollHeight > el.clientHeight + 1)
                 .map(el => el.className));
             await expect.poll(clipped, { message: 'lists cutting off a row' }).toEqual([]);
@@ -108,6 +108,7 @@ for (const [width, height] of RESOLUTIONS) {
             // near its edge: the middle of a row may be its ↗ link
             await page.locator('.job-select').first().click({ position: { x: 4, y: 4 } });
             await page.locator('.job-panel').waitFor();
+            await expect.poll(clipped, { message: 'lists cutting off a row, with the panel open' }).toEqual([]);
             await page.screenshot({ path: `test-results/screens/${width}x${height}-job-panel.png` });
             const withPanel = await page.evaluate(measure);
             expect(withPanel.shells.filter(s => s.overflowing).map(s => s.area), 'widgets whose content overflows, with the panel open').toEqual([]);
