@@ -2,9 +2,18 @@
 
 Sep 30, 2026 (revised the same day: cloud hosting, any screen size, testing and CI) · Luke (owner, design and review) · Claude (implementation)
 
-This replaces `DESIGN.md` and `DESIGN2.md` at the repo root. Everything here is decided unless it's listed under [Open questions](#16-open-questions). Where a decision has a reason, the reason is what counts: use it to judge cases the rule doesn't cover. Where this doc changes something in the earlier ones, [§17](#17-what-changed-from-the-earlier-docs) says what changed and why.
+This is the description of what the dashboard is and why. Everything here is decided unless it's listed under [Open questions](#16-open-questions). Where a decision has a reason, the reason is what counts: use it to judge cases the rule doesn't cover. It replaced two earlier drafts, now in [archive/](archive/), and [archive/DESIGN-history.md](archive/DESIGN-history.md) says what changed from them.
 
-Choices made while building, where this doc left room, are logged in [DECISIONS.md](DECISIONS.md). Phase 8's detailed design, the claude.ai connectors, is in [CONNECTOR.md](CONNECTOR.md), and the scheduled agent's connector (Oct 2) in [AGENT.md](AGENT.md). §5 here only summarizes them; the longer text it had before is in [archive/](archive/DESIGN-5-agent-access.md). The redesign of the blocks (Oct 2) is in [BLOCKS.md](BLOCKS.md); until each part is built, it's newer than §10 here.
+**The other docs** each cover one topic in more depth. This doc summarizes them and points to them; none of them overrides it.
+
+| Doc | What it covers |
+|---|---|
+| [CONNECTOR.md](CONNECTOR.md) | The claude.ai connectors: the public door, sign-in, what each can do, Claude's changes and undo (summarized in §5) |
+| [AGENT.md](AGENT.md) | The scheduled agent and its connector (§5.1) |
+| [BLOCKS.md](BLOCKS.md) | Why each block is the way it is, from the Oct 2 redesign (built; §10 describes the result) |
+| [UNDO.md](UNDO.md) | How Undo compares rows, and what migrations do to the change record (§5.5, §14) |
+| [V2_IDEAS.md](V2_IDEAS.md) | Ideas from the Oct 3 review: what's planned, dropped or deferred. Not decided until moved here. |
+| [DECISIONS.md](DECISIONS.md) | Choices made while building, where this doc left room |
 
 **How the work is split:** Luke decides the design and reviews the code, and Claude writes it. The original plan was for Luke to hand-write the code with AI help, but there's no longer time for that.
 
@@ -97,51 +106,63 @@ claude.ai (chats, agent) ── HTTPS, Funnel port 443 ──► /mcp and /mcp/a
 ```
 index.html
 .nvmrc                    Node version, used locally, in CI and on the VM
+.env.example              every setting the server reads, without values
 LICENSE                   MIT
 .github/
   workflows/ci.yml        CI (§13)
   dependabot.yml          weekly grouped updates for npm and GitHub Actions
 src/                      frontend
-  main.jsx                picks <App/>, <Manage/> or <Login/> from location.pathname (no router library)
+  main.jsx, Root.jsx      Root picks the dashboard, /manage, /login or /connect/:id from the path (no router library)
   App.jsx                 dashboard: Page > Dashboard > WidgetShell × 9, plus Dock
   layout.js               area names and spans, as data (see §7)
-  widgets/<name>/         one folder per widget: <Name>Widget.jsx, <Name>Widget.css, <Name>Widget.test.jsx
-  components/             shared pieces: WidgetShell, Dashboard, Page, Dock, Modal
-  editors/                one form/editor per resource, used by both /manage and the dashboard modal
-  manage/Manage.jsx       the /manage page
-  login/Login.jsx         the token screen (§4, Access)
-  hooks/                  useNow, useResource, usePendingAction, useIdle, useBuildCheck
-  lib/                    api.js (fetch wrapper)
+  widgets/<name>/         one folder per widget, with its CSS, tests and helpers: upcoming, job, goals, habits,
+                          timeline, assignments, tasks, wotd, countdown
+  components/             shared pieces: WidgetShell, Dashboard, Page, Dock, Modal, Menu, ClaudeMark, OpenLink, NightOverlay
+  editors/                one editor per resource, used by both /manage and the dashboard modal
+  manage/                 the /manage page: the editors, History, the Claude section, describeChange.js
+  agent/                  the dock chip's list of the agent's changes (AGENT.md §3)
+  connect/                the connector approval page (CONNECTOR.md §4)
+  login/                  the token screen (§4, Access)
+  hooks/                  useResource, useNow, usePendingAction, useIdle, useHiddenCount and the rest
+  lib/                    api.js (fetch wrapper, offline and build tracking), format.js, location.js
   styles/                 tokens.css, base.css, fonts.css
   data/words.json         word-of-the-day list
   config.js               code constants (pending delay, idle timeouts); user settings live in the database
   scratch/                practice code, including the old exercises.jsx; committed, never imported by App
 server/
-  index.js                starts the app: opens the database, listens on the port
-  app.js                  builds the Express app without listening (routes, auth, static files, SPA fallback for /manage and /login),
-                          so tests can run it on a random port with an in-memory database
+  index.js                starts the app: opens the database, listens on the port (and the public listener, §5.3)
+  app.js                  builds the Express app without listening, so tests can run it on a random port
+                          with an in-memory database
   db.js                   opens the database, runs migrations
+  crud.js, stores/        the generic store and router, and each resource's own behaviour
+  routes/                 resources, system (settings, night, weather, calendar), changes, connections
+  changes.js, undo.js     the change record and undo (§5.5, UNDO.md)
+  auth.js, access.js      tokens and credentials; the connectors' allow-lists (CONNECTOR.md §5)
+  oauth.js, public.js,    the claude.ai door: sign-in, the public listener, the MCP endpoints,
+    mcp.js, limits.js,      rate limits and text cleaning (CONNECTOR.md)
+    clean.js
   calendar.js             fetches and caches the Google iCal feeds (main and classes), expands repeating events
   weather.js              picks the weather location and fetches Open-Meteo (§10, Dock)
-  night.js                night-hours logic (§6.4)
+  night.js, today.js,     night-hours logic (§6.4), /api/today, the status line (§5.5)
+    status.js
   migrations/NNN-*.sql    numbered, applied at startup, tracked with PRAGMA user_version
-  routes/<resource>.js
-  seed.js                 dev seed data (today's placeholder arrays from App.jsx move here)
+  seed.js                 dev seed data
   **/*.test.js            tests live next to the code they test
-shared/
-  schemas.js              zod schemas used by src/, server/ and mcp/
-  dates.js                local-date helpers, used everywhere dates are handled (§14)
+shared/                   used by src/, server/ and mcp/: schemas.js (zod), dates.js (§14), and each
+                          resource's rules (tasks, repeat, countdowns, goals, applications)
 mcp/
-  index.js                MCP server (stdio), a thin client over the REST API
-e2e/
-  layout.spec.js          Playwright layout checks at every supported resolution (§13)
-  fixtures/               mock API data for the layout checks, including very long names
-vm/                       server setup: systemd units, Litestream config, backup script and timer, deploy.sh, RESTORE.md
+  index.js, tools.js      the stdio MCP server, a thin client over the REST API; tools shared with the connectors
+e2e/                      Playwright: layout checks at every supported resolution (§13), editing, full stack, night mode
+vm/                       server setup: systemd units, Litestream config, backup script and timer, deploy.sh,
+                          oauth-client.sh, SETUP.md, RESTORE.md, CONNECTOR.md
 kiosk/                    Pi setup: labwc autostart, swayidle config, night-mode script
+scripts/                  the secret check, the word-list build, the snapshot and export the nightly backup runs
+docs/                     this file and the topic docs (above); archive/ for superseded ones
 data/                     gitignored: dashboard.db, backups/, calendar-cache/
-.env                      gitignored: API_TOKEN, KIOSK_TOKEN, GCAL_ICS_URL, GCAL_ROUTINE_ICS_URL (optional), TZ
-docs/DESIGN.md            this file
+.env                      gitignored: the tokens, the iCal URLs, TZ, the connectors' settings (.env.example)
 ```
+
+Each directory's README lists its files and what each is for. That's the place to look for a single file.
 
 **How the code is organized:** by feature, not by kind. Each widget lives with its own CSS and tests. Shared components are extracted only once three places need them (the rule of three). For example, several widgets render lists (tasks, deadlines, applications), but there's no generic `ListWidget` until that duplication actually hurts. `WidgetShell` is the exception: container queries need an ancestor to query.
 
@@ -155,7 +176,7 @@ Everything lives on the VM, except events, which are Google's.
 
 | Data | Where | Notes |
 |---|---|---|
-| Tasks, deadlines, countdowns, goals, habits, applications, settings | `data/dashboard.db`, one SQLite file on the VM | The live copy. Express is the only program that opens it. |
+| Tasks (deadlines included), task areas, countdowns, goals, habits, applications, settings, the change record, the connectors' connections and token hashes | `data/dashboard.db`, one SQLite file on the VM | The live copy. Express is the only program that opens it. |
 | Continuous backup | A Google Cloud Storage bucket, through Litestream | Every change within seconds. Can be restored to any moment in the last 30 days. |
 | Nightly backup | A Google Drive folder, through rclone | A database snapshot plus the JSON export, for the last 30 nights. |
 | Events and birthdays | Google Calendar | A copy of the feed is cached in `data/calendar-cache/`, so the timeline still works when Google can't be reached. |
@@ -269,7 +290,7 @@ The dashboard must be reachable from the kiosk, the phone and the laptop, from a
 - **The one exception (phase 8):** claude.ai has to reach remote MCP endpoints, so Tailscale Funnel exposes a separate listener, on port 443, that serves only those endpoints and their sign-in. claude.ai only connects to port 443. The dashboard and `/api`, on port 8443, stay tailnet-only. Approving a sign-in still happens on the tailnet (§5.3).
 
 **Tokens:** two long random tokens in `.env`: `API_TOKEN` for you (browsers and Claude) and `KIOSK_TOKEN` for the Pi.
-- Both give full access. They're separate so the server can tell the kiosk apart, for its location reports, and so a lost or stolen Pi can be locked out by changing only its token.
+- Both give full access, except that only `API_TOKEN` can approve a connector's sign-in (CONNECTOR.md §4). They're separate so the server can tell the kiosk apart, for its location reports, and so a lost or stolen Pi can be locked out by changing only its token.
 - Every `/api` request must present one, reads included, because the data is personal. The only exceptions are `/api/health` and `/api/login`.
 - The built frontend files (HTML, JS, CSS, fonts) are served without a token, since they contain no data.
 
@@ -324,9 +345,9 @@ A Claude agent (in Claude Desktop or Claude Code) reads and writes dashboard dat
 
 Changes the agent makes show up on the kiosk within one polling interval (§6).
 
-### 5.1 An autonomous agent (planned)
+### 5.1 An autonomous agent (phase 9)
 
-A Claude agent that runs on a schedule, reads the owner's email and calendar, and keeps the dashboard current: emails become tasks, application updates are noticed, and it writes a morning briefing. It writes through its own connector, and the design is in [AGENT.md](AGENT.md).
+A Claude agent that runs on a schedule, reads the owner's email and calendar, and keeps the dashboard current: emails become tasks, application updates are noticed, and it writes a morning briefing. It writes through its own connector, and the design is in [AGENT.md](AGENT.md). It's being set up in claude.ai (Oct 3); the one part coded here is the daily briefing in the dock ([V2_IDEAS.md idea 7](V2_IDEAS.md#7-the-daily-briefing-in-the-center-of-the-dock)).
 
 **It runs in Anthropic's cloud,** as a scheduled task on the owner's Claude plan, not on the VM. That means no API bill, and it uses Claude's own Gmail and Calendar connectors. A self-hosted agent would need its own Google sign-in app, and Gmail's restricted scopes mean either Google's review or a login that expires every 7 days (the trap §4 avoids for the calendar). The cost is that it can't reach the tailnet, so the dashboard needs a public door (§5.3).
 
@@ -343,7 +364,7 @@ Anyone can write an email or a calendar invitation, and text in them can pose as
 
 **Tried and dropped: the agent only suggests.** The first version had the agent's connector create suggestions that waited for a tap. It was dropped on Oct 2 for two reasons. Up to 20 cards to review every morning is a chore that wouldn't last. And claude.ai connectors belong to the whole account, so the agent can reach the chat connector anyway, which means suggest-only was only ever enforced by the agent's instructions ([AGENT.md §1](AGENT.md#1-why)).
 
-The limits, the text and link rules and the switches are in [CONNECTOR.md §2](CONNECTOR.md#2-two-connectors-and-what-the-second-one-doesnt-guarantee), [§7](CONNECTOR.md#7-suggestions-the-agents-connector) and [§9](CONNECTOR.md#9-the-claude-section-on-manage-and-the-kill-switches), and the agent's in [AGENT.md §2](AGENT.md#2-what-the-agents-connector-can-do).
+The limits, the text and link rules and the switches are in [CONNECTOR.md §2](CONNECTOR.md#2-two-connectors-and-what-the-second-one-doesnt-guarantee), [§7](CONNECTOR.md#7-text-and-links-from-connectors) and [§9](CONNECTOR.md#9-the-claude-section-on-manage-and-the-kill-switches), and the agent's in [AGENT.md §2](AGENT.md#2-what-the-agents-connector-can-do).
 
 ### 5.3 One public door
 
@@ -354,7 +375,7 @@ Two remote MCP connectors: **`/mcp` for claude.ai chats** and **`/mcp/agent` for
 | Credential | Used by | Can |
 |---|---|---|
 | `API_TOKEN` | Browsers, Claude Code and Claude Desktop | Everything |
-| `KIOSK_TOKEN` | The Pi | Everything a tap can do, plus reporting its location |
+| `KIOSK_TOKEN` | The Pi | Everything, plus reporting its location, except approving a connector's sign-in |
 | Chat connector (`/mcp`) | claude.ai chats | Its allow-list ([CONNECTOR.md §5](CONNECTOR.md#5-what-each-credential-can-do)). Recorded as `claude`. |
 | Agent connector (`/mcp/agent`) | The scheduled agent | Its allow-list ([AGENT.md §2](AGENT.md#2-what-the-agents-connector-can-do)). Recorded as `agent`. |
 
@@ -424,7 +445,7 @@ Any tap that **completes or removes** something doesn't happen right away. Inste
 2. Tapping it again during those 5 seconds cancels it.
 3. When the time runs out, the request is sent and the item leaves the view.
 
-This covers completing a **task**, completing a **deadline**, and changing a **job application**'s stage from its Stage ▾ menu. It lives in one hook, `usePendingAction`, and the delay is set in `src/config.js`.
+This covers completing a **task** (on Tasks or Assignments), a milestone's **Done**, and changing a **job application**'s stage from its Stage ▾ menu. It lives in one hook, `usePendingAction`, and the delay is set in `src/config.js`.
 
 A cleared task is marked done (`done_at` is set), not deleted, so it can still be restored in the editor.
 
@@ -440,7 +461,7 @@ Instant actions are **optimistic**: the UI updates immediately, and if the reque
 
 - **Adding a task:** the Tasks widget has an inline **"+ Add task"** row at the bottom. Tasks are the most common thing to add, so they skip the modal.
 - **Everything else:** ✎ opens a **shared modal** containing that resource's editor: a list with add, edit and delete. It's a modal rather than an inline form because tiles are too small for forms.
-- **On `/manage`:** every editor is stacked on one page as a single column that works on a phone. The last section is **Settings** (night hours, for now).
+- **On `/manage`:** every editor is stacked on one page as a single column that works on a phone, with a link bar to each section: Tasks, Task areas, Countdowns, Goals, Dreams, Habits, Job applications, then **Settings** (the night hours, `week_start` and the Assignments area), **Claude** (CONNECTOR.md §9) and **History**.
 - **Shared editors:** the editors in `src/editors/` are written once and rendered in both places.
 - **Timeline** has no ✎ button. Events are edited in Google Calendar.
 
@@ -863,6 +884,10 @@ Every open task that isn't an assignment, including deadlines that aren't school
 The rule is **one complete vertical slice before any breadth**: a few real widgets on a real database is a portfolio project, and nine shells on mock data isn't. Each phase ends with something working and with CI green.
 
 **How work reaches `main`:** Claude works on a branch per phase, or smaller, opens a pull request, and fixes it until CI passes. Luke reviews and merges. Claude never merges and never pushes to `main` (§13).
+- **Every PR is based on `main` and independent of the others,** never stacked. A change that needs an unmerged PR waits until that one merges. Luke often merges several green PRs back to back (DECISIONS.md, *Setting up the repo*).
+- **Migration numbers are given out in merge order:** a PR renames its migration file when it's rebased onto a `main` that took the number first. A migration that has run anywhere is never edited.
+- **Each PR description names the other open PRs touching the same files,** so they're merged in a sensible order.
+- **Each PR updates this doc** to describe what it built, the README of each directory it changes, and DECISIONS.md with choices made while building.
 
 | Phase | Deliverable |
 |---|---|
@@ -873,11 +898,11 @@ The rule is **one complete vertical slice before any breadth**: a few real widge
 | **4. Agent access** | The MCP server and `/api/today`. This comes before the editing UI because it's small once the API exists, and it immediately gives a way to bulk-enter real data. |
 | **5. Touch and editing** | The touch rules (§6.1), pending actions for deadlines and jobs, the inline add row, shared editors, the `/manage` page, and the dashboard modal with ✎ buttons. |
 | **6. Kiosk** | Everything in §11.2: Chromium flags and startup, kiosk login, squeekboard, night mode with the moon button, and the reload rules (§6.4). |
-| **7. Agent-ready data** | Deadlines merged into tasks, with priority, effort, area, notes, link and source; the Due soon and Tasks tiles; the change record with History and Undo; sources and no duplicates; the status line. (§5.5) |
-| **8. The public door** | Three PRs ([CONNECTOR.md §14](CONNECTOR.md#14-how-its-built-three-pull-requests-one-after-another)): the credential allow-lists, OAuth with approval on the tailnet, the public listener and the chat connector, Claude's changes with Undo everything since; then go-live on Funnel port 443, with the dashboard moved to 8443; then the agent's connector, which writes, and the chip listing its changes ([AGENT.md §6](AGENT.md#6-phase-8s-last-pr-rescoped)). (§5.2–5.4) |
-| **9. The agent** | Its standing instructions and schedule, with its Gmail and Calendar connectors read-only; run reports in the status line; the daily briefing. (§5.1, [AGENT.md §5](AGENT.md#5-what-phase-9-keeps)) |
-| **Block redesign** | Nine PRs in three rounds, in the order in [BLOCKS.md §10](BLOCKS.md#10-build-order). First: dock seconds; the change record kept for good; weekly habit targets; countdown times; the task data. Then: Upcoming; the Tasks and Assignments tiles; goals. Last: job search. They can go before or alongside phase 9. |
-| **Later** | Click-to-focus with container-query condensing; a daily background photo from Unsplash (below); an assistant widget on the dashboard; sunrise gradient; an idle photo-album mode; a wins log; a stats or "wrapped" page for a year in review. (Recurring tasks are now designed, in [BLOCKS.md §3](BLOCKS.md#3-tasks-and-assignments).) |
+| **7. Agent-ready data** | Deadlines merged into tasks, with priority, effort, area, notes, link and source; the Due soon tile (since replaced by Assignments) and the Tasks tile; the change record with History and Undo; sources and no duplicates; the status line. (§5.5) |
+| **8. The public door** | Built as three PRs ([CONNECTOR.md §14](CONNECTOR.md#14-how-it-was-built)): the credential allow-lists, OAuth with approval on the tailnet, the public listener and the chat connector, Claude's changes with Undo everything since; then go-live on Funnel port 443, with the dashboard moved to 8443; then the agent's connector, which writes, and the chip listing its changes ([AGENT.md §6](AGENT.md#6-phase-8s-last-pr-rescoped)). (§5.2–5.4) |
+| **9. The agent** | Its standing instructions and schedule, with its Gmail and Calendar connectors read-only, set up in claude.ai; a Gmail label on triaged emails; run reports in the status line; the daily briefing in the center of the dock, with the agent's changes batched by run. (§5.1, [AGENT.md §5](AGENT.md#5-what-phase-9-keeps)) |
+| **Block redesign** | Built (Oct 2–3), as nine PRs in three rounds ([BLOCKS.md §10](BLOCKS.md#10-build-order)): dock seconds; the change record kept for good; weekly habit targets; countdown times; the task data; Upcoming; the Tasks and Assignments tiles; goals; job search. |
+| **Later** | Click-to-focus with container-query condensing; a daily background photo from Unsplash (below); an assistant widget on the dashboard; sunrise gradient; an idle photo-album mode; a wins log; a stats or "wrapped" page for a year in review; habits derived from data ("applied to a job today") and from LeetCode or GitHub; logging habits from the phone ([BLOCKS.md §2](BLOCKS.md#2-habits-a-weekly-target)). Ideas from the Oct 3 review, planned and deferred, are in [V2_IDEAS.md](V2_IDEAS.md). |
 
 ### Later: a daily background photo from Unsplash
 
@@ -940,8 +965,8 @@ The owner's idea: a new background each day, through the Unsplash API. Until the
 
 **Ruleset on `main`:**
 - Changes arrive only through pull requests. No direct pushes, force pushes or deletion.
-- All three jobs must pass, on a branch that's up to date with `main`.
-- Linear history, through rebase merges. (Squash merges would turn each merged PR of a stack into a conflict for the next one.)
+- All three jobs must pass. The branch doesn't have to be up to date with `main`, so several green PRs can merge back to back; a rare breakage from two combined shows in the CI run on `main` and is fixed forward (DECISIONS.md, *Setting up the repo*).
+- Linear history, through rebase merges only, so each PR's commits land as written.
 - No bypass, including for the repo owner.
 - **No required approvals.** The only account is Luke's, and Claude acts through it with `gh`, so GitHub can't tell the two apart. The review rule is a working agreement instead: **Claude opens pull requests and gets them green; only Luke merges.**
 
@@ -990,103 +1015,24 @@ Each of these caused a real bug or near-miss, or is a known trap. Keep them in m
 
 ## 15. Decision log
 
-| Date | Decision |
-|---|---|
-| 2026-09 | 11 × 5 named-area grid and a dock below it |
-| 2026-09 | Frosted glass shell: low opacity, no hue, heavy blur, inset glow. Dark night background, Inter font. |
-| 2026-09 | Plain CSS with custom-property tokens. No Tailwind for now; it was an AI's call originally, not the owner's. |
-| 2026-09 | SQLite for structured data; markdown files only for real prose. Generic tables over per-feature ones. |
-| 2026-09 | No plugin system, no custom kanban, no home-built rich-text editor |
-| 2026-09-30 | Claude writes the code; Luke owns the design and reviews |
-| 2026-09-30 | Backend: Express + `better-sqlite3`, one process that also serves the frontend |
-| 2026-09-30 | ~~Widget sizing uses `cqw` through a per-column `--col` unit~~ Replaced by `--cell` below. Click-to-focus deferred to later. |
-| 2026-09-30 | v1 widget set is the current nine. Birthdays are yearly countdowns. No merged date panel; no wins log in v1. |
-| 2026-09-30 | Data entry on the kiosk (quick actions, inline add, editor modal) and on `/manage`, from shared editor components |
-| 2026-09-30 | Claude agent access via an MCP server that wraps the REST API with the same zod schemas. That's enough for now; an assistant widget may come later. |
-| 2026-09-30 | Widgets fetch their own data through a `useResource` hook; poll every 30 seconds and on window focus |
-| 2026-09-30 | Kiosk is a wall-mounted touchscreen; its size and resolution aren't chosen yet |
-| 2026-09-30 | Tap targets at least `--hit` (48 reference px); no hover-only UI |
-| 2026-09-30 | Completing a task, completing a deadline and advancing an application wait 5 seconds (tap again to cancel) before they're sent |
-| 2026-09-30 | Fonts self-hosted through fontsource, with fallback stacks for Windows, Mac, Android and Pi; Noto Sans SC for hanzi |
-| 2026-09-30 | Events come only from Google Calendar, read through its private iCal feed. No local events table. Claude writes events through its Google Calendar connector. |
-| 2026-09-30 | System on-screen keyboard (squeekboard) for typing at the kiosk |
-| 2026-09-30 | Night mode: display off after idle during night hours; the waking tap only dismisses the overlay |
-| 2026-09-30 | Offline: keep showing last good data with an indicator in the dock; reload only when the server answers |
-| 2026-09-30 | ~~Short screens: shrink and center the grid~~ Replaced by the any-screen layout below. |
-| 2026-09-30 | Hardware: Raspberry Pi 5 |
-| 2026-09-30 | One Google Calendar. Birthdays are yearly all-day events in it; the countdown shows one when it's within 7 days. The `repeats_yearly` column is dropped. |
-| 2026-09-30 | ~~Weather location: `.env` override, then the Pi's IP-based location, then Austin~~ Replaced below. |
-| 2026-09-30 | Access from anywhere through Tailscale, with a token on every request (login cookie for browsers, bearer token for MCP) |
-| 2026-09-30 | Night hours are settings, default 22:00–06:30, changeable on `/manage` or by Claude. A moon button starts night mode early. |
-| 2026-09-30 | Click-to-focus is triggered by tapping a widget's title (or anywhere on an untitled widget) |
-| 2026-09-30 | Server and database on a Google Cloud free-tier VM; the Pi is a screen only. Drive, OneDrive and Dropbox rejected for the live database. |
-| 2026-09-30 | Backups: Litestream to Cloud Storage (continuous, 30 days) plus a nightly snapshot and JSON export to Google Drive. No USB. |
-| 2026-09-30 | Works on any landscape screen from 4:3 to 21:9. No `px` or `vw` except borders; `--px` for page pieces, `--cell` for content. |
-| 2026-09-30 | The server fetches the weather. Location: the viewing device's own, then the kiosk's reported IP location, then Austin. |
-| 2026-09-30 | Keep the token and login flow on top of Tailscale, with a separate kiosk token |
-| 2026-09-30 | Tests are written with the code: Vitest for the database, API, logic and hooks; Playwright layout checks at 8 resolutions |
-| 2026-09-30 | Public GitHub repo, MIT license. CI with read-only permissions and pinned actions; `main` changes only through green pull requests, merged by Luke. |
-| 2026-09-30 | Node 24 LTS, pinned in `.nvmrc` |
-| 2026-10-01 | A daily background photo from an owner-curated Unsplash collection goes on the Later list. The bundled photo stays for v1. |
-| 2026-10-01 | `main` takes rebase merges only (not squash), so stacked PRs update cleanly after each merge |
-| 2026-10-01 | An autonomous Claude agent is planned, running in Anthropic's cloud on the owner's plan (no API bill; Claude's own Gmail and Calendar connectors) |
-| 2026-10-01 | Prompt injection: ~~the agent only ever suggests~~ (superseded Oct 2: it writes through its own connector, [AGENT.md](AGENT.md)); the server enforces its limits; everything is recorded and undoable; its Gmail and Calendar access is read-only (§5.2) |
-| 2026-10-01 | Deadlines become tasks with a due date. Tasks gain optional priority, effort, area, notes, link and source, filled in by Claude. |
-| 2026-10-01 | Every write is recorded with its actor, and can be undone from `/manage` |
-| 2026-10-01 | No command palette: everything is already on the screen |
-| 2026-10-01 | Two claude.ai connectors: chats add and change directly (no deleting), the agent suggests (superseded Oct 2: the agent writes too, capped at 30 a day, [AGENT.md](AGENT.md)). Because connectors are account-wide, the agent can reach both; the owner accepts that, with Claude's changes and Undo everything since as the safety net. |
-| 2026-10-01 | The public door is Funnel on port 8443 to a separate listener with only the MCP and sign-in routes. Sign-ins are approved on the tailnet. |
-| 2026-10-01 | The public door moves to port 443 and the dashboard to tailnet-only 8443: claude.ai only connects to port 443. |
-| 2026-10-01 | Links from connectors must be `https` and are shown with their domain. Text from connectors is cleaned of characters that disguise it. |
-| 2026-10-01 | One OAuth client per connector; the client, not the `resource` parameter, decides a token's access. Refresh replacements are derived from the old token, so a repeat in the grace window gets the same one. *Undo everything since* defaults to claude.ai only. |
-| 2026-10-01 | Public rate limits are split by connection, visitor and kind, so strangers can't use up claude.ai's share or trigger the dashboard's login lockout. A replaced refresh token keeps working until its replacement is used, so a lost reply doesn't look like theft. A lost connection shows in the status line. |
-| 2026-10-02 | The block redesign, after using the live dashboard: Upcoming replaces the calendar, weekly habit targets, editable task areas, now/soon/someday, time estimates and recurrence, Assignments replaces Due soon, countdown times and a live clock, goal deadlines, milestones and dreams, a job search list with a notes panel, and the change record kept for good. Every decision and its reasons are in [BLOCKS.md](BLOCKS.md). |
+Moved to [archive/DESIGN-history.md](archive/DESIGN-history.md) (Oct 3). Decisions are recorded where they're made: in this doc and the topic docs (CONNECTOR, AGENT, BLOCKS, UNDO), and choices made while building in [DECISIONS.md](DECISIONS.md).
 
 ---
 
 ## 16. Open questions
 
-None of these block phases 0–1. They get settled by trying things on the real setup.
+They get settled by trying things on the real setup.
 
 - [ ] **The screen.** The layout doesn't depend on its size or resolution, but the physical size of tap targets does: about 18 mm on a 32" screen, 13 mm on 24". Anything from about 21" up is fine.
 - [ ] **Blur performance on the Pi 5.** Expected to be fine. Phase 0 checks it at 1080p; recheck once the screen is bought, since blur costs more on a 4K panel.
 - [ ] **How quickly Google's iCal feed reflects edits.** If changes take too long to show up, switch to the Calendar API with OAuth. Checked in phase 2.
 - [ ] **Free-tier data use.** Expected to be far under 1 GB a month. Check the billing report after the first month.
 - [ ] **Night hours:** 22:00–06:30 is a starting point, and it can be changed from `/manage` at any time.
-- [ ] **Where the daily briefing goes on the grid** (phase 9). Every tile is spoken for; the word of the day's tile or a line in the dock are candidates.
+- [x] **Where the daily briefing goes** (phase 9): the center of the dock, with the agent's changes ([V2_IDEAS.md idea 7](V2_IDEAS.md#7-the-daily-briefing-in-the-center-of-the-dock)).
 - [ ] **Scheduled agents and connectors** (phase 9): confirm that a scheduled Claude agent can use claude.ai's Gmail, Calendar and custom connectors with their tools limited as §5.2 requires, and whether a task can leave out a connector or web search. More in [CONNECTOR.md §12](CONNECTOR.md#12-open-questions).
 
 ---
 
 ## 17. What changed from the earlier docs
 
-| Earlier | Now | Why |
-|---|---|---|
-| Text sized in `vw` (DESIGN.md, latest commit) | `--cell` built on `cqw`/`cqh` | `vw` breaks under click-to-focus, and plain `cqw` makes text sizes differ between widgets |
-| localStorage, no backend (DESIGN.md) | Express + SQLite | Data shared by the kiosk, `/manage` and the agent; owning the data |
-| `App` owns hooks and passes props (DESIGN.md) | Widgets call `useResource` themselves | DESIGN2's ownership rule, keeping DESIGN.md's one-hook-per-resource idea |
-| Fonts from Google Fonts | Self-hosted, with fallback stacks | Offline boot, and one less outside dependency |
-| One-week compressed plan (DESIGN2) | Phases 0–6 | Claude is now writing the code; the vertical-slice-first rule stays |
-| Merged date panel with birthdays (DESIGN2) | Nine separate widgets; birthdays as yearly countdowns | Owner's choice; the current grid already has nine areas |
-| Habit data `days: boolean[7]` | A `habit_checks` table of dates | The old shape only made sense on the day it was written |
-| Events entered by hand; `.ics` or Google "later" | Google Calendar only, read-only | Google is where the schedule already lives; no second copy to keep in sync |
-| Kiosk side-mounted at seated eye height | Hung on the wall, touchscreen | Owner's hardware plan |
-| Hover to reveal ✎ | Always visible | Touchscreens have no hover |
-| Birthdays as yearly rows in `countdowns` | Yearly all-day events in Google Calendar | Owner will keep them in Google; one place for dates |
-| Home network only, no auth | Tailscale plus a token | Owner needs access from anywhere |
-| Night hours fixed in `config.js` | Settings in the database, with an early-start button | Owner wants them changeable |
-| `UNASSIGNED` area / empty-panel concerns (DESIGN2) | Closed | The current area string has no gaps, and every panel gets content in phase 2 |
-| Server and database on the Pi | On a Google Cloud free-tier VM; the Pi is a screen only | The Pi won't always be on, and `/manage` and Claude need the data at any time |
-| Nightly backups on the Pi's own disk | Litestream to Cloud Storage, plus nightly copies in Google Drive | Backups on the same disk die with it; owner doesn't want a USB drive |
-| A 32" 1080p screen; layout checked only at 1920×1080 | Any landscape screen; `--px` and `--cell`; CI checks 8 resolutions | The screen isn't chosen yet |
-| `--col` = `100cqw / span` | `--cell`, corrected for gaps and shell padding, from the shorter side of a cell | The old formula made 4-column text about 20% larger than 1-column text, and didn't handle other aspect ratios |
-| Short screens: dock minimum height, grid shrinks and centers | Cells stretch to fit any aspect ratio | Replaced by the any-screen layout |
-| Tap targets 48 px | `--hit`, 48 reference px | The same share of the screen at any resolution |
-| Weather fetched by the browser; location from `.env`, then the server's IP | Fetched by the server; location from the viewing device, then the kiosk's IP, then Austin | The server's IP is now a data center; owner's order of preference |
-| One token | `API_TOKEN` and `KIOSK_TOKEN` | Identifies the kiosk; a lost Pi can be locked out on its own |
-| Kiosk opens `localhost` | Kiosk opens the VM's Tailscale address, after waiting for the server | The server moved off the Pi |
-| No testing plan | Tests with every change; CI with a protected `main` | Guardrails for code Claude writes |
-| Separate tasks and deadlines | One task list; a due date makes a task a deadline. The Deadlines tile becomes Due soon. | They did the same job, and one list with optional details suits Claude doing the data entry |
-| Claude only through Claude Code / Desktop, on the laptop | A public MCP door with two connectors that add and change things directly but never delete: one for claude.ai chats, and one for a scheduled agent, capped at 30 changes a day | The owner wants an agent that runs on its own and Claude doing data entry from any chat; prompt injection from email is the main risk |
-| A fooled agent can't change anything without the owner (§5.2, first version) | Nothing a fooled agent does is lasting or silent | claude.ai connectors are account-wide, so the agent can reach the chat connector; the owner prefers direct adds, with Claude's changes and Undo as the net |
-| Deploy by building on the Pi | `vm/deploy.sh` from the laptop; CI must have passed | The 1 GB VM shouldn't build; a failing commit is never deployed |
+Moved to [archive/DESIGN-history.md](archive/DESIGN-history.md) (Oct 3), with the decision log.

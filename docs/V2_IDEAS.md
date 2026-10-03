@@ -11,7 +11,7 @@ Ideas from a review of the design docs once the block redesign and the agent's c
 | 3 | Undo across migrations | Field-level undo rejected; the migration fix is designed in [UNDO.md](UNDO.md) | Before the next migration |
 | 4 | A copy of the data outside Google, and backup health | Planned | |
 | 5 | One time zone, from the server | Planned | |
-| 6 | Consolidate the design docs | Planned | After PR #40 merges |
+| 6 | Consolidate the design docs | Done | |
 | 7 | The daily briefing in the center of the dock | Planned | Phase 9 |
 | 8 | One version number for polling | Not discussed yet | |
 
@@ -136,6 +136,8 @@ DESIGN §2 says *"a backup that has never been restored isn't known to work"*, b
 ---
 
 ## 6. Consolidate the design docs
+
+> **Done (Oct 3).** Two changes from the plan below, to keep every reference in the code valid: **BLOCKS.md stays where it is**, marked as built (code comments and eight migrations cite its sections, and migrations are never edited), and **AGENT.md keeps its §2, §3 and §6** (code cites them), while CONNECTOR.md covers everything both connectors share. The old CONNECTOR.md is [archive/CONNECTOR-v1.md](archive/CONNECTOR-v1.md); the new one keeps its section numbers. DESIGN.md §15 and §17 are in [archive/DESIGN-history.md](archive/DESIGN-history.md).
 
 Readers now have to work out which doc wins: BLOCKS.md is newer than DESIGN.md §10, AGENT.md newer than CONNECTOR.md §7–8, and CONNECTOR.md newer than DESIGN.md §5. Several statements are out of date.
 
