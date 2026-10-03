@@ -6,6 +6,10 @@
 // "didn't report" in the timeline.
 export const RUN_OPEN_MS = 3 * 60 * 60 * 1000;
 
+// A run's label, chosen by the agent, such as "Email 2026-10-03 06:00". It
+// travels in a header, so it's plain ASCII: letters, digits, spaces and . _ : / -
+export const RUN_LABEL = /^[A-Za-z0-9 ._:/-]{1,60}$/;
+
 // a run that never reported: still going, or closed without a report
 export function runState(run, now = Date.now()) {
     if (run.ended_at) return 'reported';

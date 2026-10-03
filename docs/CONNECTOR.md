@@ -173,7 +173,7 @@ Connector tokens get **allow-lists**, not block-lists (`server/access.js`). A ro
 | | Chat connector | Agent connector |
 |---|---|---|
 | `GET` | `/api/today`, every resource, areas, events, birthdays, settings, night | The same |
-| `POST`, `PATCH`, `PUT` | Creating and changing tasks, countdowns, goals, habits and applications, with their quick actions (complete, check a day, increment, achieve); `PATCH /api/settings` for the night hours and `week_start` only; starting and cancelling night mode | Creating and changing items, with their quick actions, each naming an open run; `POST /api/runs` and `POST /api/runs/:id/report`, which skip the daily cap ([AGENT.md §7](AGENT.md#7-runs-the-briefing-and-the-timeline-phase-9)). Not settings or night mode. |
+| `POST`, `PATCH`, `PUT` | Creating and changing tasks, countdowns, goals, habits and applications, with their quick actions (complete, check a day, increment, achieve); `PATCH /api/settings` for the night hours and `week_start` only; starting and cancelling night mode | Creating and changing items, with their quick actions, each naming its run by label; `POST /api/runs`, the run's report, which skips the daily cap ([AGENT.md §7](AGENT.md#7-runs-the-briefing-and-the-timeline-phase-9)). Not settings or night mode. |
 | `DELETE` | Unchecking a habit day only | None |
 | Never | Deleting anything else, `/api/export`, the change record and undo, connections and the kill switches, the kiosk's location, `agent_seen_at` and `agent_runs_per_day`, the agent's runs, `/api/login` | The same, and settings and night mode, and reading its own runs back |
 
@@ -285,7 +285,7 @@ The exact steps are in `vm/CONNECTOR.md`. In short:
 - `add_task` asks Claude to fill in due date, priority, area and minutes from context, and to choose an area from the list.
 - Every write tool's description ends *"The owner sees every change and can undo it."*
 
-**`/mcp/agent` (the agent):** the same, minus `update_settings`, `start_night` and `cancel_night` as well (`server/mcp.js`), plus `start_run` and `report_run`; every write tool takes the run's id as `run` ([AGENT.md §7](AGENT.md#7-runs-the-briefing-and-the-timeline-phase-9)).
+**`/mcp/agent` (the agent):** the same, minus `update_settings`, `start_night` and `cancel_night` as well (`server/mcp.js`), plus `report_run`; every write tool takes the run's label as `run` ([AGENT.md §7](AGENT.md#7-runs-the-briefing-and-the-timeline-phase-9)).
 
 **For both:**
 - Read tools are marked read-only (`readOnlyHint`).

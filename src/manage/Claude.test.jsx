@@ -55,7 +55,7 @@ describe('Claude on /manage', () => {
     it("shows the agent's last run and today's runs, and changes how many it may start a day (docs/AGENT.md §7)", async () => {
         const api = setup({
             agent: { name: 'agent', configured: true, enabled: true, url: 'https://dashboard.test/mcp/agent', writes_today: 3, write_cap: 30, runs_today: 1, run_cap: 5 },
-            runs: [{ id: 4, name: 'Email', started_at: '2026-10-03T12:00:00.000Z', ended_at: '2026-10-03T12:04:00.000Z', summary: '3 tasks from email', briefing: 'Rent due Thu · Stripe OA Fri' }],
+            runs: [{ id: 4, label: 'Email', name: null, started_at: '2026-10-03T12:00:00.000Z', ended_at: '2026-10-03T12:04:00.000Z', summary: '3 tasks from email', briefing: 'Rent due Thu · Stripe OA Fri' }],
         });
         expect(await screen.findByText(/^Last run: Email, Oct 3, .* · 3 tasks from email$/)).toBeTruthy();
         expect(screen.getByText('Rent due Thu · Stripe OA Fri')).toBeTruthy();

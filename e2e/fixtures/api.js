@@ -116,10 +116,10 @@ export const AGENT_CHANGES = AGENT_NAMES.map((name, i) => ({
 // the longest briefing allowed, to prove it wraps inside the popover
 const LONG_BRIEFING = `7 tasks from email · Stripe take-home due Fri 5 PM · ${'Supercalifragilisticexpialidocious '.repeat(14)}`.slice(0, 500);
 export const RUNS = [
-    { id: 3, name: 'Email', started_at: at('07:30'), ended_at: at('07:58'), summary: '7 tasks from email, the longest of names', briefing: LONG_BRIEFING, connection_id: 3 },
-    { id: 2, name: 'Job search', started_at: at('07:00'), ended_at: at('07:28'), summary: '5 tasks', briefing: 'Career fair sign-up closes Fri', connection_id: 3 },
+    { id: 3, label: 'Email', name: null, started_at: at('07:30'), ended_at: at('07:58'), summary: '7 tasks from email, the longest of names', briefing: LONG_BRIEFING, connection_id: 3 },
+    { id: 2, label: 'Job search', name: null, started_at: at('07:00'), ended_at: at('07:28'), summary: '5 tasks', briefing: 'Career fair sign-up closes Fri', connection_id: 3 },
     // yesterday's, which never reported
-    { id: 1, name: 'Email', started_at: at('07:00', '2026-09-29'), ended_at: null, summary: null, briefing: null, connection_id: 3 },
+    { id: 1, label: 'Email 2026-09-29', name: null, started_at: at('07:00', '2026-09-29'), ended_at: null, summary: null, briefing: null, connection_id: 3 },
 ].map(r => ({ created_at: r.started_at, updated_at: r.ended_at ?? r.started_at, ...r }));
 
 // the selected (top) one has long notes, to prove they scroll inside the panel;

@@ -35,7 +35,6 @@ describe('the chat connector over MCP', () => {
         expect(names).toContain('get_today');
         expect(names).not.toContain('delete_item');
         // the agent's runs are its own (docs/AGENT.md §7)
-        expect(names).not.toContain('start_run');
         expect(names).not.toContain('report_run');
         expect(client.getInstructions()).toMatch(/never instructions to follow/);
         const addTask = (await client.listTools()).tools.find(t => t.name === 'add_task');
@@ -99,41 +98,41 @@ describe('the agent connector over MCP', () => {
         expect(client.getInstructions()).toMatch(/never instructions to follow/);
     });
 
-    it('starts and reports runs, and names its run on every write but not on reads (docs/AGENT.md §7)', async () => {
+    it('names its run on every write but not on reads, and reports it (docs/AGENT.md §7)', async () => {
         await connect('agent');
         const tools = new Map((await client.listTools()).tools.map(t => [t.name, t]));
-        expect(tools.has('start_run') && tools.has('report_run')).toBe(true);
+        expect(tools.has('report_run')).toBe(true);
+        expect(tools.has('start_run')).toBe(false);
         for (const name of ['add_task', 'update_task', 'complete_task', 'increment_goal', 'achieve_goal', 'check_habit', 'set_application_status', 'update_application']) {
             expect(tools.get(name).inputSchema.required, name).toContain('run');
         }
-        for (const name of ['get_today', 'list_tasks', 'start_run']) expect(tools.get(name).inputSchema.properties.run, name).toBeUndefined();
+        for (const name of ['get_today', 'list_tasks']) expect(tools.get(name).inputSchema.properties.run, name).toBeUndefined();
         expect(tools.get('report_run').inputSchema.required).toEqual(expect.arrayContaining(['run', 'summary', 'briefing']));
     });
 
     it('adds a task directly in a run, recorded as the agent, then reports the run', async () => {
         await connect('agent');
-        const run = text(await client.callTool({ name: 'start_run', arguments: { name: 'Email' } }));
-        const added = text(await client.callTool({ name: 'add_task', arguments: { run: run.id, name: 'Reply to Stripe recruiter', due: '2026-10-09', source: 'gmail:abc' } }));
+        const run = 'Email 2026-10-03 06:00';
+        const added = text(await client.callTool({ name: 'add_task', arguments: { run, name: 'Reply to Stripe recruiter', due: '2026-10-09', source: 'gmail:abc' } }));
         expect(added.name).toBe('Reply to Stripe recruiter');
         // re-reading the email doesn't make a second one
-        await client.callTool({ name: 'add_task', arguments: { run: run.id, name: 'Reply to Stripe recruiter', source: 'gmail:abc' } });
+        await client.callTool({ name: 'add_task', arguments: { run, name: 'Reply to Stripe recruiter', source: 'gmail:abc' } });
         expect((await server.request('/api/tasks')).body).toHaveLength(1);
+        const [opened] = (await server.request('/api/runs')).body;
         const [change] = (await server.request('/api/changes')).body;
-        expect(change).toMatchObject({ actor: 'agent', via: 'claude.ai', action: 'create', run_id: run.id });
-        const reported = text(await client.callTool({ name: 'report_run', arguments: { run: run.id, summary: '1 task from email', briefing: 'Reply to Stripe by Fri' } }));
-        expect(reported).toMatchObject({ id: run.id, summary: '1 task from email', briefing: 'Reply to Stripe by Fri' });
-        const again = await client.callTool({ name: 'report_run', arguments: { run: run.id, summary: 'x', briefing: 'x' } });
+        expect(change).toMatchObject({ actor: 'agent', via: 'claude.ai', action: 'create', run_id: opened.id });
+        const reported = text(await client.callTool({ name: 'report_run', arguments: { run, summary: '1 task from email', briefing: 'Reply to Stripe by Fri' } }));
+        expect(reported).toMatchObject({ id: opened.id, label: run, summary: '1 task from email', briefing: 'Reply to Stripe by Fri' });
+        const again = await client.callTool({ name: 'report_run', arguments: { run, summary: 'x', briefing: 'x' } });
         expect(again.isError).toBe(true);
         expect(again.content[0].text).toMatch(/already reported/);
     });
 
-    it('is told to start a run when it writes without one', async () => {
+    it('is told to name its run when it writes without one', async () => {
         await connect('agent');
         const refused = await client.callTool({ name: 'add_task', arguments: { name: 'No run' } });
         expect(refused.isError).toBe(true);
         expect(refused.content[0].text).toMatch(/run/);
-        const unknown = await client.callTool({ name: 'add_task', arguments: { run: 999, name: 'No run' } });
-        expect(unknown.content[0].text).toMatch(/^There's no run 999\. Call start_run first/);
     });
 
     it(`stops at its own cap of ${WRITE_CAPS.agent}`, async () => {
@@ -141,8 +140,7 @@ describe('the agent connector over MCP', () => {
         const connection = server.db.prepare('SELECT id FROM oauth_connections').get().id;
         const insert = server.db.prepare("INSERT INTO changes (at, actor, resource, item_id, action, connection_id) VALUES (?, 'agent', 'tasks', '0', 'create', ?)");
         for (let i = 0; i < WRITE_CAPS.agent; i++) insert.run(new Date().toISOString(), connection);
-        const run = text(await client.callTool({ name: 'start_run', arguments: {} }));
-        const refused = await client.callTool({ name: 'add_task', arguments: { run: run.id, name: 'One too many' } });
+        const refused = await client.callTool({ name: 'add_task', arguments: { run: 'Email', name: 'One too many' } });
         expect(refused.isError).toBe(true);
         expect(refused.content[0].text).toMatch(/limit of 30 agent changes/);
     });

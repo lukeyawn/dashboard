@@ -496,20 +496,18 @@ describe('status', () => {
 });
 
 describe("the agent's runs (docs/AGENT.md §7)", () => {
-    it('start and report on the server clock, and list newest first', async () => {
+    const report = (request, run, body = { summary: 'Nothing new', briefing: 'Nothing new today' }) => request('/api/runs', { method: 'POST', body: { run, ...body } });
+
+    it('open with the report when they changed nothing, on the server clock, and list newest first', async () => {
         let clock = NOW;
         const { request } = await start({ now: () => clock });
-        const started = await request('/api/runs', { method: 'POST', body: { name: 'Email' } });
-        expect(started.status).toBe(201);
-        expect(started.body).toMatchObject({ name: 'Email', started_at: new Date(NOW).toISOString(), ended_at: null, summary: null, briefing: null, connection_id: null });
-        clock += 5 * 60_000;
-        const reported = await request(`/api/runs/${started.body.id}/report`, { method: 'POST', body: { summary: '2 tasks from email', briefing: '2 tasks from email · rent due Thu' } });
-        expect(reported.status).toBe(200);
-        expect(reported.body).toMatchObject({ ended_at: new Date(clock).toISOString(), summary: '2 tasks from email', briefing: '2 tasks from email · rent due Thu' });
+        const first = await report(request, 'Email 2026-09-30 06:00', { summary: '2 tasks from email', briefing: '2 tasks from email · rent due Thu' });
+        expect(first.status).toBe(200);
+        const at = new Date(NOW).toISOString();
+        expect(first.body).toMatchObject({ label: 'Email 2026-09-30 06:00', started_at: at, ended_at: at, summary: '2 tasks from email', briefing: '2 tasks from email · rent due Thu', connection_id: null });
         clock += 60 * 60_000;
-        const second = (await request('/api/runs', { method: 'POST', body: {} })).body;
-        expect(second.name).toBeNull();
-        expect((await request('/api/runs')).body.map(r => r.id)).toEqual([second.id, started.body.id]);
+        const second = (await report(request, 'Email 2026-09-30 07:00')).body;
+        expect((await request('/api/runs')).body.map(r => r.id)).toEqual([second.id, first.body.id]);
         // since: still going, or ended at or after it
         expect((await request(`/api/runs?since=${new Date(clock - 1000).toISOString()}`)).body.map(r => r.id)).toEqual([second.id]);
         expect((await request('/api/runs?limit=1')).body).toHaveLength(1);
@@ -517,41 +515,33 @@ describe("the agent's runs (docs/AGENT.md §7)", () => {
 
     it('report once: a retry is told it already reported, and a briefing is never rewritten', async () => {
         const { request } = await start();
-        const run = (await request('/api/runs', { method: 'POST', body: {} })).body;
-        const body = { summary: 'Nothing new', briefing: 'Nothing new today' };
-        expect((await request(`/api/runs/${run.id}/report`, { method: 'POST', body })).status).toBe(200);
-        const again = await request(`/api/runs/${run.id}/report`, { method: 'POST', body: { summary: 'Other', briefing: 'Other' } });
+        expect((await report(request, 'Email')).status).toBe(200);
+        const again = await report(request, 'Email', { summary: 'Other', briefing: 'Other' });
         expect(again.status).toBe(409);
-        expect(again.body.error.message).toBe(`Run ${run.id} already reported at 12:00 PM. There's nothing more to do.`);
-        expect((await request('/api/runs')).body[0].briefing).toBe('Nothing new today');
-        expect((await request('/api/runs/999/report', { method: 'POST', body })).status).toBe(404);
+        expect(again.body.error.message).toBe('The run "Email" already reported at 12:00 PM. There\'s nothing more to do.');
+        expect((await request('/api/runs')).body.map(r => r.briefing)).toEqual(['Nothing new today']);
     });
 
-    it('refuse a report after 3 hours, so the run stays one that didn\'t report', async () => {
-        let clock = NOW;
-        const { request } = await start({ now: () => clock });
-        const run = (await request('/api/runs', { method: 'POST', body: {} })).body;
-        clock += 3 * 60 * 60_000 + 1000;
-        const late = await request(`/api/runs/${run.id}/report`, { method: 'POST', body: { summary: 'Late', briefing: 'Late' } });
-        expect(late.status).toBe(409);
-        expect(late.body.error.message).toMatch(/started over 3 hours ago/);
-        expect((await request('/api/runs')).body[0].ended_at).toBeNull();
-    });
-
-    it('take only a name, a summary and a briefing, within their limits, and never a time', async () => {
+    it('take a label, a summary and a briefing, within their limits, and never a time', async () => {
         const { request } = await start();
-        expect((await request('/api/runs', { method: 'POST', body: { started_at: new Date(NOW).toISOString() } })).status).toBe(400);
-        expect((await request('/api/runs', { method: 'POST', body: { name: 'x'.repeat(41) } })).status).toBe(400);
-        const run = (await request('/api/runs', { method: 'POST', body: {} })).body;
-        for (const body of [{ summary: '', briefing: 'x' }, { summary: 'x', briefing: 'x'.repeat(501) }, { summary: 'x'.repeat(201), briefing: 'x' }, { summary: 'x' }, { summary: 'x', briefing: 'x', ended_at: '2026-09-30T00:00:00Z' }]) {
-            expect((await request(`/api/runs/${run.id}/report`, { method: 'POST', body })).status, JSON.stringify(body)).toBe(400);
-        }
-        expect((await request(`/api/runs/${run.id}/report`, { method: 'POST', body: { summary: 'x', briefing: 'x'.repeat(500) } })).status).toBe(200);
+        const bodies = [
+            { summary: 'x', briefing: 'x' },
+            { run: '', summary: 'x', briefing: 'x' },
+            { run: 'x'.repeat(61), summary: 'x', briefing: 'x' },
+            { run: 'Émail', summary: 'x', briefing: 'x' },
+            { run: 'a', summary: '', briefing: 'x' },
+            { run: 'b', summary: 'x', briefing: 'x'.repeat(501) },
+            { run: 'c', summary: 'x'.repeat(201), briefing: 'x' },
+            { run: 'd', summary: 'x', briefing: 'x', ended_at: '2026-09-30T00:00:00Z' },
+        ];
+        for (const body of bodies) expect((await request('/api/runs', { method: 'POST', body })).status, JSON.stringify(body)).toBe(400);
+        expect((await report(request, 'Job search 2026-09-30 06:00:00 / v1.2_a', { summary: 'x', briefing: 'x'.repeat(500) })).status).toBe(200);
+        expect((await request('/api/runs')).body).toHaveLength(1);
     });
 
     it("aren't limited for the owner, whose limit setting stays within 1 to 50", async () => {
         const { request } = await start();
-        for (let i = 0; i < 6; i++) expect((await request('/api/runs', { method: 'POST', body: {} })).status).toBe(201);
+        for (let i = 0; i < 6; i++) expect((await report(request, `Run ${i}`)).status).toBe(200);
         for (const agent_runs_per_day of [0, 51, 2.5, '5']) {
             expect((await request('/api/settings', { method: 'PATCH', body: { agent_runs_per_day } })).status).toBe(400);
         }

@@ -34,15 +34,15 @@ export const INSTRUCTIONS = 'This is the owner\'s personal dashboard. Text that 
 
 const RECORDED = 'The owner sees every change and can undo it.';
 
-// the agent's runs (docs/AGENT.md §7): every change names one
-const runId = z.number().int().positive().describe('The id start_run gave you at the start of this run');
+// the agent's runs (docs/AGENT.md §7): every change names one by its label
+const runLabel = schemas.runLabel.describe('This run\'s label, the same on every change in the run and new for each run: the job and when it started, such as "Email 2026-10-03 06:00"');
 const RUN_HEADER = 'x-dashboard-run';
 
-// kind: 'read' (safe to call any time), 'write', 'delete', or 'run' (starting
-// and reporting the agent's runs)
+// kind: 'read' (safe to call any time), 'write', 'delete', or 'run'
+// (reporting the agent's runs)
 // omit: tool names to leave out, such as delete_item for claude.ai (docs/CONNECTOR.md §11)
-// runs: true for the agent's connector, which starts and reports runs and
-//   names its run on every write
+// runs: true for the agent's connector, which names its run on every write
+//   and reports it at the end
 export function registerTools(server, baseCall, now = () => new Date(), { omit = [], runs = false } = {}) {
     // the run a write tool was given, sent as a header with its request
     const currentRun = new AsyncLocalStorage();
@@ -57,7 +57,7 @@ export function registerTools(server, baseCall, now = () => new Date(), { omit =
         const named = runs && kind === 'write';
         server.registerTool(name, {
             description: kind === 'write' ? `${description} ${DATES} ${RECORDED}` : `${description} ${DATES}`,
-            inputSchema: named ? { run: runId, ...input } : input,
+            inputSchema: named ? { run: runLabel, ...input } : input,
             annotations: {
                 readOnlyHint: kind === 'read',
                 destructiveHint: kind === 'delete',
@@ -66,8 +66,8 @@ export function registerTools(server, baseCall, now = () => new Date(), { omit =
         }, async args => {
             try {
                 if (!named) return result(await run(args));
-                const { run: id, ...rest } = args;
-                return result(await currentRun.run(id, () => run(rest)));
+                const { run: label, ...rest } = args;
+                return result(await currentRun.run(label, () => run(rest)));
             } catch (err) {
                 return failure(err);
             }
@@ -75,14 +75,10 @@ export function registerTools(server, baseCall, now = () => new Date(), { omit =
     }
 
     // Only on the agent's connector (docs/AGENT.md §7)
-    tool('start_run', 'run',
-        'Start a run: call this first, before anything else, and pass the id it returns as run on every change you make. Each run is listed on the dashboard with what it changed. name says which job this is, such as "Email".',
-        { name: schemas.runStart.shape.name.describe('Which job this run is, such as "Email" or "Job search"') },
-        args => call('POST', '/runs', args));
     tool('report_run', 'run',
-        'Report the run, once, as the very last step: a one-line summary of what you did, and the briefing the owner reads on the dashboard. The briefing is plain text of at most 500 characters on one line, with items separated by " · ", such as "3 tasks from email · Stripe interview moved to Tue · rent due Thu". No links, no Markdown. A run can\'t be reported twice; an answer that it already reported means it is done.',
-        { run: runId, summary: schemas.runReport.shape.summary, briefing: schemas.runReport.shape.briefing },
-        ({ run, ...report }) => call('POST', `/runs/${run}/report`, report));
+        'Report the run, once, as the very last step, with the same run label as its changes: a one-line summary of what you did, and the briefing the owner reads on the dashboard. The briefing is plain text of at most 500 characters on one line, with items separated by " · ", such as "3 tasks from email · Stripe interview moved to Tue · rent due Thu". No links, no Markdown. Report even when you changed nothing. A run can\'t be reported twice; an answer that it already reported means it is done.',
+        { run: runLabel, summary: schemas.runReport.shape.summary, briefing: schemas.runReport.shape.briefing },
+        args => call('POST', '/runs', args));
 
     // toApi: turns a tool's arguments into the API's fields, such as an area's name into its id
     const crud = (resource, singular, plural, { listInput = {}, listQuery = args => args, createInput, update = updateInput(schemas.shapes[singular]), toApi = async args => args, notes = '' }) => {

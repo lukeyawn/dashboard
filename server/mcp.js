@@ -5,8 +5,8 @@
 // access token. So the API's allow-list decides what Claude can do, in one
 // place, exactly as it does for every other client. The agent's connector
 // also goes without settings and night mode (docs/AGENT.md §2), which its
-// allow-list refuses anyway, and is the only one with start_run and
-// report_run, naming its run on every write (§7).
+// allow-list refuses anyway, and is the only one that names its run on every
+// write and has report_run (§7).
 import { McpServer } from '@modelcontextprotocol/sdk/server/mcp.js';
 import { StreamableHTTPServerTransport } from '@modelcontextprotocol/sdk/server/streamableHttp.js';
 import { createClient } from '../mcp/client.js';

@@ -2,6 +2,7 @@
 // way of putting data in goes through the same validation (DESIGN §4, §5).
 import { z } from 'zod';
 import { DETAILS } from './countdowns.js';
+import { RUN_LABEL } from './runs.js';
 import { UNITS } from './repeat.js';
 import { WEEK_STARTS, daysBetween, isDateString } from './dates.js';
 
@@ -264,8 +265,9 @@ export const undoSince = z.strictObject({
 }).refine(body => body.since !== undefined || body.run !== undefined, 'Give since, run, or both');
 
 // the scheduled agent's runs (docs/AGENT.md §7); the server keeps the times
-export const runStart = z.strictObject({ name: text(40).optional() });
+export const runLabel = z.string().trim().regex(RUN_LABEL, 'A run label is 1 to 60 letters, digits, spaces and . _ : / -');
 export const runReport = z.strictObject({
+    run: runLabel,
     summary: text(200, 'The summary'),
     briefing: text(500, 'The briefing'),
 });

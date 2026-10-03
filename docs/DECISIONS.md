@@ -336,7 +336,7 @@ Choices made while building, where [DESIGN.md](DESIGN.md) left room or turned ou
 
 | Choice | Why |
 |---|---|
-| A write from the agent's connector with no run, or an unknown one, is a 400; one naming a run that has reported or is past 3 hours is a 409. The owner's and the kiosk's tokens ignore the header, and their changes have no run. | The first is a malformed request, the second a conflict with the run's state, as elsewhere in the API. Only the agent's writes need grouping. |
+| A write from the agent's connector with no run is a 400; one naming a run that has reported or is past 3 hours is a 409. The owner's and the kiosk's tokens ignore the header, and their changes have no run. | The first is a malformed request, the second a conflict with the run's state, as elsewhere in the API. Only the agent's writes need grouping. |
 | The change log prepares its insert with `run_id` only once a change names a run. | The migration tests record changes on databases from before migration 019, which have no `run_id` column. |
 | The run cap counts only runs started through a connector; the owner's token isn't limited. | As with the write caps: the limit is on what a fooled agent can do, not on the owner. |
 | `GET /api/runs?since` keeps runs that ended (or, still open, started) at or after `since`. | A run that started before the history but reported inside it belongs in it. |
@@ -349,3 +349,15 @@ Choices made while building, where [DESIGN.md](DESIGN.md) left room or turned ou
 | When the latest run is both over 26 hours old and unreported, the status line says only *"hasn't run since"*. | One warning per problem, and the older fact is the more useful one. |
 | `runs.connection_id` has no foreign key, like `changes.connection_id`. | Connections are never deleted, and the two columns mean the same thing. |
 | vm/AGENT.md schedules the agent at 6:00 AM and has it search `in:inbox -label:Dashboard newer_than:3d`. | The briefing is ready before night mode ends at 6:30. The window keeps a first run, or a broken label, from reading the whole inbox; `source` catches anything read twice. |
+
+## Phase 9: run labels instead of start_run
+
+Oct 3, after PR #43. Migration 020. [AGENT.md §7](AGENT.md#a-run).
+
+| Choice | Why |
+|---|---|
+| The first change with a new label opens the run, as `start_run` did, so `runs.id` and `changes.run_id` stay as migration 019 made them. A report for a run with no changes opens and closes it at once. | No change to the change record, Undo this run or the timeline. A label column on `changes` would have meant rebuilding the change record to drop `run_id`'s foreign key. |
+| The daily run cap applies when a run opens, by a change or a report. A run already open can still report past it. | The cap is on runs, and checking when one opens stops a fooled agent before its writes, not after. |
+| Labels are ASCII letters, digits, spaces and `. _ : / -`, up to 60. | They travel in an HTTP header, which can't carry most other characters. |
+| The instructions build the label from `get_today`'s `now`. | It's unique for every run without the agent having to work out local time. |
+| `runs.name` stays, unused. | Dropping a column is a table rebuild, and it holds nothing: the agent hadn't been set up when `start_run` went. |
