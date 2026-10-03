@@ -95,7 +95,20 @@ export const HABITS = rows([
     { name: 'No phone in bed', checks: pick('x..xxxx'), streak: 4 },
 ].map((h, i) => ({ per_week: 7, week_count: h.checks.filter(d => d >= '2026-09-27').length, position: i, archived_at: null, ...h })));
 
-export const SETTINGS = { night_start: '22:00', night_end: '06:30', week_start: 'sunday', assignments_area: 1 };
+export const SETTINGS = { night_start: '22:00', night_end: '06:30', week_start: 'sunday', assignments_area: 1, agent_seen_at: at('06:00') };
+
+// what the scheduled agent did since Luke last looked, for the dock's chip and
+// its modal (docs/AGENT.md §3): more than the modal shows at once, so it scrolls
+const AGENT_NAMES = [
+    'Reply to the Stripe recruiter about the take-home assessment deadline, and ask whether it can move to next week',
+    'Book flights for Thanksgiving', 'Pay rent', 'Read chapter 4 for OS', 'Renew passport', 'Return library books', 'Call the dentist', 'Buy a birthday gift for Mom',
+    'Submit the housing form', 'Email the TA about section', 'Order textbooks', 'Sign up for the career fair',
+];
+export const AGENT_CHANGES = AGENT_NAMES.map((name, i) => ({
+    // newest first, as the server sends them
+    id: 200 - i, at: at(`07:${String(55 - i * 4).padStart(2, '0')}`), actor: 'agent', via: 'claude.ai', connection_id: 3,
+    resource: 'tasks', item_id: String(100 + i), action: 'create', before: null, after: { id: 100 + i, name },
+}));
 
 // the selected (top) one has long notes, to prove they scroll inside the panel;
 // more applied ones than fit, to prove they fold into "+N more"
@@ -132,6 +145,7 @@ const FIXTURES = {
     '/api/weather': () => WEATHER,
     '/api/session': () => ({ client: 'api' }),
     '/api/status': () => ({ backup: null, calendar: null, problems: [] }),
+    '/api/changes': q => (q.get('actor') === 'agent' ? AGENT_CHANGES : []),
     '/api/night': () => ({ active: false, early: false, until: null, start: '22:00', end: '06:30' }),
     '/api/events': q => eventsBetween(q.get('from'), q.get('to')),
     '/api/birthdays': q => BIRTHDAYS.filter(b => b.date >= q.get('from') && b.date <= q.get('to')),

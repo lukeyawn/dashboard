@@ -57,6 +57,6 @@ Against the development server (`npm run dev:server`), with `DASHBOARD_URL=http:
 |---|---|
 | `index.js` | The entry point Claude starts over stdio. Reads `DASHBOARD_URL` and `DASHBOARD_TOKEN` and registers the tools. |
 | `client.js` | A thin client over the REST API: each tool call is one HTTP request, so all validation and logic stay in the server. |
-| `tools.js` | The tools and their descriptions, and the instructions sent to Claude on connecting. Input schemas come from `shared/schemas.js`, the same ones the API validates with. The server also hosts these tools over HTTP for claude.ai (`server/mcp.js`), minus `delete_item`. |
+| `tools.js` | The tools and their descriptions, and the instructions sent to Claude on connecting. Input schemas come from `shared/schemas.js`, the same ones the API validates with. The server also hosts these tools over HTTP for claude.ai (`server/mcp.js`), minus `delete_item`, and for the scheduled agent also minus settings and night mode. |
 | `tools.test.js` | Every tool against the real API, over an in-memory MCP connection. |
 | `index.test.js` | Starts `index.js` the way Claude does, over stdio, against a test server. |

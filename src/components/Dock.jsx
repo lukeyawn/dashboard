@@ -1,3 +1,6 @@
+import { useState } from 'react';
+import AgentChanges from '../agent/AgentChanges';
+import { useAgentChanges } from '../agent/useAgentChanges';
 import { useOfflineSince } from '../hooks/useConnection';
 import { useResource } from '../hooks/useResource';
 import { useNow } from '../hooks/useNow';
@@ -14,8 +17,9 @@ function timeParts(now) {
 }
 
 // The clock, the date and the weather (DESIGN §10, Dock), a note when the
-// server can't be reached or a background job is failing, and the moon
-// button that starts night mode (§6.4, §5.5)
+// server can't be reached or a background job is failing, the chip for what
+// the agent changed (docs/AGENT.md §3), and the moon button that starts
+// night mode (§6.4, §5.5)
 export default function Dock({ night, onMoon }) {
     const now = useNow(1000);
     const { time, seconds, period } = timeParts(now);
@@ -42,6 +46,7 @@ export default function Dock({ night, onMoon }) {
             <div className="dock-right">
                 {offlineSince && <span className="dock-offline" role="status">offline since {formatTime(offlineSince)}</span>}
                 {!offlineSince && problems.map(p => <span key={p.kind} className="dock-offline dock-problem" role="status">{p.message}</span>)}
+                <AgentChip />
                 <Weather />
                 {onMoon && (
                     <button
@@ -57,6 +62,33 @@ export default function Dock({ night, onMoon }) {
                 )}
             </div>
         </div>
+    );
+}
+
+// "✦ 5 new from the agent", only while there's something new; tapping it
+// lists the changes, and closing that clears the chip on every screen
+function AgentChip() {
+    const { unseen, markSeen, refresh } = useAgentChanges();
+    // the changes as they were when the chip was tapped, so a poll can't
+    // move a row out from under a finger
+    const [open, setOpen] = useState(null);
+
+    function close() {
+        markSeen(open.map(c => c.at).sort().at(-1));
+        setOpen(null);
+        refresh();
+    }
+
+    if (unseen.length === 0 && !open) return null;
+    return (
+        <>
+            {unseen.length > 0 && (
+                <button type="button" className="dock-agent" data-tap onClick={() => setOpen(unseen)}>
+                    ✦ {unseen.length}{unseen.length >= 200 ? '+' : ''} new from the agent
+                </button>
+            )}
+            {open && <AgentChanges changes={open} onClose={close} />}
+        </>
     );
 }
 

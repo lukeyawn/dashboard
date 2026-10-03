@@ -75,5 +75,7 @@ describe('connector problems', () => {
             { kind: 'connector-agent', message: "claude.ai's agent connector disconnected: reconnect" },
         ]);
         expect(problems({ connectors: [{ name: 'chat', lost: false, capped: false }] }, 0)).toEqual([]);
+        expect(problems({ connectors: [{ name: 'agent', lost: false, capped: true, cap: 30 }] }, 0))
+            .toEqual([{ kind: 'connector-agent-limit', message: "Today's limit of 30 agent changes is used up" }]);
     });
 });

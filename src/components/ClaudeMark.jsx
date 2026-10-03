@@ -12,7 +12,8 @@ export default function ClaudeMark({ change, name, onUndone }) {
     const [open, setOpen] = useState(false);
     const [message, setMessage] = useState(null);
     const [busy, setBusy] = useState(false);
-    const who = whoMade(change);
+    // mid-sentence: "Added by the agent"
+    const who = change.actor === 'agent' ? 'the agent' : whoMade(change);
     const when = new Date(change.at).toLocaleString('en-US', { month: 'short', day: 'numeric', hour: 'numeric', minute: '2-digit' });
 
     function show(event) {

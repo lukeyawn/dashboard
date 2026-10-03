@@ -5,10 +5,10 @@ Everything for the Google Cloud VM that runs the server and holds the database (
 | File | Purpose |
 |---|---|
 | `SETUP.md` | One-time setup: the Google Cloud project, bucket, service account and VM, then Tailscale, `.env` and the Google Drive copy. |
-| `CONNECTOR.md` | Turning on the claude.ai connector: the client secrets, Tailscale Funnel on port 443 with the dashboard on 8443, the checks, adding it in claude.ai, and turning it off. |
+| `CONNECTOR.md` | Turning on the claude.ai connectors: the client secrets, Tailscale Funnel on port 443 with the dashboard on 8443, the checks, adding the chat connector and then the agent's in claude.ai, and turning them off. |
 | `RESTORE.md` | Restoring the database from Litestream (any moment in the last 30 days), a snapshot on the VM, or the copies in Google Drive, and the restore drill. Practice on copies only. |
 | `setup.sh` | Run once on the VM, and safe to run again. Installs Node, Litestream and rclone, creates the `dashboard` user, clones the repo to `/opt/dashboard`, writes `.env` with new tokens, and installs the services below. |
-| `oauth-client.sh` | Adds the claude.ai connector's client ID, secret and refresh key (and `PUBLIC_URL` and `TAILNET_URL`, if given) to `.env`, never changing what's there. `setup.sh` runs it; `oauth-client.test.js` tests it. |
+| `oauth-client.sh` | Adds the claude.ai connectors' client IDs and secrets (chat and agent) and the refresh key (and `PUBLIC_URL` and `TAILNET_URL`, if given) to `.env`, never changing what's there. `setup.sh` runs it; `oauth-client.test.js` tests it. |
 | `deploy.sh` | Run from the laptop. Refuses a commit whose CI didn't pass, builds the frontend locally, snapshots the database, then updates and restarts the server over Tailscale SSH. |
 | `dashboard.service` | The systemd service for the server. |
 | `litestream.yml` | Continuous backup of the database to the Cloud Storage bucket, kept 30 days. |

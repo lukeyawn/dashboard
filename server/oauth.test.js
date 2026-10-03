@@ -58,7 +58,7 @@ describe('metadata', () => {
         const chat = await server.publicRequest('/.well-known/oauth-protected-resource/mcp');
         expect(chat.body).toMatchObject({ resource: `${PUBLIC_URL}/mcp`, authorization_servers: [PUBLIC_URL] });
         expect((await server.publicRequest('/.well-known/oauth-protected-resource')).body.resource).toBe(`${PUBLIC_URL}/mcp`);
-        expect((await server.publicRequest('/.well-known/oauth-protected-resource/mcp/agent')).body.resource).toBe(`${PUBLIC_URL}/mcp/agent`);
+        expect((await server.publicRequest('/.well-known/oauth-protected-resource/mcp/agent')).body).toMatchObject({ resource: `${PUBLIC_URL}/mcp/agent`, resource_name: 'Dashboard (agent)' });
         const as = (await server.publicRequest('/.well-known/oauth-authorization-server')).body;
         expect(as).toMatchObject({
             issuer: PUBLIC_URL,
@@ -167,6 +167,10 @@ describe('approval on the tailnet', () => {
         expect(res.body.access).toMatch(/can't delete/);
         expect((await server.request(`/api/connect/${id}`)).body.same_browser).toBe(false);
         expect((await server.request('/api/connect/nope')).status).toBe(404);
+        const agent = await authorize({ client_id: CLIENTS.agent.id });
+        const agentAccess = (await server.request(`/api/connect/${agent.id}`, { headers: { cookie: agent.cookie } })).body.access;
+        expect(agentAccess).toMatch(/add and change it \(no deleting\), as the scheduled agent/);
+        expect(agentAccess).toMatch(/at most 30 changes a day/);
     });
 
     it('needs the owner logged in, and the browser that started it', async () => {
@@ -366,7 +370,7 @@ describe('connections and switches on /manage', () => {
         const connectors = (await server.request('/api/connectors')).body;
         expect(connectors).toEqual([
             { name: 'chat', configured: true, enabled: true, url: `${PUBLIC_URL}/mcp`, writes_today: 0, write_cap: 100 },
-            { name: 'agent', configured: true, enabled: true, url: `${PUBLIC_URL}/mcp/agent` },
+            { name: 'agent', configured: true, enabled: true, url: `${PUBLIC_URL}/mcp/agent`, writes_today: 0, write_cap: 30 },
         ]);
         const off = await server.request('/api/connectors/chat', { method: 'PUT', body: { enabled: false } });
         expect(off.body.enabled).toBe(false);
@@ -419,7 +423,7 @@ describe('connections and switches on /manage', () => {
         server = await startServer();
         expect((await server.request('/api/connectors')).body).toEqual([
             { name: 'chat', configured: false, enabled: true, url: null, writes_today: 0, write_cap: 100 },
-            { name: 'agent', configured: false, enabled: true, url: null },
+            { name: 'agent', configured: false, enabled: true, url: null, writes_today: 0, write_cap: 30 },
         ]);
         expect((await server.request('/api/connections')).body).toEqual([]);
         expect((await server.request('/api/connections/1/revoke', { method: 'POST' })).status).toBe(404);

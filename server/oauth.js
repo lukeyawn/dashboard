@@ -9,6 +9,7 @@
 // API under /api/connect.
 import crypto from 'node:crypto';
 import express from 'express';
+import { WRITE_CAPS } from './access.js';
 import { parseCookies } from './auth.js';
 import { HttpError } from './errors.js';
 import { createLockout, createRateLimiter, visitorOf } from './limits.js';
@@ -23,7 +24,7 @@ export const MAX_PENDING = 10;
 // what each connector will be able to do, as the approval page says it
 export const ACCESS = {
     chat: 'Read your dashboard, and add and change tasks, countdowns, goals, habits and job applications. It can\'t delete anything, and everything it does is listed under Claude\'s changes on /manage, with Undo.',
-    agent: 'Read your dashboard, and suggest changes for you to accept or dismiss.',
+    agent: `Read your dashboard, and add and change it (no deleting), as the scheduled agent: tasks, countdowns, goals, habits and job applications, at most ${WRITE_CAPS.agent} changes a day. What it changes shows on the dashboard's dock, with Undo.`,
 };
 
 const MINUTE = 60 * 1000;
@@ -80,7 +81,7 @@ export function createOAuth({ connections, publicUrl, tailnetUrl, clients, isEna
             resource: resourceOf(connector),
             authorization_servers: [publicUrl],
             bearer_methods_supported: ['header'],
-            resource_name: connector === 'chat' ? 'Dashboard' : 'Dashboard (suggest only)',
+            resource_name: connector === 'chat' ? 'Dashboard' : 'Dashboard (agent)',
         });
     }
 

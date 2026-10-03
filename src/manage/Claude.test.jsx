@@ -6,7 +6,7 @@ import Claude from './Claude';
 
 afterEach(() => vi.unstubAllGlobals());
 
-function setup({ configured = true } = {}) {
+function setup({ configured = true, agent = { name: 'agent', configured: false, enabled: true, url: null, writes_today: 0, write_cap: 30 } } = {}) {
     let enabled = true;
     const connections = [
         { id: 2, connector: 'chat', created_at: '2026-10-01T14:00:00.000Z', last_used_at: '2026-10-01T15:00:00.000Z', ended_at: null, end_reason: null, end_reason_text: null },
@@ -15,7 +15,7 @@ function setup({ configured = true } = {}) {
     const api = fakeServer({
         'GET /api/connectors': () => [
             { name: 'chat', configured, enabled, url: configured ? 'https://dashboard.test/mcp' : null, writes_today: 34, write_cap: 100 },
-            { name: 'agent', configured: false, enabled: true, url: null },
+            agent,
         ],
         'PUT /api/connectors/:name': ({ body }) => {
             enabled = body.enabled;
@@ -39,6 +39,13 @@ describe('Claude on /manage', () => {
         expect(screen.queryByText(/The agent/)).toBeNull();
         expect(await screen.findByText(/^Connected Oct 1/)).toBeTruthy();
         expect(screen.getByText('Unused for 30 days')).toBeTruthy();
+    });
+
+    it("shows the agent's switch and its own count of today's changes, once it's set up", async () => {
+        setup({ agent: { name: 'agent', configured: true, enabled: true, url: 'https://dashboard.test/mcp/agent', writes_today: 12, write_cap: 30 } });
+        expect(await screen.findByText('The agent: on')).toBeTruthy();
+        expect(screen.getByText(/https:\/\/dashboard\.test\/mcp\/agent · 12 of 30 agent changes today/)).toBeTruthy();
+        expect(screen.getAllByText('Switch off')).toHaveLength(2);
     });
 
     it('switches off only on a second tap, then back on at once', async () => {

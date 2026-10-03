@@ -59,6 +59,23 @@
     white-space: nowrap;
 }
 
+/* what the agent changed since Luke last looked (docs/AGENT.md §3): a pill
+   like the warnings, in the ✦'s color, since it's news rather than trouble */
+.dock-agent {
+    min-height: var(--hit);
+    padding: 0 calc(16 * var(--px));
+    border: 1px solid var(--accent-glow);
+    border-radius: 999px;
+    background-color: hsla(195, 90%, 70%, 0.15);
+    color: var(--accent);
+    font: inherit;
+    white-space: nowrap;
+}
+
+.dock-agent:active {
+    filter: brightness(1.4);
+}
+
 .dock-weather {
     display: flex;
     align-items: center;

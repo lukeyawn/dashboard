@@ -208,9 +208,16 @@ export const applicationQuery = z.strictObject({ status: z.enum(STATUSES).option
 
 // settings, night mode, location
 
-// the night hours, the day weeks start on (for habits), and the area
-// the Assignments tile shows (an area id)
-export const settingsUpdate = partial({ night_start: time, night_end: time, week_start: z.enum(WEEK_STARTS), assignments_area: z.number().int().positive() });
+// the night hours, the day weeks start on (for habits), the area the
+// Assignments tile shows (an area id), and when the owner last looked at the
+// agent's changes (docs/AGENT.md §3; the owner and the kiosk only)
+export const settingsUpdate = partial({
+    night_start: time,
+    night_end: time,
+    week_start: z.enum(WEEK_STARTS),
+    assignments_area: z.number().int().positive(),
+    agent_seen_at: timestamp,
+});
 
 export const kioskLocation = z.strictObject({
     lat: z.number().min(-90).max(90),

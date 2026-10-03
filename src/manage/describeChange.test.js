@@ -61,7 +61,7 @@ describe('whoMade', () => {
     it("says where Claude's changes came from", () => {
         expect(whoMade({ actor: 'claude', via: 'claude.ai' })).toBe('Claude (claude.ai)');
         expect(whoMade({ actor: 'claude', via: 'claude-code' })).toBe('Claude Code');
-        expect(whoMade({ actor: 'agent', via: null })).toBe('Claude (accepted suggestion)');
+        expect(whoMade({ actor: 'agent', via: 'claude.ai' })).toBe('The agent');
         expect(whoMade({ actor: 'owner', via: null })).toBe('You');
         expect(whoMade({ actor: 'kiosk' })).toBe('Kiosk');
         expect(whoMade({ actor: 'robot' })).toBe('robot');

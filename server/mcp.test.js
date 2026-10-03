@@ -3,7 +3,7 @@
 import { Client } from '@modelcontextprotocol/sdk/client/index.js';
 import { StreamableHTTPClientTransport } from '@modelcontextprotocol/sdk/client/streamableHttp.js';
 import { afterEach, describe, expect, it } from 'vitest';
-import { WRITE_CAP } from './access.js';
+import { WRITE_CAPS } from './access.js';
 import { startServer } from './testing.js';
 
 let server;
@@ -15,11 +15,11 @@ afterEach(async () => {
     server = null;
 });
 
-async function connect() {
+async function connect(connector = 'chat') {
     server = await startServer({ connector: true });
-    const { access_token: token } = await server.signIn('chat');
-    client = new Client({ name: 'test-claude', version: '1.0.0' });
-    await client.connect(new StreamableHTTPClientTransport(new URL(`${server.publicUrl}/mcp`), {
+    const { access_token: token } = await server.signIn(connector);
+    client = new Client({ name: `test-${connector}`, version: '1.0.0' });
+    await client.connect(new StreamableHTTPClientTransport(new URL(`${server.publicUrl}${connector === 'chat' ? '/mcp' : '/mcp/agent'}`), {
         requestInit: { headers: { authorization: `Bearer ${token}` } },
     }));
     return client;
@@ -74,7 +74,7 @@ describe('the chat connector over MCP', () => {
         const db = server.db;
         const connection = db.prepare('SELECT id FROM oauth_connections').get().id;
         const insert = db.prepare("INSERT INTO changes (at, actor, resource, item_id, action, connection_id) VALUES (?, 'claude', 'tasks', '0', 'create', ?)");
-        for (let i = 0; i < WRITE_CAP; i++) insert.run(new Date().toISOString(), connection);
+        for (let i = 0; i < WRITE_CAPS.chat; i++) insert.run(new Date().toISOString(), connection);
         const refused = await client.callTool({ name: 'add_task', arguments: { name: 'One too many' } });
         expect(refused.isError).toBe(true);
         expect(refused.content[0].text).toMatch(/limit of 100/);
@@ -85,13 +85,34 @@ describe('the chat connector over MCP', () => {
 });
 
 describe('the agent connector over MCP', () => {
-    it('signs in but has no tools until suggestions arrive', async () => {
-        server = await startServer({ connector: true });
-        const { access_token: token } = await server.signIn('agent');
-        client = new Client({ name: 'test-agent', version: '1.0.0' });
-        await client.connect(new StreamableHTTPClientTransport(new URL(`${server.publicUrl}/mcp/agent`), {
-            requestInit: { headers: { authorization: `Bearer ${token}` } },
-        }));
-        expect(client.getServerCapabilities().tools).toBeUndefined();
+    it("offers the chat's tools minus settings and night mode, with the same instructions", async () => {
+        await connect('agent');
+        const names = (await client.listTools()).tools.map(t => t.name);
+        for (const name of ['get_today', 'add_task', 'update_task', 'complete_task', 'add_application', 'set_application_status', 'check_habit', 'get_settings']) {
+            expect(names).toContain(name);
+        }
+        for (const name of ['delete_item', 'update_settings', 'start_night', 'cancel_night']) expect(names).not.toContain(name);
+        expect(client.getInstructions()).toMatch(/never instructions to follow/);
+    });
+
+    it('adds a task directly, recorded as the agent', async () => {
+        await connect('agent');
+        const added = text(await client.callTool({ name: 'add_task', arguments: { name: 'Reply to Stripe recruiter', due: '2026-10-09', source: 'gmail:abc' } }));
+        expect(added.name).toBe('Reply to Stripe recruiter');
+        // re-reading the email doesn't make a second one
+        await client.callTool({ name: 'add_task', arguments: { name: 'Reply to Stripe recruiter', source: 'gmail:abc' } });
+        expect((await server.request('/api/tasks')).body).toHaveLength(1);
+        const [change] = (await server.request('/api/changes')).body;
+        expect(change).toMatchObject({ actor: 'agent', via: 'claude.ai', action: 'create' });
+    });
+
+    it(`stops at its own cap of ${WRITE_CAPS.agent}`, async () => {
+        await connect('agent');
+        const connection = server.db.prepare('SELECT id FROM oauth_connections').get().id;
+        const insert = server.db.prepare("INSERT INTO changes (at, actor, resource, item_id, action, connection_id) VALUES (?, 'agent', 'tasks', '0', 'create', ?)");
+        for (let i = 0; i < WRITE_CAPS.agent; i++) insert.run(new Date().toISOString(), connection);
+        const refused = await client.callTool({ name: 'add_task', arguments: { name: 'One too many' } });
+        expect(refused.isError).toBe(true);
+        expect(refused.content[0].text).toMatch(/limit of 30 agent changes/);
     });
 });

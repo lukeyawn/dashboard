@@ -6,7 +6,7 @@ Oct 2, 2026 · Luke (owner, design and review) · Claude (implementation)
 
 Where this doc and CONNECTOR.md or [DESIGN.md §5](DESIGN.md#5-claude-agent-access) differ, this doc is newer.
 
-Nothing here is built yet. Phase 8's last PR is rescoped to match (§6).
+Phase 8's last PR was rescoped to match (§6), and §2, §3 and §6 are built (Oct 2). Phase 9's part (§5) isn't. Choices made while building are in [DECISIONS.md](DECISIONS.md#phase-8-the-agents-connector).
 
 ---
 

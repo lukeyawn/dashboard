@@ -14,7 +14,8 @@ export const ACTOR_LABELS = { owner: 'You', kiosk: 'Kiosk', claude: 'Claude', ag
 export function whoMade(change) {
     if (change.actor === 'claude' && change.via === 'claude.ai') return 'Claude (claude.ai)';
     if (change.actor === 'claude' && change.via === 'claude-code') return 'Claude Code';
-    if (change.actor === 'agent') return 'Claude (accepted suggestion)';
+    // the scheduled agent, through its own connector (docs/AGENT.md §3)
+    if (change.actor === 'agent') return 'The agent';
     return ACTOR_LABELS[change.actor] ?? change.actor;
 }
 

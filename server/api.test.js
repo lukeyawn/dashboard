@@ -332,7 +332,7 @@ describe('applications', () => {
 describe('settings and night mode', () => {
     it('show defaults, and accept only valid times for the user keys', async () => {
         const { request } = await start();
-        expect((await request('/api/settings')).body).toEqual({ night_start: '22:00', night_end: '06:30', week_start: 'sunday', assignments_area: 1 });
+        expect((await request('/api/settings')).body).toEqual({ night_start: '22:00', night_end: '06:30', week_start: 'sunday', assignments_area: 1, agent_seen_at: null });
         expect((await request('/api/settings', { method: 'PATCH', body: { week_start: 'monday' } })).body.week_start).toBe('monday');
         expect((await request('/api/settings', { method: 'PATCH', body: { week_start: 'friday' } })).status).toBe(400);
         expect((await request('/api/settings', { method: 'PATCH', body: { night_start: '23:15' } })).body.night_start).toBe('23:15');
@@ -340,6 +340,17 @@ describe('settings and night mode', () => {
         expect((await request('/api/settings', { method: 'PATCH', body: { kiosk_location: {} } })).status).toBe(400);
         expect((await request('/api/settings', { method: 'PATCH', body: { assignments_area: 3 } })).body.assignments_area).toBe(3);
         expect((await request('/api/settings', { method: 'PATCH', body: { assignments_area: 99 } })).status).toBe(400);
+    });
+
+    it("keep when the agent's changes were last looked at, from the owner or the kiosk, out of the change record", async () => {
+        const { request } = await start();
+        const at = '2026-09-30T14:00:00.000Z';
+        expect((await request('/api/settings', { method: 'PATCH', body: { agent_seen_at: at } })).body.agent_seen_at).toBe(at);
+        const later = '2026-09-30T15:00:00.000Z';
+        expect((await request('/api/settings', { method: 'PATCH', body: { agent_seen_at: later }, token: KIOSK_TOKEN })).body.agent_seen_at).toBe(later);
+        expect((await request('/api/settings')).body.agent_seen_at).toBe(later);
+        expect((await request('/api/settings', { method: 'PATCH', body: { agent_seen_at: 'yesterday' } })).status).toBe(400);
+        expect((await request('/api/changes?resource=settings')).body).toEqual([]);
     });
 
     it('start early until the next night end, and cancel', async () => {

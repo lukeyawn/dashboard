@@ -1,7 +1,8 @@
 #!/usr/bin/env bash
-# Adds what the claude.ai connector needs to .env (docs/CONNECTOR.md §10):
-# the chat client's ID and secret and the refresh-token key, each long and
-# random, and PUBLIC_URL and TAILNET_URL when the public address is given.
+# Adds what the claude.ai connectors need to .env (docs/CONNECTOR.md §10,
+# docs/AGENT.md §6): the chat client's and the agent's client's IDs and
+# secrets and the refresh-token key, each long and random, and PUBLIC_URL and
+# TAILNET_URL when the public address is given.
 # Never changes a value that's already there, so it's safe to run again. Run
 # on the VM:
 #   sudo bash /opt/dashboard/vm/oauth-client.sh https://dashboard.<tailnet>.ts.net
@@ -51,6 +52,8 @@ fi
 add OAUTH_CHAT_CLIENT_ID "chat-$(token)"
 add OAUTH_CHAT_CLIENT_SECRET "$(token)"
 add OAUTH_REFRESH_KEY "$(token)"
+add OAUTH_AGENT_CLIENT_ID "agent-$(token)"
+add OAUTH_AGENT_CLIENT_SECRET "$(token)"
 chmod 600 "$ENV_FILE"
 
 if [ ${#added[@]} -eq 0 ]; then
@@ -58,4 +61,4 @@ if [ ${#added[@]} -eq 0 ]; then
 else
     echo "Added to $ENV_FILE: ${added[*]}"
 fi
-echo "The client ID and secret to paste into claude.ai: sudo grep '^OAUTH_CHAT_CLIENT' $ENV_FILE"
+echo "The client IDs and secrets to paste into claude.ai: sudo grep '^OAUTH_CHAT_CLIENT' $ENV_FILE for Dashboard, and sudo grep '^OAUTH_AGENT_CLIENT' $ENV_FILE for Dashboard (agent)"
