@@ -11,16 +11,13 @@ afterEach(async () => {
 
 // a request as one of claude.ai's connectors, straight to the private API.
 // The agent's writes each name a run (docs/AGENT.md §7), so for the agent
-// this starts one and sends its id, as mcp/client.js does.
+// this sends a run label, as mcp/client.js does.
+const RUN = 'Email 2026-10-03 06:00';
 async function start(connector = 'chat', options = {}) {
     server = await startServer({ connector: true, ...options });
     const { access_token: token } = await server.signIn(connector);
+    const runHeader = connector === 'agent' ? { 'x-dashboard-run': RUN } : {};
     const as = (path, { headers = {}, ...rest } = {}) => server.request(path, { ...rest, headers: { ...runHeader, ...headers }, token });
-    let runHeader = {};
-    if (connector === 'agent') {
-        as.run = (await as('/api/runs', { method: 'POST', body: {} })).body;
-        runHeader = { 'x-dashboard-run': String(as.run.id) };
-    }
     as.token = token;
     return as;
 }
@@ -61,13 +58,12 @@ describe('isAllowed', () => {
         for (const [method, path] of refused) expect(isAllowed('agent', method, path), `${method} ${path}`).toBe(false);
     });
 
-    it("lets only the agent start and report runs, and neither connector read them (docs/AGENT.md §7)", () => {
+    it("lets only the agent report runs, and neither connector read them (docs/AGENT.md §7)", () => {
         expect(isAllowed('agent', 'POST', '/runs')).toBe(true);
-        expect(isAllowed('agent', 'POST', '/runs/3/report')).toBe(true);
-        for (const [method, path] of [['GET', '/runs'], ['GET', '/runs/3'], ['PATCH', '/runs/3'], ['POST', '/runs/3/undo']]) {
+        for (const [method, path] of [['GET', '/runs'], ['GET', '/runs/3'], ['PATCH', '/runs/3'], ['POST', '/runs/3/report']]) {
             expect(isAllowed('agent', method, path), `${method} ${path}`).toBe(false);
         }
-        for (const [method, path] of [['GET', '/runs'], ['POST', '/runs'], ['POST', '/runs/3/report']]) {
+        for (const [method, path] of [['GET', '/runs'], ['POST', '/runs']]) {
             expect(isAllowed('chat', method, path), `${method} ${path}`).toBe(false);
         }
     });
@@ -252,105 +248,117 @@ describe("undoing the agent's changes since the owner last looked (docs/AGENT.md
 });
 
 describe("the agent's runs through its connector (docs/AGENT.md §7)", () => {
-    it('records each write with its run, and undoes one run alone even when two overlap', async () => {
-        const asAgent = await start('agent');
-        const other = (await asAgent('/api/runs', { method: 'POST', body: { name: 'Job search' } })).body;
-        const inOther = { 'x-dashboard-run': String(other.id) };
-        await asAgent('/api/tasks', { method: 'POST', body: { name: 'First run, 1' } });
-        await asAgent('/api/tasks', { method: 'POST', body: { name: 'Second run' }, headers: inOther });
-        await asAgent('/api/tasks', { method: 'POST', body: { name: 'First run, 2' } });
-        const changes = (await server.request('/api/changes?actor=agent')).body;
-        expect(changes.map(c => [c.after.name, c.run_id])).toEqual([['First run, 2', asAgent.run.id], ['Second run', other.id], ['First run, 1', asAgent.run.id]]);
-        expect((await server.request(`/api/changes?run=${other.id}`)).body.map(c => c.after.name)).toEqual(['Second run']);
+    const runs = async () => (await server.request('/api/runs')).body;
+    const report = (as, run = RUN, body = { summary: 'Done', briefing: 'Done' }) => as('/api/runs', { method: 'POST', body: { run, ...body } });
 
-        const { undone } = (await server.request('/api/changes/undo-since', { method: 'POST', body: { run: asAgent.run.id, actors: ['agent'] } })).body;
+    it('opens a run with its first change, records each change with it, and undoes one run alone even when two overlap', async () => {
+        const asAgent = await start('agent');
+        const other = { 'x-dashboard-run': 'Job search 2026-10-03 06:00' };
+        await asAgent('/api/tasks', { method: 'POST', body: { name: 'First run, 1' } });
+        await asAgent('/api/tasks', { method: 'POST', body: { name: 'Second run' }, headers: other });
+        await asAgent('/api/tasks', { method: 'POST', body: { name: 'First run, 2' } });
+        const [second, first] = await runs();
+        expect(first).toMatchObject({ label: RUN, ended_at: null, connection_id: expect.any(Number) });
+        expect(second.label).toBe('Job search 2026-10-03 06:00');
+        const changes = (await server.request('/api/changes?actor=agent')).body;
+        expect(changes.map(c => [c.after.name, c.run_id])).toEqual([['First run, 2', first.id], ['Second run', second.id], ['First run, 1', first.id]]);
+        expect((await server.request(`/api/changes?run=${second.id}`)).body.map(c => c.after.name)).toEqual(['Second run']);
+
+        // the report closes the run it opened
+        expect((await report(asAgent)).body).toMatchObject({ id: first.id, summary: 'Done' });
+        const { undone } = (await server.request('/api/changes/undo-since', { method: 'POST', body: { run: first.id, actors: ['agent'] } })).body;
         expect(undone.map(c => c.after.name)).toEqual(['First run, 2', 'First run, 1']);
         expect((await server.request('/api/tasks')).body.map(t => t.name)).toEqual(['Second run']);
         // the undo is the owner's, in no run
         expect((await server.request('/api/changes?actor=owner')).body.every(c => c.run_id === null)).toBe(true);
     });
 
-    it('refuses a write that names no open run, saying to call start_run', async () => {
+    it('refuses a change that names no run, or a run that has reported', async () => {
         const asAgent = await start('agent');
-        const write = headers => asAgent('/api/tasks', { method: 'POST', body: { name: 'Stray' }, headers });
         const none = await server.request('/api/tasks', { method: 'POST', body: { name: 'Stray' }, token: asAgent.token });
         expect(none.status).toBe(400);
-        expect(none.body.error.message).toBe('This write names no run. Call start_run first, and pass its id as run on every change.');
-        expect((await write({ 'x-dashboard-run': '999' })).body.error.message).toMatch(/^There's no run 999\. Call start_run/);
-        expect((await write({ 'x-dashboard-run': 'abc' })).status).toBe(400);
-        await asAgent(`/api/runs/${asAgent.run.id}/report`, { method: 'POST', body: { summary: 'Done', briefing: 'Done' } });
-        const reported = await write();
+        expect(none.body.error.message).toMatch(/^This change names no run\. Pass the same run label/);
+        expect((await asAgent('/api/tasks', { method: 'POST', body: { name: 'Stray' }, headers: { 'x-dashboard-run': 'bad;label' } })).status).toBe(400);
+        await report(asAgent);
+        const reported = await asAgent('/api/tasks', { method: 'POST', body: { name: 'Stray' } });
         expect(reported.status).toBe(409);
-        expect(reported.body.error.message).toMatch(/already reported at .*Call start_run for a new run\.$/);
+        expect(reported.body.error.message).toMatch(/^The run "Email 2026-10-03 06:00" already reported at .*A new run needs a new label\.$/);
         expect((await server.request('/api/tasks')).body).toEqual([]);
         // reads need no run
         expect((await server.request('/api/tasks', { token: asAgent.token })).status).toBe(200);
     });
 
-    it('closes a run to writes after 3 hours', async () => {
+    it('closes a run to changes and its report after 3 hours', async () => {
         let clock = Date.now();
         const asAgent = await start('agent', { now: () => clock });
+        await asAgent('/api/tasks', { method: 'POST', body: { name: 'Early' } });
         clock += 3 * 60 * 60 * 1000 + 1000;
         // a fresh token, since the first has expired by now
         const { access_token: token } = await server.signIn('agent');
-        const late = await server.request('/api/tasks', { method: 'POST', body: { name: 'Late' }, token, headers: { 'x-dashboard-run': String(asAgent.run.id) } });
+        const late = await server.request('/api/tasks', { method: 'POST', body: { name: 'Late' }, token, headers: { 'x-dashboard-run': RUN } });
         expect(late.status).toBe(409);
-        expect(late.body.error.message).toBe(`Run ${asAgent.run.id} started over 3 hours ago, so it's closed. Call start_run for a new run.`);
+        expect(late.body.error.message).toBe(`The run "${RUN}" started over 3 hours ago, so it's closed. A new run needs a new label.`);
+        const lateReport = await server.request('/api/runs', { method: 'POST', body: { run: RUN, summary: 'x', briefing: 'x' }, token });
+        expect(lateReport.status).toBe(409);
     });
 
     it("ignores the owner's run header", async () => {
         await start('agent');
-        const task = await server.request('/api/tasks', { method: 'POST', body: { name: 'Mine' }, headers: { 'x-dashboard-run': '999' } });
+        const task = await server.request('/api/tasks', { method: 'POST', body: { name: 'Mine' }, headers: { 'x-dashboard-run': RUN } });
         expect(task.status).toBe(201);
         expect((await server.request('/api/changes')).body[0].run_id).toBeNull();
+        expect(await runs()).toEqual([]);
     });
 
-    it(`can still start and report a run after its ${WRITE_CAPS.agent} changes`, async () => {
+    it(`can still report a run after its ${WRITE_CAPS.agent} changes`, async () => {
         const asAgent = await start('agent');
         for (let i = 0; i < WRITE_CAPS.agent; i++) await asAgent('/api/tasks', { method: 'POST', body: { name: `Agent ${i}` } });
         expect((await asAgent('/api/tasks', { method: 'POST', body: { name: 'One too many' } })).status).toBe(429);
-        const report = await asAgent(`/api/runs/${asAgent.run.id}/report`, { method: 'POST', body: { summary: '30 tasks', briefing: 'Hit the limit' } });
-        expect(report.status).toBe(200);
-        expect((await asAgent('/api/runs', { method: 'POST', body: {} })).status).toBe(201);
+        expect((await report(asAgent, RUN, { summary: '30 tasks', briefing: 'Hit the limit' })).status).toBe(200);
+        // and a quiet run after it
+        expect((await report(asAgent, 'Email 2026-10-03 12:00')).status).toBe(200);
     });
 
-    it('starts at most agent_runs_per_day runs a day, which only the owner can raise', async () => {
+    it('opens at most agent_runs_per_day runs a day, which only the owner can raise', async () => {
         const asAgent = await start('agent');
-        // the helper started the first
-        for (let i = 1; i < 5; i++) expect((await asAgent('/api/runs', { method: 'POST', body: {} })).status).toBe(201);
-        const refused = await asAgent('/api/runs', { method: 'POST', body: {} });
+        for (let i = 0; i < 4; i++) expect((await report(asAgent, `Run ${i}`)).status).toBe(200);
+        // the fifth by a change, the sixth refused either way
+        expect((await asAgent('/api/tasks', { method: 'POST', body: { name: 'Fifth' }, headers: { 'x-dashboard-run': 'Run 4' } })).status).toBe(201);
+        const refused = await asAgent('/api/tasks', { method: 'POST', body: { name: 'Sixth' }, headers: { 'x-dashboard-run': 'Run 5' } });
         expect(refused.status).toBe(429);
         expect(refused.body.error.message).toBe("Today's limit of 5 agent runs is used up. It resets at midnight, or the owner can raise it on /manage.");
+        expect((await report(asAgent, 'Run 5')).status).toBe(429);
+        // an open run can still be reported
+        expect((await report(asAgent, 'Run 4')).status).toBe(200);
         expect((await asAgent('/api/settings', { method: 'PATCH', body: { agent_runs_per_day: 50 } })).status).toBe(403);
         const { access_token: chatToken } = await server.signIn('chat');
         const asChat = await server.request('/api/settings', { method: 'PATCH', body: { agent_runs_per_day: 50 }, token: chatToken });
         expect(asChat.status).toBe(403);
         expect(asChat.body.error.message).toBe("claude.ai can't set agent_runs_per_day. The owner does that on the dashboard.");
         await server.request('/api/settings', { method: 'PATCH', body: { agent_runs_per_day: 6 } });
-        expect((await asAgent('/api/runs', { method: 'POST', body: {} })).status).toBe(201);
-        expect((await asAgent('/api/runs', { method: 'POST', body: {} })).status).toBe(429);
+        expect((await report(asAgent, 'Run 5')).status).toBe(200);
+        expect((await report(asAgent, 'Run 6')).status).toBe(429);
     });
 
-    it("can't read runs back, and the chat connector can't start one", async () => {
+    it("can't read runs back, and the chat connector can't report one", async () => {
         const asAgent = await start('agent');
         expect((await asAgent('/api/runs')).status).toBe(403);
         const { access_token: chatToken } = await server.signIn('chat');
-        expect((await server.request('/api/runs', { method: 'POST', body: {}, token: chatToken })).status).toBe(403);
+        expect((await server.request('/api/runs', { method: 'POST', body: { run: 'x', summary: 'x', briefing: 'x' }, token: chatToken })).status).toBe(403);
         expect((await server.request('/api/runs', { token: KIOSK_TOKEN })).status).toBe(200);
     });
 
-    it('has its run text cleaned to one line', async () => {
+    it('has its report cleaned to one line', async () => {
         const asAgent = await start('agent');
         const zeroWidth = String.fromCharCode(0x200B);
-        const run = (await asAgent('/api/runs', { method: 'POST', body: { name: `Em${zeroWidth}ail` } })).body;
-        expect(run).toMatchObject({ name: 'Email', connection_id: expect.any(Number) });
-        const reported = (await asAgent(`/api/runs/${run.id}/report`, { method: 'POST', body: { summary: 'one\ntwo', briefing: `a${zeroWidth}b\n\nc` } })).body;
+        const reported = (await report(asAgent, RUN, { summary: 'one\ntwo', briefing: `a${zeroWidth}b\n\nc` })).body;
         expect(reported).toMatchObject({ summary: 'one two', briefing: 'ab c' });
     });
 
     it('warns in the status line about a run that never reported, until the agent is switched off', async () => {
         let clock = Date.now();
-        await start('agent', { now: () => clock });
+        const asAgent = await start('agent', { now: () => clock });
+        await asAgent('/api/tasks', { method: 'POST', body: { name: 'Then it crashed' } });
         clock += 3 * 60 * 60 * 1000 + 1000;
         const problems = async () => (await server.request('/api/status')).body.problems.map(p => p.kind);
         expect(await problems()).toEqual(['agent-runs']);

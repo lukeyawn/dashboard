@@ -35,7 +35,7 @@ export function buildTimeline(runs, changes, seenAt, from = null) {
             continue;
         }
         // a run that started before the history did: its changes still show under it
-        if (!byRun.has(change.run_id)) byRun.set(change.run_id, { run: { id: change.run_id, name: null, started_at: change.at, ended_at: null }, changes: [] });
+        if (!byRun.has(change.run_id)) byRun.set(change.run_id, { run: { id: change.run_id, label: null, name: null, started_at: change.at, ended_at: null }, changes: [] });
         const group = byRun.get(change.run_id);
         group.changes.push(change);
         if (change.at < group.run.started_at) group.run = { ...group.run, started_at: change.at };

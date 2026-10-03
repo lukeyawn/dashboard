@@ -155,7 +155,7 @@ function AgentRuns({ agent, onSaved }) {
             {runs.data && !last && <p className="editor-message">The agent hasn&apos;t run yet.</p>}
             {last && (
                 <div className="editor-text">
-                    <span className="editor-title">Last run: {last.name ?? 'Run'}, {when(last.started_at)} · {last.summary ?? STATE_TEXT[runState(last)]}</span>
+                    <span className="editor-title">Last run: {last.label ?? last.name ?? 'Run'}, {when(last.started_at)} · {last.summary ?? STATE_TEXT[runState(last)]}</span>
                     {last.briefing && <span className="editor-detail">{last.briefing}</span>}
                 </div>
             )}

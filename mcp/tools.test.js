@@ -49,7 +49,7 @@ describe('the tool list', () => {
         }
         for (const tool of tools) expect(tool.description).toContain('YYYY-MM-DD');
         // runs are the scheduled agent's alone (docs/AGENT.md §7)
-        expect(names).not.toContain('start_run');
+        expect(names).not.toContain('report_run');
         expect(tools.find(t => t.name === 'add_task').inputSchema.properties.run).toBeUndefined();
     });
 
@@ -163,7 +163,7 @@ describe('errors', () => {
 });
 
 describe("the agent's runs (docs/AGENT.md §7)", () => {
-    it('send a write tool\'s run as a header, and nothing on reads or for the run tools', async () => {
+    it('send a write tool\'s run label as a header, and nothing on reads or with the report', async () => {
         const sent = [];
         const fetch = async (url, init) => {
             sent.push({ path: new URL(url).pathname, run: init.headers['x-dashboard-run'] });
@@ -175,18 +175,17 @@ describe("the agent's runs (docs/AGENT.md §7)", () => {
         await mcp.connect(serverSide);
         client = new Client({ name: 'test', version: '1.0.0' });
         await client.connect(clientSide);
-        await use('start_run', { name: 'Email' });
-        await use('add_task', { run: 7, name: 'Reply' });
+        await use('add_task', { run: 'Email 06:00', name: 'Reply' });
         await use('list_tasks');
-        await use('complete_task', { run: 7, id: 3 });
-        await use('report_run', { run: 7, summary: 'One task', briefing: 'Reply to Stripe' });
+        await use('complete_task', { run: 'Email 06:00', id: 3 });
+        await use('report_run', { run: 'Email 06:00', summary: 'One task', briefing: 'Reply to Stripe' });
         expect(sent).toEqual([
-            { path: '/api/runs', run: undefined },
-            { path: '/api/tasks', run: '7' },
+            { path: '/api/tasks', run: 'Email 06:00' },
             { path: '/api/tasks', run: undefined },
-            { path: '/api/tasks/3', run: '7' },
-            { path: '/api/runs/7/report', run: undefined },
+            { path: '/api/tasks/3', run: 'Email 06:00' },
+            { path: '/api/runs', run: undefined },
         ]);
+        expect((await use('add_task', { run: 'Émail', name: 'Bad label' })).error).toBe(true);
         expect((await use('add_task', { name: 'No run' })).error).toBe(true);
     });
 });

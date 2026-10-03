@@ -135,7 +135,7 @@ function Entry({ entry, undone, busy, armed, onUndo, onUndoRun }) {
     return (
         <section className={entry.isNew ? 'agent-entry new' : 'agent-entry'}>
             <div className="agent-entry-head">
-                <span className="editor-title">{run ? `${run.name ?? 'Run'} · ${when(run)}` : 'Not in a run'}</span>
+                <span className="editor-title">{run ? `${run.label ?? run.name ?? 'Run'} · ${when(run)}` : 'Not in a run'}</span>
                 <span className="editor-detail">{run ? (run.summary ?? STATE_TEXT[state]) : `${day(entry.at)} ${time(entry.at)}`}</span>
             </div>
             {run?.briefing && <p className="agent-briefing">{run.briefing}</p>}

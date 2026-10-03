@@ -3,7 +3,7 @@
 import path from 'node:path';
 import express from 'express';
 import * as schemas from '../shared/schemas.js';
-import { WRITE_CAPS, createAccess } from './access.js';
+import { WRITE_CAPS, createAccess, startOfToday } from './access.js';
 import { createAuth } from './auth.js';
 import { exportAll } from './backup.js';
 import { systemStatus } from './status.js';
@@ -80,7 +80,12 @@ export function createApp({ db, apiToken, kioskToken, build = 'dev', distDir = n
     });
 
     const log = createChangeLog(db, { now });
-    const runs = createRunStore(db, { now: () => new Date(now()) });
+    const settings = createSettingsStore(db, { log });
+    const runs = createRunStore(db, {
+        now: () => new Date(now()),
+        runsPerDay: () => settings.get('agent_runs_per_day'),
+        dayStart: () => startOfToday(now()),
+    });
     const access = createAccess({ log, runs, now });
     app.use('/api', auth.requireToken);
     // a claude.ai connector may use only the routes on its allow-list, and
@@ -95,7 +100,6 @@ export function createApp({ db, apiToken, kioskToken, build = 'dev', distDir = n
     app.use('/api', (req, res, next) => withActor(actorOf(req), next, connectionOf(req), req.runId ?? null));
     // which token this browser logged in with; the kiosk behaves as a kiosk (DESIGN §6.4)
     app.get('/api/session', (req, res) => res.json({ client: req.client }));
-    const settings = createSettingsStore(db, { log });
     const oauth = connector && createOAuth({
         connections,
         publicUrl: connector.publicUrl,
@@ -121,7 +125,7 @@ export function createApp({ db, apiToken, kioskToken, build = 'dev', distDir = n
     app.use('/api/applications', applicationsRouter(stores.applications, now));
     app.use('/api/settings', settingsRouter(settings));
     app.use('/api/changes', changesRouter(log, createUndo(db, log)));
-    app.use('/api/runs', runsRouter(runs, settings, now));
+    app.use('/api/runs', runsRouter(runs));
     if (oauth) app.use('/api/connect', oauth.approvalRouter());
     app.use('/api', connectionsRouter({ connections, oauth, settings, access, runs, now }));
     app.use('/api/night', nightRouter(settings, now));

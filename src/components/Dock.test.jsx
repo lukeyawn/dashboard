@@ -73,8 +73,8 @@ describe("Dock's ✦ for the agent (docs/AGENT.md §7)", () => {
         { id: 4, at: '2026-10-01T12:00:00.000Z', actor: 'agent', run_id: 1, resource: 'tasks', item_id: '1', action: 'create', before: null, after: { id: 1, name: 'Seen yesterday' } },
     ];
     const RUNS = [
-        { id: 2, name: 'Email', started_at: '2026-10-02T11:59:00.000Z', ended_at: '2026-10-02T12:06:00.000Z', summary: 'Two tasks', briefing: 'Book flights · reply to Stripe' },
-        { id: 1, name: 'Email', started_at: '2026-10-01T11:59:00.000Z', ended_at: '2026-10-01T12:01:00.000Z', summary: 'One task', briefing: 'Seen yesterday' },
+        { id: 2, label: 'Email', started_at: '2026-10-02T11:59:00.000Z', ended_at: '2026-10-02T12:06:00.000Z', summary: 'Two tasks', briefing: 'Book flights · reply to Stripe' },
+        { id: 1, label: 'Email', started_at: '2026-10-01T11:59:00.000Z', ended_at: '2026-10-01T12:01:00.000Z', summary: 'One task', briefing: 'Seen yesterday' },
     ];
 
     async function setup({ seen = '2026-10-01T12:01:00.000Z', runs = RUNS, changes = CHANGES } = {}) {
@@ -142,7 +142,7 @@ describe("Dock's ✦ for the agent (docs/AGENT.md §7)", () => {
     });
 
     it('counts a report with no changes as new, until the timeline is closed', async () => {
-        const quiet = { id: 3, name: 'Email', started_at: '2026-10-03T12:00:00.000Z', ended_at: '2026-10-03T12:02:00.000Z', summary: 'Nothing new', briefing: 'A quiet day' };
+        const quiet = { id: 3, label: 'Email', started_at: '2026-10-03T12:00:00.000Z', ended_at: '2026-10-03T12:02:00.000Z', summary: 'Nothing new', briefing: 'A quiet day' };
         const { state } = await setup({ seen: '2026-10-02T12:06:00.000Z', runs: [quiet, ...RUNS] });
         fireEvent.click(await screen.findByRole('button', { name: 'The agent: 1 new' }));
         expect(screen.getByText('A quiet day')).toBeTruthy();

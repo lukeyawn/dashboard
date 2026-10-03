@@ -169,7 +169,7 @@ Readers now have to work out which doc wins: BLOCKS.md is newer than DESIGN.md �
 
 > **Done (Oct 3),** as [AGENT.md §7](AGENT.md#7-runs-the-briefing-and-the-timeline-phase-9) describes, with three changes from Luke:
 > - **Nothing shows in the dock until the ✦ is tapped.** It opens a timeline of the last few days' runs, newest first, with a line between new and seen, instead of a briefing at body size in the dock.
-> - **Changes belong to a run by its id,** passed on every write, instead of by a time window, so several agents can run at once. The server keeps both times: `start_run` and `report_run` replace `report_run { started_at, ended_at, … }`.
+> - **Changes belong to a run by its label,** passed on every write, instead of by a time window, so several agents can run at once. The server keeps both times: the first change opens the run, and `report_run { run, summary, briefing }` closes it. (The first build had a `start_run` too; Luke dropped it the same day.)
 > - **The daily cap on runs is a setting** on `/manage`, for when there are more agents.
 >
 > Review also kept **Undo all new**, so a run that crashed before reporting can still be undone at once.

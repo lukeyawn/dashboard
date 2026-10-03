@@ -3,6 +3,7 @@
 // closed to Claude until someone opens it here on purpose. The owner's and
 // the kiosk's tokens aren't limited by this.
 import { parseDate, today } from '../shared/dates.js';
+import { RUN_LABEL } from '../shared/runs.js';
 import { HttpError } from './errors.js';
 
 const RESOURCES = 'tasks|countdowns|goals|habits|applications';
@@ -19,11 +20,8 @@ const WRITE = [
     ['PUT', new RegExp(`^/habits/\\d+/checks/[0-9-]+${end}`)],
 ];
 
-// starting and reporting one of the agent's runs (docs/AGENT.md §7)
-const RUNS = [
-    ['POST', new RegExp(`^/runs${end}`)],
-    ['POST', new RegExp(`^/runs/\\d+/report${end}`)],
-];
+// reporting one of the agent's runs (docs/AGENT.md §7)
+const RUNS = [['POST', new RegExp(`^/runs${end}`)]];
 const isRunRoute = (method, path) => RUNS.some(([m, pattern]) => m === method && pattern.test(path));
 
 // [method, path under /api]
@@ -42,9 +40,9 @@ export const ALLOWED = {
     ],
     // the scheduled agent (docs/AGENT.md §2): the same reads, and adding and
     // changing items directly, but no DELETE of any kind, and no settings or
-    // night mode, which it has no reason to touch. It starts and reports its
-    // runs (§7), but can't read them back, so one run can't leave
-    // instructions in a briefing for the next.
+    // night mode, which it has no reason to touch. It reports its runs (§7),
+    // but can't read them back, so one run can't leave instructions in a
+    // briefing for the next.
     agent: [READ, ...WRITE, ...RUNS],
 };
 
@@ -61,8 +59,8 @@ export function startOfToday(now) {
     return parseDate(today(new Date(now))).toISOString();
 }
 
-// The run a write from the agent's connector belongs to, sent by mcp/client.js
-// as a header so the API's own schemas stay as they are
+// The label of the run a write from the agent's connector belongs to, sent by
+// mcp/client.js as a header so the API's own schemas stay as they are
 export const RUN_HEADER = 'X-Dashboard-Run';
 
 // runs: the agent's runs (server/stores/runs.js)
@@ -82,8 +80,8 @@ export function createAccess({ log, runs, now = Date.now }) {
                 return next(new HttpError(403, `claude.ai can't use ${req.method} ${req.path}. The owner does that on the dashboard.`));
             }
             const cap = WRITE_CAPS[connector];
-            // starting and reporting a run write no items, so a run that
-            // used up the day's changes can still say what it did
+            // reporting a run writes no items, so a run that used up the
+            // day's changes can still say what it did
             if (req.method !== 'GET' && !isRunRoute(req.method, req.path) && writesToday(connector) >= cap) {
                 const what = connector === 'agent' ? `${cap} agent changes` : `${cap} changes through claude.ai`;
                 return next(new HttpError(429, `Today's limit of ${what} is used up. It resets at midnight.`));
@@ -91,17 +89,17 @@ export function createAccess({ log, runs, now = Date.now }) {
             next();
         },
 
-        // after check: every write from the agent's connector names an open
-        // run, so nothing it does is left out of a run (docs/AGENT.md §7).
-        // Anyone else's header is ignored.
+        // after check: every write from the agent's connector names its run
+        // by label, opening the run if it's new, so nothing it does is left
+        // out of a run (docs/AGENT.md §7). Anyone else's header is ignored.
         requireRun(req, res, next) {
             if (req.client !== 'connector' || req.connection.connector !== 'agent') return next();
             if (req.method === 'GET' || isRunRoute(req.method, req.path)) return next();
-            const header = req.get(RUN_HEADER);
-            const id = header === undefined ? null : Number(header);
-            if (id !== null && !(Number.isInteger(id) && id > 0)) return next(new HttpError(400, `${RUN_HEADER} must be a run id, from start_run`));
+            const label = req.get(RUN_HEADER)?.trim();
+            if (!label) return next(new HttpError(400, 'This change names no run. Pass the same run label, such as "Email 2026-10-03 06:00", on every change in a run.'));
+            if (!RUN_LABEL.test(label)) return next(new HttpError(400, 'A run label is 1 to 60 letters, digits, spaces and . _ : / -'));
             try {
-                req.runId = runs.checkOpen(id).id;
+                req.runId = runs.open(label, req.connection.id).id;
             } catch (err) {
                 return next(err);
             }

@@ -19,8 +19,8 @@ const CHANGES = [
         before: null, after: { id: 1, name: 'Pay rent' } },
 ];
 const RUNS = [
-    { id: 2, name: 'Email', started_at: '2026-10-03T12:00:00.000Z', ended_at: '2026-10-03T12:09:00.000Z', summary: '1 task, Stripe moved to OA', briefing: 'Stripe OA due Fri · reply to the recruiter' },
-    { id: 1, name: null, started_at: '2026-10-02T12:00:00.000Z', ended_at: '2026-10-02T12:03:00.000Z', summary: 'Rent', briefing: 'Rent due Thu' },
+    { id: 2, label: 'Email 2026-10-03', name: null, started_at: '2026-10-03T12:00:00.000Z', ended_at: '2026-10-03T12:09:00.000Z', summary: '1 task, Stripe moved to OA', briefing: 'Stripe OA due Fri · reply to the recruiter' },
+    { id: 1, label: null, name: null, started_at: '2026-10-02T12:00:00.000Z', ended_at: '2026-10-02T12:03:00.000Z', summary: 'Rent', briefing: 'Rent due Thu' },
 ];
 
 function setup({ runs = RUNS, changes = CHANGES, seen = '2026-10-02T12:03:00.000Z', since } = {}) {
@@ -39,7 +39,7 @@ describe("the agent's timeline", () => {
         setup();
         expect(screen.getByRole('dialog', { name: '✦ The agent' })).toBeTruthy();
         const heads = [...document.querySelectorAll('.agent-entry-head .editor-title')].map(el => el.textContent);
-        expect(heads[0]).toMatch(/^Email · Sat /);
+        expect(heads[0]).toMatch(/^Email 2026-10-03 · Sat /);
         expect(heads[1]).toMatch(/^Run · Fri /);
         expect(screen.getByText('1 task, Stripe moved to OA')).toBeTruthy();
         expect(screen.getByText('Stripe OA due Fri · reply to the recruiter')).toBeTruthy();

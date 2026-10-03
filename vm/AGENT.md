@@ -41,8 +41,8 @@ In claude.ai, make a new scheduled task:
 ## 5. Try it
 
 Run the task once by hand, from the task's page.
-1. **The dock:** within 30 seconds, the ✦ in the middle shows *"n new"*. Tap it: the run is at the top, named *Email*, with its summary, the briefing and each change, each with **Undo**. Tap **Done**: *"new"* goes, on the kiosk too, and the ✦ stays, muted.
-2. **`/manage` → Claude:** *Last run: Email, …* with the briefing, and *1 of 5 runs today*.
+1. **The dock:** within 30 seconds, the ✦ in the middle shows *"n new"*. Tap it: the run is at the top, labelled *Email …*, with its summary, the briefing and each change, each with **Undo**. Tap **Done**: *"new"* goes, on the kiosk too, and the ✦ stays, muted.
+2. **`/manage` → Claude:** *Last run: Email …* with the briefing, and *1 of 5 runs today*.
 3. **Gmail:** the emails it read carry the **Dashboard** label.
 4. **Run it again by hand.** It should find no new mail, add nothing, and report a short briefing. If it re-reads the same emails, the label search isn't working; see the first check below.
 
@@ -54,14 +54,14 @@ Run the task once by hand, from the task's page.
 
 ## 7. More agents later
 
-Each agent is another scheduled task with its own `start_run` name ("Job search", say). Runs can overlap: every change names its run, so each run's changes stay apart and **Undo this run** takes back only its own.
+Each agent is another scheduled task whose run labels start with its own name ("Job search …", say). Runs can overlap: every change names its run, so each run's changes stay apart and **Undo this run** takes back only its own.
 - **Runs a day:** 5 by default, for all the agents together. Raise it on `/manage` → **Claude** → **Runs a day**.
 - **Changes a day:** 30, shared by every agent. That's in the code (`server/access.js`), on purpose: it's the most a fooled run can do.
 
 ## If something goes wrong
 
 - **The dock says "The agent's run from … didn't report":** a run started but never called `report_run` within 3 hours. Its changes are still in the timeline under that run, with **Undo this run**. Look at the task's own log in claude.ai.
-- **"The agent hasn't run since …":** the schedule didn't fire, or the task failed before `start_run`. Check the task in claude.ai.
+- **"The agent hasn't run since …":** the schedule didn't fire, or the task failed before making any change or reporting. Check the task in claude.ai.
 - **A bad run:** open the ✦, then **Undo this run**, or **Undo all new**. To stop it at once, switch the agent's connector off on `/manage` → **Claude**; that also stops the warnings above.
 
 ---
@@ -76,8 +76,8 @@ You run once each morning to keep Luke's personal dashboard current from his ema
 
 **Your job, and nothing else:**
 
-1. Call `start_run` with name "Email". Keep the id it returns, and pass it as `run` on every change you make to the dashboard. A change without it is refused.
-2. Call `get_today` and `list_areas`, so you know what's already on the dashboard and which areas tasks can go in.
+1. Call `get_today` and `list_areas`, so you know what's already on the dashboard and which areas tasks can go in.
+2. Your run's label is "Email " followed by the `now` that `get_today` returned, such as "Email 2026-10-03T11:00:12.345Z". Pass it as `run` on every change you make to the dashboard, and to `report_run`. A change without it is refused.
 3. In Gmail, find the Dashboard label's id with `list_labels`. Then search for `in:inbox -label:Dashboard newer_than:3d` and read each email it finds.
 4. For each email, decide whether it needs anything on the dashboard:
    - **Something Luke has to do, or a deadline** (a form to submit, a payment, a reply someone is waiting for): `add_task`, with `source` set to `gmail:<message id>` and `link` to `https://mail.google.com/mail/u/0/#all/<message id>`. Fill in `due`, `priority`, `area` and `minutes` when the email makes them clear, and leave them out when it doesn't. If an open task is already about the same thing, `update_task` it instead.
@@ -86,7 +86,7 @@ You run once each morning to keep Luke's personal dashboard current from his ema
    - **Anything else** (newsletters, receipts, promotions, notifications): nothing.
 5. Label every email you read with `label_message` and the Dashboard label, **whether or not you made anything from it**, so the next run skips it.
 6. Read today's events with Google Calendar's `list_events`, for the briefing. Don't change the calendar.
-7. Call `report_run` once, as the very last step, with your run id:
+7. Call `report_run` once, as the very last step, with your run's label, even if you changed nothing:
    - `summary`: one line on what you did, such as "3 tasks from email, Stripe moved to interview".
    - `briefing`: what Luke should know this morning, in plain text of at most 500 characters on one line, items separated by " · ". Lead with what changed from email, then anything due today or tomorrow, then today's first event. For example: "3 tasks from email · Stripe interview moved to Tue 2 PM · rent due Thu · OS lecture 9 AM". No links, no Markdown.
 
