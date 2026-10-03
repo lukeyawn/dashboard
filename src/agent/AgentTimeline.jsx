@@ -17,17 +17,22 @@ function when(run) {
 
 const STATE_TEXT = { running: 'Still running', unreported: "Didn't report" };
 
-// What the scheduled agent did, opened from the dock's ✦ (docs/AGENT.md §7):
-// its runs over the last few days, newest first, each with its summary,
-// briefing and changes, a line between what's new and what Luke has seen,
-// Undo on each change, Undo this run, and Undo all new. A glance, not a
-// gate: the changes are already on the dashboard.
+// What the scheduled agent did, opened from the dock's ✦ (docs/AGENT.md §7),
+// over the last few days, newest first, in two tabs:
+// - Briefings, first: what each run told Luke, and a link to its changes;
+// - Changes: each run headed by its summary, its changes with Undo, Undo
+//   this run, and Undo all new. A glance, not a gate: the changes are
+//   already on the dashboard.
+// Both have a line between what's new and what Luke has seen.
 //
 // entries: from buildTimeline, as they were when the ✦ was tapped, so a poll
 // can't move a row out from under a finger. Closing it is what counts as
-// looking.
+// looking, at both tabs.
 export default function AgentTimeline({ entries, onClose }) {
     const panel = useRef(null);
+    const [tab, setTab] = useState('briefings');
+    // the run a briefing's "n changes" opened the Changes tab at
+    const [focusRun, setFocusRun] = useState(null);
     // ids undone here; the record keeps the agent's changes either way
     const [undone, setUndone] = useState(() => new Set());
     // the button waiting for its second tap
@@ -46,6 +51,16 @@ export default function AgentTimeline({ entries, onClose }) {
     useEffect(() => {
         panel.current?.focus();
     }, []);
+
+    useEffect(() => {
+        if (tab !== 'changes' || focusRun === null) return;
+        panel.current?.querySelector(`[data-run="${focusRun}"]`)?.scrollIntoView?.({ block: 'start' });
+    }, [tab, focusRun]);
+
+    function showChanges(run) {
+        setFocusRun(run?.id ?? null);
+        setTab('changes');
+    }
 
     const markUndone = ids => setUndone(prev => new Set([...prev, ...ids]));
 
@@ -81,7 +96,10 @@ export default function AgentTimeline({ entries, onClose }) {
     }
 
     const newChanges = entries.filter(e => e.isNew).flatMap(e => e.changes).filter(c => !undone.has(c.id));
-    const firstSeen = entries.findIndex(e => !e.isNew);
+    // runs that changed nothing have no place in Changes, and changes in no
+    // run (from before runs existed) none in Briefings
+    const briefings = entries.filter(e => e.run);
+    const withChanges = entries.filter(e => e.changes.length > 0);
 
     return createPortal(
         <div className="agent-backdrop" onClick={event => event.target === event.currentTarget && onClose()}>
@@ -90,25 +108,42 @@ export default function AgentTimeline({ entries, onClose }) {
                     <h2>✦ The agent</h2>
                     <button type="button" className="agent-timeline-close" aria-label="Close" onClick={onClose}>✕</button>
                 </div>
-                <div className="agent-timeline-body editor">
-                    {entries.length === 0 && <p className="editor-message">Nothing from the agent in the last few days.</p>}
-                    {entries.map((entry, i) => (
-                        <Fragment key={entry.key}>
-                            {/* new above the line, seen below it */}
-                            {i === firstSeen && i > 0 && <hr className="agent-seen-line" aria-label="Seen before" />}
-                            <Entry
-                                entry={entry}
-                                undone={undone}
-                                busy={busy}
-                                armed={armed}
-                                onUndo={undo}
-                                onUndoRun={run => undoMany(`run-${run.id}`, { run: run.id })}
+                <div className="agent-tabs" role="tablist" aria-label="What the agent did">
+                    <button type="button" role="tab" id="agent-tab-briefings" aria-controls="agent-panel" aria-selected={tab === 'briefings'} onClick={() => setTab('briefings')}>
+                        Briefings
+                    </button>
+                    <button type="button" role="tab" id="agent-tab-changes" aria-controls="agent-panel" aria-selected={tab === 'changes'} onClick={() => showChanges(null)}>
+                        Changes{newChanges.length > 0 && <>{' '}<span className="agent-tab-new">· {newChanges.length} new</span></>}
+                    </button>
+                </div>
+                <div className="agent-timeline-body editor" id="agent-panel" role="tabpanel" aria-labelledby={`agent-tab-${tab}`}>
+                    {tab === 'briefings' && (
+                        <>
+                            {briefings.length === 0 && <p className="editor-message">No briefings in the last few days.</p>}
+                            <Lined entries={briefings} render={entry => <Briefing entry={entry} undone={undone} onShowChanges={showChanges} />} />
+                        </>
+                    )}
+                    {tab === 'changes' && (
+                        <>
+                            {withChanges.length === 0 && <p className="editor-message">No changes in the last few days.</p>}
+                            <Lined
+                                entries={withChanges}
+                                render={entry => (
+                                    <Changes
+                                        entry={entry}
+                                        undone={undone}
+                                        busy={busy}
+                                        armed={armed}
+                                        onUndo={undo}
+                                        onUndoRun={run => undoMany(`run-${run.id}`, { run: run.id })}
+                                    />
+                                )}
                             />
-                        </Fragment>
-                    ))}
-                    {message && <p className="editor-message" role="status">{message}</p>}
+                            {message && <p className="editor-message" role="status">{message}</p>}
+                        </>
+                    )}
                     <div className="editor-buttons">
-                        {newChanges.length > 0 && (
+                        {tab === 'changes' && newChanges.length > 0 && (
                             <button
                                 type="button"
                                 className={armed === 'all' ? 'editor-danger armed' : 'editor-danger'}
@@ -127,18 +162,54 @@ export default function AgentTimeline({ entries, onClose }) {
     );
 }
 
-// One run, or the changes in no run (from before runs existed)
-function Entry({ entry, undone, busy, armed, onUndo, onUndoRun }) {
+// The entries, with a line where the new ones (above) end and the seen ones
+// (below) begin
+function Lined({ entries, render }) {
+    const firstSeen = entries.findIndex(e => !e.isNew);
+    return entries.map((entry, i) => (
+        <Fragment key={entry.key}>
+            {i === firstSeen && i > 0 && <hr className="agent-seen-line" aria-label="Seen before" />}
+            {render(entry)}
+        </Fragment>
+    ));
+}
+
+const runTitle = run => `${run.label ?? run.name ?? 'Run'} · ${when(run)}`;
+
+// What one run told Luke: its briefing, or why there isn't one, and a link to
+// what it changed, so the changes are never out of reach
+function Briefing({ entry, undone, onShowChanges }) {
     const { run, changes } = entry;
-    const state = run && runState(run);
-    const left = changes.filter(c => !undone.has(c.id));
+    const left = changes.filter(c => !undone.has(c.id)).length;
     return (
         <section className={entry.isNew ? 'agent-entry new' : 'agent-entry'}>
             <div className="agent-entry-head">
-                <span className="editor-title">{run ? `${run.label ?? run.name ?? 'Run'} · ${when(run)}` : 'Not in a run'}</span>
-                <span className="editor-detail">{run ? (run.summary ?? STATE_TEXT[state]) : `${day(entry.at)} ${time(entry.at)}`}</span>
+                <span className="editor-title">{runTitle(run)}</span>
+                {!run.briefing && <span className="editor-detail">{STATE_TEXT[runState(run)]}</span>}
             </div>
-            {run?.briefing && <p className="agent-briefing">{run.briefing}</p>}
+            {run.briefing && <p className="agent-briefing">{run.briefing}</p>}
+            {changes.length > 0
+                ? (
+                    <button type="button" className="agent-changes-link" onClick={() => onShowChanges(run)}>
+                        {changes.length} {changes.length === 1 ? 'change' : 'changes'}{left < changes.length ? ` (${changes.length - left} undone)` : ''} ›
+                    </button>
+                )
+                : <span className="editor-detail">No changes</span>}
+        </section>
+    );
+}
+
+// What one run did, headed by its summary, or the changes in no run (from
+// before runs existed)
+function Changes({ entry, undone, busy, armed, onUndo, onUndoRun }) {
+    const { run, changes } = entry;
+    const left = changes.filter(c => !undone.has(c.id));
+    return (
+        <section className={entry.isNew ? 'agent-entry new' : 'agent-entry'} data-run={run?.id}>
+            <div className="agent-entry-head">
+                <span className="editor-title">{run ? runTitle(run) : 'Not in a run'}</span>
+                <span className="editor-detail">{run ? (run.summary ?? STATE_TEXT[runState(run)]) : `${day(entry.at)} ${time(entry.at)}`}</span>
+            </div>
             {changes.length > 0 && (
                 <ul className="editor-list">
                     {changes.map(change => (

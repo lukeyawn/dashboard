@@ -174,13 +174,11 @@ The agent names each run with a **label** it chooses, new for each run: the job 
 
 - **At rest,** the middle of the dock holds only **✦**, with **"5 new"** in accent while something is new. The count is new changes, plus one for each new run that changed nothing new, such as a report on a quiet day. With nothing new, the ✦ is muted. After three days with no runs and no changes, it's gone. It replaced "✦ *n* new from the agent" on the right (§3).
 - **Tapping it** opens a popover above the dock, drawn over the page, scrolling inside. It closes with **Done**, ✕, Escape or a tap outside. On the kiosk it also closes after `IDLE_MS` without a touch, without marking anything seen, since nobody may have read it.
-- **The timeline,** newest first, covers today and the two days before, plus anything older Luke hasn't seen:
-  - each run: its label and times, its summary (or *"Still running"* / *"Didn't report"*), the briefing, and its changes in words, each with **Undo**;
-  - **Undo this run**, on a second tap: `POST /api/changes/undo-since { run, actors: ['agent'] }`. It undoes only that run's changes, even when another run's are interleaved in time;
-  - changes in no run, which only predate phase 9, as *"Not in a run"*, with Undo on each;
-  - **a line** between what's new (above) and what Luke has seen (below);
-  - **Undo all new** at the bottom, on a second tap: `undo-since { since: the oldest new change, actors: ['agent'] }`, as §3's Undo all of these. So a run that crashed before reporting still has two ways to be undone at once.
-- **Seen:** an entry is new when its time (the report, else its newest change, else its start) is after `agent_seen_at`. Closing the popover sets `agent_seen_at` to the newest time it showed, so a report with no changes becomes seen too.
+- **The timeline,** newest first, covers today and the two days before, plus anything older Luke hasn't seen. It has two tabs, so what the agent told Luke isn't buried in what it did (Luke, Oct 3):
+  - **Briefings,** which it opens on: each run's label and times, and its briefing (or *"Still running"* / *"Didn't report"*). Each ends with *"7 changes ›"* (or *"No changes"*), which opens Changes at that run, so the changes are never out of reach.
+  - **Changes,** whose tab reads *"Changes · 7 new"* while there are new ones: each run that changed something, headed by its label, times and **summary**, which says what it did and so belongs here. Then its changes in words, each with **Undo**, and **Undo this run** on a second tap: `POST /api/changes/undo-since { run, actors: ['agent'] }`, which undoes only that run's changes, even when another run's are interleaved in time. Changes in no run, which only predate phase 9, show as *"Not in a run"*, with Undo on each. **Undo all new** is at the bottom, on a second tap: `undo-since { since: the oldest new change, actors: ['agent'] }`, as §3's Undo all of these, so a run that crashed before reporting still has two ways to be undone at once.
+  - Both tabs have **a line** between what's new (above) and what Luke has seen (below).
+- **Seen:** an entry is new when its time (the report, else its newest change, else its start) is after `agent_seen_at`. Closing the popover, from either tab, sets `agent_seen_at` to the newest time it showed, so a report with no changes becomes seen too, and so do changes Luke didn't open the Changes tab for: the tab's *"7 new"* and the briefings' *"7 changes ›"* were there to see.
 - **Over 200 changes** in the window (a long time away), the oldest runs list fewer of their changes; Undo this run still undoes all of them on the server.
 
 ### The status line

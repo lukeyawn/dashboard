@@ -120,13 +120,13 @@ for (const [width, height] of RESOLUTIONS) {
             expect(withPanel.shells.filter(s => s.overflowing).map(s => s.area), 'widgets whose content overflows, with the panel open').toEqual([]);
             expect(withPanel.smallTargets, 'tap targets smaller than --hit, with the panel open').toEqual([]);
 
-            // the agent's timeline, opened from the dock's ✦ (docs/AGENT.md §7)
+            // the agent's timeline, opened from the dock's ✦ (docs/AGENT.md §7):
+            // the briefings first, then the changes, which are more than fit
             await expect(page.locator('.dock-agent')).toHaveText('✦7 new');
             await page.locator('.dock-agent').click();
             const modal = page.locator('.agent-timeline');
             await modal.waitFor();
-            await page.screenshot({ path: `test-results/screens/${width}x${height}-agent.png` });
-            const agent = await modal.evaluate(el => {
+            const measureTimeline = () => modal.evaluate(el => {
                 const px = Math.min(innerWidth / 1920, innerHeight / 1080);
                 const rect = el.getBoundingClientRect();
                 const dock = document.querySelector('.dock').getBoundingClientRect();
@@ -142,11 +142,16 @@ for (const [width, height] of RESOLUTIONS) {
                     small,
                 };
             });
-            expect(agent.inside, "the agent's timeline is on screen, above the dock").toBe(true);
-            expect(agent.scrolls, "the agent's timeline scrolls inside the popover").toBe(true);
-            expect(agent.wide, "the agent's timeline is wider than the popover").toBe(false);
-            expect(agent.small, "the agent's timeline's buttons smaller than --hit").toEqual([]);
-            await expect(modal.locator('.agent-seen-line')).toHaveCount(1);
+            for (const tab of ['Briefings', 'Changes · 7 new']) {
+                await modal.getByRole('tab', { name: tab }).click();
+                await page.screenshot({ path: `test-results/screens/${width}x${height}-agent-${tab.split(' ')[0].toLowerCase()}.png` });
+                const agent = await measureTimeline();
+                expect(agent.inside, `the agent's ${tab} is on screen, above the dock`).toBe(true);
+                expect(agent.wide, `the agent's ${tab} is wider than the popover`).toBe(false);
+                expect(agent.small, `the agent's ${tab}: buttons smaller than --hit`).toEqual([]);
+                await expect(modal.locator('.agent-seen-line'), `the line between new and seen, in ${tab}`).toHaveCount(1);
+                if (tab !== 'Briefings') expect(agent.scrolls, "the agent's changes scroll inside the popover").toBe(true);
+            }
             await modal.getByText('Done').click();
             // seen now: the ✦ stays, muted
             await expect(page.locator('.dock-agent')).toHaveText('✦');

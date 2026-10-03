@@ -132,8 +132,9 @@ describe("Dock's ✦ for the agent (docs/AGENT.md §7)", () => {
         const { api, state } = await setup();
         fireEvent.click(await screen.findByRole('button', { name: 'The agent: 2 new' }));
         expect(screen.getByText('Book flights · reply to Stripe')).toBeTruthy();
-        expect(screen.getByText('Added task "Seen yesterday"')).toBeTruthy();
+        expect(screen.getByText('Seen yesterday')).toBeTruthy();
         expect(document.querySelector('.agent-seen-line')).toBeTruthy();
+        // looking only at the briefings still counts as looking
         fireEvent.click(screen.getByText('Done'));
         // the report came after the last change, so it's what's seen up to
         await waitFor(() => expect(state.seen).toBe('2026-10-02T12:06:00.000Z'));
