@@ -95,10 +95,11 @@ export const HABITS = rows([
     { name: 'No phone in bed', checks: pick('x..xxxx'), streak: 4 },
 ].map((h, i) => ({ per_week: 7, week_count: h.checks.filter(d => d >= '2026-09-27').length, position: i, archived_at: null, ...h })));
 
-export const SETTINGS = { night_start: '22:00', night_end: '06:30', week_start: 'sunday', assignments_area: 1, agent_seen_at: at('06:00') };
+// Luke last looked between the agent's two runs this morning
+export const SETTINGS = { night_start: '22:00', night_end: '06:30', week_start: 'sunday', assignments_area: 1, agent_seen_at: at('07:29'), agent_runs_per_day: 5 };
 
-// what the scheduled agent did since Luke last looked, for the dock's chip and
-// its modal (docs/AGENT.md §3): more than the modal shows at once, so it scrolls
+// what the scheduled agent did, for the dock's ✦ and its timeline
+// (docs/AGENT.md §7): more than the popover shows at once, so it scrolls
 const AGENT_NAMES = [
     'Reply to the Stripe recruiter about the take-home assessment deadline, and ask whether it can move to next week',
     'Book flights for Thanksgiving', 'Pay rent', 'Read chapter 4 for OS', 'Renew passport', 'Return library books', 'Call the dentist', 'Buy a birthday gift for Mom',
@@ -107,8 +108,19 @@ const AGENT_NAMES = [
 export const AGENT_CHANGES = AGENT_NAMES.map((name, i) => ({
     // newest first, as the server sends them
     id: 200 - i, at: at(`07:${String(55 - i * 4).padStart(2, '0')}`), actor: 'agent', via: 'claude.ai', connection_id: 3,
+    // the first seven in this morning's email run, the rest in the run before
+    run_id: i < 7 ? 3 : 2,
     resource: 'tasks', item_id: String(100 + i), action: 'create', before: null, after: { id: 100 + i, name },
 }));
+
+// the longest briefing allowed, to prove it wraps inside the popover
+const LONG_BRIEFING = `7 tasks from email · Stripe take-home due Fri 5 PM · ${'Supercalifragilisticexpialidocious '.repeat(14)}`.slice(0, 500);
+export const RUNS = [
+    { id: 3, name: 'Email', started_at: at('07:30'), ended_at: at('07:58'), summary: '7 tasks from email, the longest of names', briefing: LONG_BRIEFING, connection_id: 3 },
+    { id: 2, name: 'Job search', started_at: at('07:00'), ended_at: at('07:28'), summary: '5 tasks', briefing: 'Career fair sign-up closes Fri', connection_id: 3 },
+    // yesterday's, which never reported
+    { id: 1, name: 'Email', started_at: at('07:00', '2026-09-29'), ended_at: null, summary: null, briefing: null, connection_id: 3 },
+].map(r => ({ created_at: r.started_at, updated_at: r.ended_at ?? r.started_at, ...r }));
 
 // the selected (top) one has long notes, to prove they scroll inside the panel;
 // more applied ones than fit, to prove they fold into "+N more"
@@ -146,6 +158,7 @@ const FIXTURES = {
     '/api/session': () => ({ client: 'api' }),
     '/api/status': () => ({ backup: null, calendar: null, problems: [] }),
     '/api/changes': q => (q.get('actor') === 'agent' ? AGENT_CHANGES : []),
+    '/api/runs': () => RUNS,
     '/api/night': () => ({ active: false, early: false, until: null, start: '22:00', end: '06:30' }),
     '/api/events': q => eventsBetween(q.get('from'), q.get('to')),
     '/api/birthdays': q => BIRTHDAYS.filter(b => b.date >= q.get('from') && b.date <= q.get('to')),

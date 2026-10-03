@@ -4,11 +4,11 @@ import { AsyncLocalStorage } from 'node:async_hooks';
 
 const context = new AsyncLocalStorage();
 
-// Runs fn with this actor, and the claude.ai connection if there is one,
-// recorded on every change it makes. Outside any request (scripts, startup)
-// changes are recorded as 'system'.
-export function withActor(actor, fn, connectionId = null) {
-    return context.run({ actor, connectionId }, fn);
+// Runs fn with this actor, and the claude.ai connection and the agent's run
+// if there are any, recorded on every change it makes. Outside any request
+// (scripts, startup) changes are recorded as 'system'.
+export function withActor(actor, fn, connectionId = null, runId = null) {
+    return context.run({ actor, connectionId, runId }, fn);
 }
 
 export function currentActor() {
@@ -48,12 +48,15 @@ export function createChangeLog(db, { now = Date.now } = {}) {
     const insert = db.prepare(`
         INSERT INTO changes (at, actor, resource, item_id, action, before, after, connection_id)
         VALUES (@at, @actor, @resource, @item_id, @action, @before, @after, @connection_id)`);
+    // prepared only once a change names a run, so the migration tests can
+    // still record changes on a database from before migration 019
+    let insertWithRun;
     const getStatement = db.prepare('SELECT * FROM changes WHERE id = ?');
     const creationsStatement = db.prepare(`
         SELECT id, item_id, at, actor, connection_id, json_extract(after, '$.created_at') AS created
         FROM changes WHERE resource = ? AND action = 'create' AND actor IN ('claude', 'agent') AND at >= ?`);
 
-    function select({ actor, resource, via, since }, limit) {
+    function select({ actor, resource, via, since, run }, limit) {
         const where = [];
         const params = {};
         const actors = actor === undefined ? [] : [actor].flat();
@@ -75,6 +78,10 @@ export function createChangeLog(db, { now = Date.now } = {}) {
             where.push('at >= @since');
             params.since = since;
         }
+        if (run !== undefined) {
+            where.push('run_id = @run');
+            params.run = run;
+        }
         const sql = `SELECT * FROM changes${where.length ? ` WHERE ${where.join(' AND ')}` : ''} ORDER BY id DESC${limit ? ' LIMIT @limit' : ''}`;
         return db.prepare(sql).all(limit ? { ...params, limit } : params).map(fromDb);
     }
@@ -82,7 +89,11 @@ export function createChangeLog(db, { now = Date.now } = {}) {
     return {
         // before and after are whole rows (or null), stored as JSON
         record({ resource, itemId, action, before = null, after = null }) {
-            insert.run({
+            const runId = context.getStore()?.runId ?? null;
+            insertWithRun ??= runId === null ? undefined : db.prepare(`
+                INSERT INTO changes (at, actor, resource, item_id, action, before, after, connection_id, run_id)
+                VALUES (@at, @actor, @resource, @item_id, @action, @before, @after, @connection_id, @run_id)`);
+            (runId === null ? insert : insertWithRun).run({
                 at: new Date(now()).toISOString(),
                 actor: currentActor(),
                 resource,
@@ -91,6 +102,7 @@ export function createChangeLog(db, { now = Date.now } = {}) {
                 before: before === null ? null : JSON.stringify(before),
                 after: after === null ? null : JSON.stringify(after),
                 connection_id: context.getStore()?.connectionId ?? null,
+                ...(runId === null ? {} : { run_id: runId }),
             });
         },
 
@@ -99,7 +111,8 @@ export function createChangeLog(db, { now = Date.now } = {}) {
         },
 
         // newest first. actor: one actor or a list; via: 'claude.ai',
-        // 'claude-code' or a connection id; since: an ISO timestamp
+        // 'claude-code' or a connection id; since: an ISO timestamp; run:
+        // one of the agent's runs
         list({ limit = 50, ...filters } = {}) {
             return select(filters, limit);
         },

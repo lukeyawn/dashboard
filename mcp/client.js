@@ -10,7 +10,8 @@ export class DashboardError extends Error {
 
 // unreachable: what to say when the dashboard can't be reached
 export function createClient({ baseUrl, token, fetch = globalThis.fetch, unreachable = 'Is this computer on the Tailscale network?' }) {
-    return async function call(method, path, body) {
+    // headers: more to send, such as the agent's run (docs/AGENT.md §7)
+    return async function call(method, path, body, { headers = {} } = {}) {
         let res;
         try {
             res = await fetch(new URL(`/api${path}`, baseUrl), {
@@ -20,6 +21,7 @@ export function createClient({ baseUrl, token, fetch = globalThis.fetch, unreach
                     // the change record shows these writes as Claude's (DESIGN §5.5)
                     'x-dashboard-client': 'claude',
                     ...(body === undefined ? {} : { 'content-type': 'application/json' }),
+                    ...headers,
                 },
                 body: body === undefined ? undefined : JSON.stringify(body),
                 signal: AbortSignal.timeout(15_000),

@@ -29,8 +29,8 @@ function measure() {
     });
 
     const dock = document.querySelector('.dock').getBoundingClientRect();
-    // everything in the dock fits beside the clock, the agent's chip included
-    const dockParts = [...document.querySelectorAll('.dock-clock, .dock-right > *')].map(el => el.getBoundingClientRect());
+    // everything in the dock fits beside the clock, the agent's ✦ included
+    const dockParts = [...document.querySelectorAll('.dock-clock, .dock-center > *, .dock-right > *')].map(el => el.getBoundingClientRect());
     const dockCrowded = dockParts.some((a, i) => a.right > innerWidth || dockParts.slice(i + 1).some(b => b.left < a.right - 0.5));
 
     // Upcoming's day boxes line up with the grid's first 4 columns (docs/BLOCKS.md §1):
@@ -120,32 +120,36 @@ for (const [width, height] of RESOLUTIONS) {
             expect(withPanel.shells.filter(s => s.overflowing).map(s => s.area), 'widgets whose content overflows, with the panel open').toEqual([]);
             expect(withPanel.smallTargets, 'tap targets smaller than --hit, with the panel open').toEqual([]);
 
-            // the agent's changes, opened from the dock's chip (docs/AGENT.md §3)
+            // the agent's timeline, opened from the dock's ✦ (docs/AGENT.md §7)
+            await expect(page.locator('.dock-agent')).toHaveText('✦7 new');
             await page.locator('.dock-agent').click();
-            const modal = page.locator('.modal');
+            const modal = page.locator('.agent-timeline');
             await modal.waitFor();
             await page.screenshot({ path: `test-results/screens/${width}x${height}-agent.png` });
             const agent = await modal.evaluate(el => {
                 const px = Math.min(innerWidth / 1920, innerHeight / 1080);
                 const rect = el.getBoundingClientRect();
-                const body = el.querySelector('.modal-body');
+                const dock = document.querySelector('.dock').getBoundingClientRect();
+                const body = el.querySelector('.agent-timeline-body');
                 const small = [...el.querySelectorAll('button')]
                     .map(b => ({ label: b.getAttribute('aria-label') ?? b.textContent.trim(), ...b.getBoundingClientRect().toJSON() }))
                     .filter(r => r.height < 48 * px - 0.5)
                     .map(r => r.label);
                 return {
-                    inside: rect.left >= 0 && rect.top >= 0 && rect.right <= innerWidth && rect.bottom <= innerHeight,
+                    inside: rect.left >= 0 && rect.top >= 0 && rect.right <= innerWidth && rect.bottom <= dock.top,
                     scrolls: body.scrollHeight > body.clientHeight,
                     wide: body.scrollWidth > body.clientWidth + 1,
                     small,
                 };
             });
-            expect(agent.inside, "the agent's changes are on screen").toBe(true);
-            expect(agent.scrolls, "the agent's changes scroll inside the modal").toBe(true);
-            expect(agent.wide, "the agent's changes are wider than the modal").toBe(false);
-            expect(agent.small, "the agent's changes' buttons smaller than --hit").toEqual([]);
+            expect(agent.inside, "the agent's timeline is on screen, above the dock").toBe(true);
+            expect(agent.scrolls, "the agent's timeline scrolls inside the popover").toBe(true);
+            expect(agent.wide, "the agent's timeline is wider than the popover").toBe(false);
+            expect(agent.small, "the agent's timeline's buttons smaller than --hit").toEqual([]);
+            await expect(modal.locator('.agent-seen-line')).toHaveCount(1);
             await modal.getByText('Done').click();
-            await expect(page.locator('.dock-agent')).toHaveCount(0);
+            // seen now: the ✦ stays, muted
+            await expect(page.locator('.dock-agent')).toHaveText('✦');
         });
     });
 }

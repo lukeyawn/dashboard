@@ -763,7 +763,7 @@ describe('the migration to a to-apply list (docs/BLOCKS.md §6)', () => {
         log.record({ resource: 'applications', itemId: id, action: 'update', before, after: raw(id) });
 
         migrate(db, migrations);
-        expect(db.pragma('user_version', { simple: true })).toBe(18);
+        expect(db.pragma('user_version', { simple: true })).toBe(migrations.length);
         expect(raw(id)).toMatchObject({ status: 'interview', applied_on: '2026-09-01' });
         const [updated] = log.list();
         expect(createUndo(db, log)(updated.id)).toMatchObject({ status: 'oa', next_on: '2026-10-02' });

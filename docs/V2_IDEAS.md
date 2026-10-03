@@ -6,18 +6,21 @@ Ideas from a review of the design docs once the block redesign and the agent's c
 
 | # | Idea | Status | When |
 |---|---|---|---|
-| 1 | Label the emails the agent has triaged | Planned | Phase 9 |
+| 1 | Label the emails the agent has triaged | Set up through [vm/AGENT.md](../vm/AGENT.md); the thread check is still to do | Phase 9 |
 | 2 | Catch the agent writing through the chat connector | Not doing | |
 | 3 | Undo across migrations | Field-level undo rejected; the migration fix is designed in [UNDO.md](UNDO.md) | Before the next migration |
 | 4 | A copy of the data outside Google, and backup health | Planned | |
 | 5 | One time zone, from the server | Planned | |
 | 6 | Consolidate the design docs | Done | |
-| 7 | The daily briefing in the center of the dock | Planned | Phase 9 |
+| 7 | The daily briefing in the center of the dock | Done, with Luke's changes: [AGENT.md §7](AGENT.md#7-runs-the-briefing-and-the-timeline-phase-9) | Phase 9 |
 | 8 | One version number for polling | Not discussed yet | |
+| 9 | One morning summary from several agents' runs | Undecided | |
 
 ---
 
 ## 1. Label the emails the agent has triaged
+
+> **Set up (Oct 3)** in [vm/AGENT.md](../vm/AGENT.md): the label, Gmail's `label_message` allowed, and the agent's instructions to label and to search with `-label:Dashboard newer_than:3d`. The thread check below is §6 there.
 
 **The problem:** the no-duplicates rule (DESIGN §5.5) only checks items that still exist. If Luke deletes an item the agent made from an email, or undoes it (an undone create is a delete), the next run rereads the same email, finds no item with that `source`, and adds it again.
 
@@ -164,6 +167,13 @@ Readers now have to work out which doc wins: BLOCKS.md is newer than DESIGN.md �
 
 ## 7. The daily briefing in the center of the dock
 
+> **Done (Oct 3),** as [AGENT.md §7](AGENT.md#7-runs-the-briefing-and-the-timeline-phase-9) describes, with three changes from Luke:
+> - **Nothing shows in the dock until the ✦ is tapped.** It opens a timeline of the last few days' runs, newest first, with a line between new and seen, instead of a briefing at body size in the dock.
+> - **Changes belong to a run by its id,** passed on every write, instead of by a time window, so several agents can run at once. The server keeps both times: `start_run` and `report_run` replace `report_run { started_at, ended_at, … }`.
+> - **The daily cap on runs is a setting** on `/manage`, for when there are more agents.
+>
+> Review also kept **Undo all new**, so a run that crashed before reporting can still be undone at once.
+
 DESIGN §16 leaves open where the briefing goes. Every tile is spoken for. The center of the dock, between the clock and the weather, is empty.
 
 **The idea: the briefing and the agent's changes become one thing,** in the center of the dock.
@@ -195,3 +205,12 @@ Each widget polls its own resource every 30 seconds. With ETags an unchanged ans
 - Calendar and weather keep their own timers.
 - **What it buys:** a change from Claude, the agent or another screen reaches the wall in about 5 seconds instead of up to 30, with fewer queries on the e2-micro.
 - **Cost:** a change to `useResource` and one route. The 30-second poll can stay as a fallback.
+
+---
+
+## 9. One morning summary from several agents' runs (undecided)
+
+Luke, Oct 3: with more than one agent (email, job search), each run writes its own briefing, and the timeline lists them separately. Later, the reports could be compiled into one morning summary. Not sure yet.
+
+- Every report is its own row in `runs`, kept for good, so a summary can be built from them later without a migration.
+- Open: who compiles it (one more agent run that reads the others' reports, or the dashboard itself), and where it shows. A run reading other runs' text would need care: AGENT.md §7 keeps runs unreadable to connectors so a fooled run can't leave instructions for the next.

@@ -2,7 +2,8 @@ import fs from 'node:fs';
 import os from 'node:os';
 import path from 'node:path';
 import { afterEach, describe, expect, it } from 'vitest';
-import { BACKUP_STALE_MS, CALENDAR_FAILING_MS, problems, readBackupStatus, systemStatus } from './status.js';
+import { BACKUP_STALE_MS, CALENDAR_FAILING_MS, RUN_STALE_MS, problems, readBackupStatus, systemStatus } from './status.js';
+import { RUN_OPEN_MS } from './stores/runs.js';
 
 const NOW = Date.parse('2026-10-02T15:00:00Z');
 const ago = ms => new Date(NOW - ms).toISOString();
@@ -34,6 +35,35 @@ describe('problems', () => {
         const routine = since => ({ calendar: { configured: true, failing_since: null, routine: { configured: true, failing_since: ago(since) } } });
         expect(problems(routine(CALENDAR_FAILING_MS - 1000), NOW)).toEqual([]);
         expect(problems(routine(CALENDAR_FAILING_MS + 1000), NOW)).toEqual([{ kind: 'calendar-routine', message: "The classes calendar isn't updating" }]);
+    });
+});
+
+describe("problems with the agent's runs (docs/AGENT.md §7)", () => {
+    const run = (startedAgo, { reported = true, name = null } = {}) => ({
+        agent: { latest: { id: 1, name, started_at: ago(startedAgo), ended_at: reported ? ago(startedAgo - 60_000) : null } },
+    });
+
+    it('finds none before the first run, or with the agent off or not set up', () => {
+        expect(problems({ agent: { latest: null } }, NOW)).toEqual([]);
+        expect(problems({ agent: null }, NOW)).toEqual([]);
+        expect(problems({}, NOW)).toEqual([]);
+    });
+
+    it("reports a run that didn't report once it's closed, the same morning", () => {
+        expect(problems(run(RUN_OPEN_MS - 1000, { reported: false }), NOW)).toEqual([]);
+        // 3 hours before 10:00 AM in Chicago, Friday
+        expect(problems(run(RUN_OPEN_MS + 1000, { reported: false }), NOW))
+            .toEqual([{ kind: 'agent-runs', message: "The agent's run from Fri 6:59 AM didn't report" }]);
+        expect(problems(run(RUN_OPEN_MS + 1000, { reported: false, name: 'Email' }), NOW)[0].message)
+            .toBe("The agent's Email run from Fri 6:59 AM didn't report");
+        expect(problems(run(RUN_OPEN_MS + 1000), NOW)).toEqual([]);
+    });
+
+    it('reports no run in over 26 hours, assuming one a day', () => {
+        expect(problems(run(RUN_STALE_MS - 1000), NOW)).toEqual([]);
+        expect(problems(run(RUN_STALE_MS + 1000), NOW)).toEqual([{ kind: 'agent-runs', message: "The agent hasn't run since Thu 7:59 AM" }]);
+        // one warning, not two, for an old run that also didn't report
+        expect(problems(run(RUN_STALE_MS + 1000, { reported: false }), NOW)).toHaveLength(1);
     });
 });
 

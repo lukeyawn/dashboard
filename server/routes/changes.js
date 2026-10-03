@@ -11,7 +11,8 @@ export function changesRouter(log, undo) {
     });
 
     // undo Claude's changes since a time, newest first; the UI sends via:
-    // 'claude.ai' unless the owner widens it (docs/CONNECTOR.md §6)
+    // 'claude.ai' unless the owner widens it (docs/CONNECTOR.md §6). With
+    // run, one of the agent's runs (docs/AGENT.md §7).
     router.post('/undo-since', (req, res) => {
         res.json(undo.since(validate(schemas.undoSince, req.body ?? {})));
     });

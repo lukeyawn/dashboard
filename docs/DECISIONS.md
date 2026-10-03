@@ -329,3 +329,23 @@ Choices made while building, where [DESIGN.md](DESIGN.md) left room or turned ou
 | DESIGN.md's repo layout lists directories and key files only, and points to each directory's README. | The full file list went stale with every PR; the READMEs are already updated in each PR that changes a directory. |
 | BLOCKS.md §10's merging rules moved into DESIGN.md §12, for every PR. | They were written for the block redesign but are how all PRs work now. |
 
+
+## Phase 9: the agent's runs
+
+[AGENT.md §7](AGENT.md#7-runs-the-briefing-and-the-timeline-phase-9), built Oct 3. Migration 019.
+
+| Choice | Why |
+|---|---|
+| A write from the agent's connector with no run, or an unknown one, is a 400; one naming a run that has reported or is past 3 hours is a 409. The owner's and the kiosk's tokens ignore the header, and their changes have no run. | The first is a malformed request, the second a conflict with the run's state, as elsewhere in the API. Only the agent's writes need grouping. |
+| The change log prepares its insert with `run_id` only once a change names a run. | The migration tests record changes on databases from before migration 019, which have no `run_id` column. |
+| The run cap counts only runs started through a connector; the owner's token isn't limited. | As with the write caps: the limit is on what a fooled agent can do, not on the owner. |
+| `GET /api/runs?since` keeps runs that ended (or, still open, started) at or after `since`. | A run that started before the history but reported inside it belongs in it. |
+| The timeline's history starts at local midnight two days back (`historyStart`), not at "now minus 72 hours". | The poll's address includes it, so it has to stay the same all day; a moving time would refetch on every render. |
+| Seen entries from before the history start are dropped, even though the server's `since` returned them. | `since` is "at or after", so the entry exactly at `agent_seen_at` came back, and kept the ✦ showing after three quiet days. |
+| A change whose run started before the history shows under that run's id, with the time of its oldest change as the start. | Rare (a run open across the start of the history), and its changes still belong together under one Undo this run. |
+| On the kiosk, the timeline closes after `IDLE_MS` without marking anything seen. | Nobody may have read it, so "new" stays. It's also what React's rules allow: closing is set while rendering, and marking seen is a request, which can't happen there. |
+| `RUN_OPEN_MS` lives in `shared/runs.js`, with `runState` (`reported`, `running`, `unreported`). | The server refuses writes by it and the timeline says *"Still running"* or *"Didn't report"* by it; one constant keeps them agreeing. |
+| `/api/status` carries only the latest run's id, name and times, not its summary or briefing. | It's what the warnings need; the agent's text is shown in one place, the timeline. |
+| When the latest run is both over 26 hours old and unreported, the status line says only *"hasn't run since"*. | One warning per problem, and the older fact is the more useful one. |
+| `runs.connection_id` has no foreign key, like `changes.connection_id`. | Connections are never deleted, and the two columns mean the same thing. |
+| vm/AGENT.md schedules the agent at 6:00 AM and has it search `in:inbox -label:Dashboard newer_than:3d`. | The briefing is ready before night mode ends at 6:30. The window keeps a first run, or a broken label, from reading the whole inbox; `source` catches anything read twice. |

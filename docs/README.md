@@ -6,7 +6,7 @@
 |---|---|
 | `DESIGN.md` | The design: what's decided and why, and what exists. |
 | `CONNECTOR.md` | The claude.ai connectors: the public door, sign-in, what each connector can do, Claude's changes and undo, the text and link rules. |
-| `AGENT.md` | The scheduled agent and its connector: why it writes directly, its allow-list, the dock chip, and what phase 9 sets up. |
+| `AGENT.md` | The scheduled agent and its connector: why it writes directly, its allow-list, the dock chip, and its runs, briefing and timeline in the dock (phase 9, §7). |
 | `BLOCKS.md` | The block redesign (Oct 2), built: why each block is the way it is, and what was rejected. Code comments cite its sections. |
 | `UNDO.md` | Undo across migrations (Oct 3): Undo compares column by column, so adding a column no longer means rewriting the change record. Also why field-level undo was rejected. |
 | `V2_IDEAS.md` | Ideas from a review of the docs (Oct 3): what's planned, what's dropped, and why. Not decided until moved into DESIGN.md. |

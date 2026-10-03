@@ -1,7 +1,7 @@
 // What a claude.ai connector's token may do on the API (docs/CONNECTOR.md §5).
 import { afterEach, describe, expect, it } from 'vitest';
 import { WRITE_CAPS, isAllowed, startOfToday } from './access.js';
-import { startServer } from './testing.js';
+import { KIOSK_TOKEN, startServer } from './testing.js';
 
 let server;
 afterEach(async () => {
@@ -9,11 +9,20 @@ afterEach(async () => {
     server = null;
 });
 
-// a request as one of claude.ai's connectors, straight to the private API
-async function start(connector = 'chat') {
-    server = await startServer({ connector: true });
+// a request as one of claude.ai's connectors, straight to the private API.
+// The agent's writes each name a run (docs/AGENT.md §7), so for the agent
+// this starts one and sends its id, as mcp/client.js does.
+async function start(connector = 'chat', options = {}) {
+    server = await startServer({ connector: true, ...options });
     const { access_token: token } = await server.signIn(connector);
-    return (path, options = {}) => server.request(path, { ...options, token });
+    const as = (path, { headers = {}, ...rest } = {}) => server.request(path, { ...rest, headers: { ...runHeader, ...headers }, token });
+    let runHeader = {};
+    if (connector === 'agent') {
+        as.run = (await as('/api/runs', { method: 'POST', body: {} })).body;
+        runHeader = { 'x-dashboard-run': String(as.run.id) };
+    }
+    as.token = token;
+    return as;
 }
 
 describe('isAllowed', () => {
@@ -50,6 +59,17 @@ describe('isAllowed', () => {
         ];
         for (const [method, path] of allowed) expect(isAllowed('agent', method, path), `${method} ${path}`).toBe(true);
         for (const [method, path] of refused) expect(isAllowed('agent', method, path), `${method} ${path}`).toBe(false);
+    });
+
+    it("lets only the agent start and report runs, and neither connector read them (docs/AGENT.md §7)", () => {
+        expect(isAllowed('agent', 'POST', '/runs')).toBe(true);
+        expect(isAllowed('agent', 'POST', '/runs/3/report')).toBe(true);
+        for (const [method, path] of [['GET', '/runs'], ['GET', '/runs/3'], ['PATCH', '/runs/3'], ['POST', '/runs/3/undo']]) {
+            expect(isAllowed('agent', method, path), `${method} ${path}`).toBe(false);
+        }
+        for (const [method, path] of [['GET', '/runs'], ['POST', '/runs'], ['POST', '/runs/3/report']]) {
+            expect(isAllowed('chat', method, path), `${method} ${path}`).toBe(false);
+        }
     });
 
     it('allows an unknown connector nothing', () => {
@@ -200,7 +220,7 @@ describe("the agent connector's token on the API", () => {
         expect((await asChat('/api/tasks', { method: 'POST', body: { name: 'Chat again' } })).status).toBe(201);
         const connectors = (await server.request('/api/connectors')).body;
         expect(connectors.find(c => c.name === 'chat')).toMatchObject({ writes_today: 6, write_cap: 100 });
-        expect(connectors.find(c => c.name === 'agent')).toMatchObject({ writes_today: WRITE_CAPS.agent, write_cap: WRITE_CAPS.agent });
+        expect(connectors.find(c => c.name === 'agent')).toMatchObject({ writes_today: WRITE_CAPS.agent, write_cap: WRITE_CAPS.agent, runs_today: 1, run_cap: 5 });
         const problems = (await server.request('/api/status')).body.problems;
         expect(problems).toEqual([{ kind: 'connector-agent-limit', message: "Today's limit of 30 agent changes is used up" }]);
     });
@@ -228,5 +248,113 @@ describe("undoing the agent's changes since the owner last looked (docs/AGENT.md
         expect(undone.map(c => c.after.name)).toEqual(['From an email']);
         expect(skipped.map(s => s.change.after.name)).toEqual(['Edited since']);
         expect((await server.request('/api/tasks')).body.map(t => t.name).sort()).toEqual(['Edited by Luke', 'Mine']);
+    });
+});
+
+describe("the agent's runs through its connector (docs/AGENT.md §7)", () => {
+    it('records each write with its run, and undoes one run alone even when two overlap', async () => {
+        const asAgent = await start('agent');
+        const other = (await asAgent('/api/runs', { method: 'POST', body: { name: 'Job search' } })).body;
+        const inOther = { 'x-dashboard-run': String(other.id) };
+        await asAgent('/api/tasks', { method: 'POST', body: { name: 'First run, 1' } });
+        await asAgent('/api/tasks', { method: 'POST', body: { name: 'Second run' }, headers: inOther });
+        await asAgent('/api/tasks', { method: 'POST', body: { name: 'First run, 2' } });
+        const changes = (await server.request('/api/changes?actor=agent')).body;
+        expect(changes.map(c => [c.after.name, c.run_id])).toEqual([['First run, 2', asAgent.run.id], ['Second run', other.id], ['First run, 1', asAgent.run.id]]);
+        expect((await server.request(`/api/changes?run=${other.id}`)).body.map(c => c.after.name)).toEqual(['Second run']);
+
+        const { undone } = (await server.request('/api/changes/undo-since', { method: 'POST', body: { run: asAgent.run.id, actors: ['agent'] } })).body;
+        expect(undone.map(c => c.after.name)).toEqual(['First run, 2', 'First run, 1']);
+        expect((await server.request('/api/tasks')).body.map(t => t.name)).toEqual(['Second run']);
+        // the undo is the owner's, in no run
+        expect((await server.request('/api/changes?actor=owner')).body.every(c => c.run_id === null)).toBe(true);
+    });
+
+    it('refuses a write that names no open run, saying to call start_run', async () => {
+        const asAgent = await start('agent');
+        const write = headers => asAgent('/api/tasks', { method: 'POST', body: { name: 'Stray' }, headers });
+        const none = await server.request('/api/tasks', { method: 'POST', body: { name: 'Stray' }, token: asAgent.token });
+        expect(none.status).toBe(400);
+        expect(none.body.error.message).toBe('This write names no run. Call start_run first, and pass its id as run on every change.');
+        expect((await write({ 'x-dashboard-run': '999' })).body.error.message).toMatch(/^There's no run 999\. Call start_run/);
+        expect((await write({ 'x-dashboard-run': 'abc' })).status).toBe(400);
+        await asAgent(`/api/runs/${asAgent.run.id}/report`, { method: 'POST', body: { summary: 'Done', briefing: 'Done' } });
+        const reported = await write();
+        expect(reported.status).toBe(409);
+        expect(reported.body.error.message).toMatch(/already reported at .*Call start_run for a new run\.$/);
+        expect((await server.request('/api/tasks')).body).toEqual([]);
+        // reads need no run
+        expect((await server.request('/api/tasks', { token: asAgent.token })).status).toBe(200);
+    });
+
+    it('closes a run to writes after 3 hours', async () => {
+        let clock = Date.now();
+        const asAgent = await start('agent', { now: () => clock });
+        clock += 3 * 60 * 60 * 1000 + 1000;
+        // a fresh token, since the first has expired by now
+        const { access_token: token } = await server.signIn('agent');
+        const late = await server.request('/api/tasks', { method: 'POST', body: { name: 'Late' }, token, headers: { 'x-dashboard-run': String(asAgent.run.id) } });
+        expect(late.status).toBe(409);
+        expect(late.body.error.message).toBe(`Run ${asAgent.run.id} started over 3 hours ago, so it's closed. Call start_run for a new run.`);
+    });
+
+    it("ignores the owner's run header", async () => {
+        await start('agent');
+        const task = await server.request('/api/tasks', { method: 'POST', body: { name: 'Mine' }, headers: { 'x-dashboard-run': '999' } });
+        expect(task.status).toBe(201);
+        expect((await server.request('/api/changes')).body[0].run_id).toBeNull();
+    });
+
+    it(`can still start and report a run after its ${WRITE_CAPS.agent} changes`, async () => {
+        const asAgent = await start('agent');
+        for (let i = 0; i < WRITE_CAPS.agent; i++) await asAgent('/api/tasks', { method: 'POST', body: { name: `Agent ${i}` } });
+        expect((await asAgent('/api/tasks', { method: 'POST', body: { name: 'One too many' } })).status).toBe(429);
+        const report = await asAgent(`/api/runs/${asAgent.run.id}/report`, { method: 'POST', body: { summary: '30 tasks', briefing: 'Hit the limit' } });
+        expect(report.status).toBe(200);
+        expect((await asAgent('/api/runs', { method: 'POST', body: {} })).status).toBe(201);
+    });
+
+    it('starts at most agent_runs_per_day runs a day, which only the owner can raise', async () => {
+        const asAgent = await start('agent');
+        // the helper started the first
+        for (let i = 1; i < 5; i++) expect((await asAgent('/api/runs', { method: 'POST', body: {} })).status).toBe(201);
+        const refused = await asAgent('/api/runs', { method: 'POST', body: {} });
+        expect(refused.status).toBe(429);
+        expect(refused.body.error.message).toBe("Today's limit of 5 agent runs is used up. It resets at midnight, or the owner can raise it on /manage.");
+        expect((await asAgent('/api/settings', { method: 'PATCH', body: { agent_runs_per_day: 50 } })).status).toBe(403);
+        const { access_token: chatToken } = await server.signIn('chat');
+        const asChat = await server.request('/api/settings', { method: 'PATCH', body: { agent_runs_per_day: 50 }, token: chatToken });
+        expect(asChat.status).toBe(403);
+        expect(asChat.body.error.message).toBe("claude.ai can't set agent_runs_per_day. The owner does that on the dashboard.");
+        await server.request('/api/settings', { method: 'PATCH', body: { agent_runs_per_day: 6 } });
+        expect((await asAgent('/api/runs', { method: 'POST', body: {} })).status).toBe(201);
+        expect((await asAgent('/api/runs', { method: 'POST', body: {} })).status).toBe(429);
+    });
+
+    it("can't read runs back, and the chat connector can't start one", async () => {
+        const asAgent = await start('agent');
+        expect((await asAgent('/api/runs')).status).toBe(403);
+        const { access_token: chatToken } = await server.signIn('chat');
+        expect((await server.request('/api/runs', { method: 'POST', body: {}, token: chatToken })).status).toBe(403);
+        expect((await server.request('/api/runs', { token: KIOSK_TOKEN })).status).toBe(200);
+    });
+
+    it('has its run text cleaned to one line', async () => {
+        const asAgent = await start('agent');
+        const zeroWidth = String.fromCharCode(0x200B);
+        const run = (await asAgent('/api/runs', { method: 'POST', body: { name: `Em${zeroWidth}ail` } })).body;
+        expect(run).toMatchObject({ name: 'Email', connection_id: expect.any(Number) });
+        const reported = (await asAgent(`/api/runs/${run.id}/report`, { method: 'POST', body: { summary: 'one\ntwo', briefing: `a${zeroWidth}b\n\nc` } })).body;
+        expect(reported).toMatchObject({ summary: 'one two', briefing: 'ab c' });
+    });
+
+    it('warns in the status line about a run that never reported, until the agent is switched off', async () => {
+        let clock = Date.now();
+        await start('agent', { now: () => clock });
+        clock += 3 * 60 * 60 * 1000 + 1000;
+        const problems = async () => (await server.request('/api/status')).body.problems.map(p => p.kind);
+        expect(await problems()).toEqual(['agent-runs']);
+        await server.request('/api/connectors/agent', { method: 'PUT', body: { enabled: false } });
+        expect(await problems()).toEqual([]);
     });
 });

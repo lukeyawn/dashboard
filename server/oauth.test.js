@@ -370,7 +370,7 @@ describe('connections and switches on /manage', () => {
         const connectors = (await server.request('/api/connectors')).body;
         expect(connectors).toEqual([
             { name: 'chat', configured: true, enabled: true, url: `${PUBLIC_URL}/mcp`, writes_today: 0, write_cap: 100 },
-            { name: 'agent', configured: true, enabled: true, url: `${PUBLIC_URL}/mcp/agent`, writes_today: 0, write_cap: 30 },
+            { name: 'agent', configured: true, enabled: true, url: `${PUBLIC_URL}/mcp/agent`, writes_today: 0, write_cap: 30, runs_today: 0, run_cap: 5 },
         ]);
         const off = await server.request('/api/connectors/chat', { method: 'PUT', body: { enabled: false } });
         expect(off.body.enabled).toBe(false);
@@ -423,7 +423,7 @@ describe('connections and switches on /manage', () => {
         server = await startServer();
         expect((await server.request('/api/connectors')).body).toEqual([
             { name: 'chat', configured: false, enabled: true, url: null, writes_today: 0, write_cap: 100 },
-            { name: 'agent', configured: false, enabled: true, url: null, writes_today: 0, write_cap: 30 },
+            { name: 'agent', configured: false, enabled: true, url: null, writes_today: 0, write_cap: 30, runs_today: 0, run_cap: 5 },
         ]);
         expect((await server.request('/api/connections')).body).toEqual([]);
         expect((await server.request('/api/connections/1/revoke', { method: 'POST' })).status).toBe(404);

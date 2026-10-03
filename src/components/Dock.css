@@ -59,17 +59,38 @@
     white-space: nowrap;
 }
 
-/* what the agent changed since Luke last looked (docs/AGENT.md §3): a pill
-   like the warnings, in the ✦'s color, since it's news rather than trouble */
+/* the middle of the dock, between the clock and the weather: the agent's ✦
+   (docs/AGENT.md §7). It takes the room left over, so the clock and the
+   weather never move for it. */
+.dock-center {
+    display: flex;
+    flex: 1;
+    justify-content: center;
+    min-width: 0;
+}
+
+/* muted when nothing is new; a pill like the warnings, in the ✦'s color,
+   while something is, since it's news rather than trouble */
 .dock-agent {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: calc(10 * var(--px));
+    min-width: var(--hit);
     min-height: var(--hit);
-    padding: 0 calc(16 * var(--px));
-    border: 1px solid var(--accent-glow);
+    padding: 0 calc(14 * var(--px));
+    border: 1px solid hsla(0, 0%, 100%, 0.2);
     border-radius: 999px;
-    background-color: hsla(195, 90%, 70%, 0.15);
-    color: var(--accent);
+    background: none;
+    color: var(--text-muted);
     font: inherit;
     white-space: nowrap;
+}
+
+.dock-agent.new {
+    border-color: var(--accent-glow);
+    background-color: hsla(195, 90%, 70%, 0.15);
+    color: var(--accent);
 }
 
 .dock-agent:active {
