@@ -235,7 +235,7 @@ These apply to **both** connectors. (In the first version, §7 was the agent's s
 
 (In the first version, §8 was reviewing suggestions on the dashboard, as archived.)
 
-The middle of the dock shows a **✦**, with *"5 new"* while the agent has done things since Luke last looked. Tapping it opens a timeline of the agent's runs over the last few days: each run's summary and briefing, its changes in words with **Undo**, **Undo this run**, a line between new and seen, and **Undo all new**. Closing it clears *"new"* on every screen. The details are in [AGENT.md §7](AGENT.md#7-runs-the-briefing-and-the-timeline-phase-9); the first version, a chip on the right, is [AGENT.md §3](AGENT.md#3-the-review-a-glance-not-a-gate).
+The middle of the dock shows a **✦**, with *"5 new"* while the agent has done things since Luke last looked. Tapping it opens a timeline of the agent's runs over the last few days in two tabs: **Briefings**, each run's briefing with a link to its changes, and **Changes**, each run's summary and changes in words with **Undo**, **Undo this run**, and **Undo all new**. Both have a line between new and seen. Closing it clears *"new"* on every screen. The details are in [AGENT.md §7](AGENT.md#7-runs-the-briefing-and-the-timeline-phase-9); the first version, a chip on the right, is [AGENT.md §3](AGENT.md#3-the-review-a-glance-not-a-gate).
 
 ---
 

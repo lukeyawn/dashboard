@@ -51,6 +51,43 @@
     font-size: 1.2em;
 }
 
+/* Briefings and Changes, each a full --hit tall */
+.agent-tabs {
+    display: flex;
+    gap: calc(var(--e-gap) * 2);
+    padding: 0 calc(var(--e-gap) * 2);
+    border-bottom: 1px solid var(--hairline);
+}
+
+.agent-tabs [role="tab"] {
+    min-height: var(--e-hit);
+    padding: 0;
+    border: none;
+    border-bottom: calc(3 * var(--px)) solid transparent;
+    background: none;
+    color: var(--text-muted);
+    font: inherit;
+    font-weight: 600;
+}
+
+.agent-tabs [role="tab"][aria-selected="true"] {
+    border-bottom-color: var(--accent);
+    color: var(--text);
+}
+
+.agent-tab-new {
+    color: var(--accent);
+}
+
+/* a briefing's way to the run's changes: a link, but a full tap target */
+.agent-timeline .agent-changes-link {
+    align-self: flex-start;
+    padding: 0;
+    border: none;
+    background: none;
+    color: var(--accent);
+}
+
 .agent-timeline-body {
     min-height: 0;
     overflow-y: auto;

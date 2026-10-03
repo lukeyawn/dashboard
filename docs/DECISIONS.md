@@ -361,3 +361,15 @@ Oct 3, after PR #43. Migration 020. [AGENT.md §7](AGENT.md#a-run).
 | Labels are ASCII letters, digits, spaces and `. _ : / -`, up to 60. | They travel in an HTTP header, which can't carry most other characters. |
 | The instructions build the label from `get_today`'s `now`. | It's unique for every run without the agent having to work out local time. |
 | `runs.name` stays, unused. | Dropping a column is a table rebuild, and it holds nothing: the agent hadn't been set up when `start_run` went. |
+
+## Phase 9: briefings and changes in two tabs
+
+Oct 3, after PR #44. Frontend only. [AGENT.md §7](AGENT.md#the-dock-a--and-a-timeline-behind-it).
+
+| Choice | Why |
+|---|---|
+| The summary moved to the Changes tab, as each run's heading; Briefings shows only the briefing. | The summary says what the run did ("3 tasks from email"), which is about its changes; the briefing is what Luke should know. |
+| Briefings leaves out changes in no run, and Changes leaves out runs that changed nothing. | Neither has anything to show in that tab. A quiet run says *"No changes"* in Briefings instead. |
+| A briefing's link reads *"7 changes (2 undone) ›"* once some are undone in the popover. | Its count would otherwise disagree with what the Changes tab shows. |
+| Closing from either tab marks everything seen, as before. | The Changes tab's *"7 new"* and the links are visible from Briefings; making Luke open Changes before "new" clears would turn the glance back into a chore (§1). |
+
